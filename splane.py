@@ -44,8 +44,8 @@ def analyze_sys( all_sys, aprox_name ):
     
     plt.close('all')
     
-#    img_ext = 'none'
-    img_ext = 'png'
+    img_ext = 'none'
+#    img_ext = 'png'
 #    img_ext = 'svg'
     
     cant_sys = len(all_sys)
@@ -62,6 +62,13 @@ def analyze_sys( all_sys, aprox_name ):
     if img_ext != 'none':
         plt.savefig('_'.join(aprox_name) + '_Bode.' + img_ext, format=img_ext)
 
+    fig_id = 6
+    axes_hdl = ()
+
+    for ii in range(cant_sys):
+        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl)
+
+    axes_hdl[0].legend(aprox_name)
     axes_hdl[0].set_ylim(bottom=-3)
 
     if img_ext != 'none':
@@ -82,13 +89,12 @@ def analyze_sys( all_sys, aprox_name ):
             digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], aprox_name[ii], digital_fig_id, digital_axes_hdl)
             
 
-    if not(analog_axes_hdl is list):
+    if all_sys[ii].dt is None:
         analog_axes_hdl.legend()
         if img_ext != 'none':
             plt.figure(analog_fig_id)
             plt.savefig('_'.join(aprox_name) + '_Analog_PZmap.' + img_ext, format=img_ext)
-    
-    if not(digital_axes_hdl is list):
+    else:
         digital_axes_hdl.legend()
         if img_ext != 'none':
             plt.figure(digital_fig_id)
