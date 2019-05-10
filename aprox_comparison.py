@@ -24,11 +24,10 @@ mpl.rcParams['figure.figsize'] = (10,10)
 
 # Requerimientos de plantilla
 
-order2analyze = 4
 
-ripple = 0.5
+ripple = 3
 attenuation = 40
-orders2analyze = range(2,7)
+order2analyze = 2
 
 all_sys = []
 filter_names = []

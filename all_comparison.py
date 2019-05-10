@@ -1,35 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jun  5 14:57:54 2018
+Created on Thu May  2 07:53:40 2019
 
-@author: mllamedo
-
-Script para comparar distintos órdenes de aproximación en las functiones
-de aproximación implementadas en scipy.signal
-
+@author: mariano
 """
-import numpy as np
-import scipy.signal as sig
-from splane import analyze_sys
-import matplotlib as mpl
 
+import scipy.signal as sig
+import matplotlib as mpl
+from splane import analyze_sys, pzmap, grpDelay, bodePlot
+import numpy as np
+
+#mpl.rcParams['figure.figsize'] = (15,15)
+    
 #####################
 ## Start of script ##
 #####################
-
-# Setup inline graphics
-mpl.rcParams['figure.figsize'] = (10,10)
         
-# Tipo de aproximación.
         
 #aprox_name = 'Butterworth'
-aprox_name = 'Chebyshev1'
+#aprox_name = 'Chebyshev1'
 #aprox_name = 'Chebyshev2'
-#aprox_name = 'Bessel'
+aprox_name = 'Bessel'
 #aprox_name = 'Cauer'
-
-# Requerimientos de plantilla
 
 ripple = [3, 3, 3] # dB \alpha_{max} <-- Sin parametrizar, lo dejo en Butterworth
 #ripple = [1, 3, 6] # dB \alpha_{max}
@@ -79,5 +72,3 @@ for (this_order, this_ripple, this_att) in zip(orders2analyze, ripple, attenuati
 
 
 analyze_sys( all_sys, filter_names )
-
-
