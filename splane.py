@@ -35,6 +35,38 @@ import matplotlib.pyplot as plt
 from matplotlib import patches
 from collections import defaultdict
 from scipy.signal import tf2zpk,tf2sos
+from IPython.display import display, Math, Latex
+ 
+def build_poly_str(this_poly):
+    
+    poly_str = ''
+
+    for ii in range( this_poly.shape[0] ):
+    
+        if this_poly[ii] != 0.0:
+            
+            if (this_poly.shape[0]-2) == ii:
+                poly_str +=  '+ s ' 
+            
+            elif (this_poly.shape[0]-1) != ii:
+                poly_str +=  '+ s^{:d} '.format(this_poly.shape[0]-ii-1) 
+
+            if (this_poly.shape[0]-1) == ii:
+                poly_str += '+ {:3.3g} '.format(this_poly[ii])
+            else:
+                if this_poly[ii] != 1.0:
+                    poly_str +=  '\,\, {:3.3g} '.format(this_poly[ii])
+                
+    return poly_str[2:]
+
+
+def pretty_print_lti(this_lti):
+    
+    num_str_aux = build_poly_str(this_lti.num)
+    den_str_aux = build_poly_str(this_lti.den)
+
+    
+    display(Math(r'\frac{' + num_str_aux + '}{' + den_str_aux + '}'))
 
 
 def analyze_sys( all_sys, aprox_name ):
@@ -268,7 +300,7 @@ def grpDelay(myFilter, fig_id='none'):
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none' ):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '' ):
     
     w, mag, phase = myFilter.bode()
 
@@ -281,24 +313,30 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none' ):
             axes_hdl = fig_hdl.get_axes()
         else:
             fig_hdl = plt.figure(fig_id)
-            fig_hdl, axes_hdl = plt.subplots(2, 1, sharex='col')
+            axes_hdl = fig_hdl.subplots(2, 1, sharex='col')
             fig_id = fig_hdl.number
 
     (mag_ax_hdl, phase_ax_hdl) = axes_hdl
     
     plt.sca(mag_ax_hdl)
-    plt.semilogx(w, mag)    # Bode magnitude plot
+    plt.semilogx(w, mag, label = label)    # Bode magnitude plot
     plt.grid(True)
 #    plt.xlabel('Angular frequency [rad/sec]')
     plt.ylabel('Magnitude [dB]')
     plt.title('Magnitude response')
     
+    if label != '' :
+        mag_ax_hdl.legend()
+        
     plt.sca(phase_ax_hdl)
-    plt.semilogx(w, phase)    # Bode phase plot
+    plt.semilogx(w, phase, label = label)    # Bode phase plot
     plt.grid(True)
     plt.xlabel('Angular frequency [rad/sec]')
     plt.ylabel('Phase [deg]')
     plt.title('Phase response')
+    
+    if label != '' :
+        phase_ax_hdl.legend()
     
     return fig_id, axes_hdl
     
