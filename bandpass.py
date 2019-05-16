@@ -9,7 +9,7 @@ Created on Wed May  8 23:14:49 2019
 import scipy.signal as sig
 import numpy as np
 from splane import analyze_sys, pzmap, grpDelay, bodePlot, pretty_print_lti
-    
+
 
 nn = 2 # orden
 ripple = 1 # dB
@@ -48,6 +48,10 @@ print( '\n\n')
 
 # visualización de cada sección
 
+## 
+# Factorización en BP - BP
+###########################
+
 fig_id = 1
 _, axes_hdl = bodePlot(sig.TransferFunction(num_bp_n,den_bp_n), label = 'Total', fig_id=fig_id )
 
@@ -82,4 +86,43 @@ for ii in np.arange(1, p_bp_n.shape[0]/2, dtype='int'):
     bodePlot(this_lti, label = 'Sect {:d}'.format(ii), fig_id=fig_id, axes_hdl=axes_hdl )
     
 
+## 
+# Factorización en LP - HP
+###########################
+    
+    
+fig_id = 2
+_, axes_hdl = bodePlot(sig.TransferFunction(num_bp_n,den_bp_n), label = 'Total', fig_id=fig_id )
+
+this_k = k_bp_n
+this_z = z_bp_n
+this_p = p_bp_n[0:2]
+bodePlot(sig.TransferFunction(sig.lti(this_z,this_p,this_k)), label = 'HP', fig_id=fig_id, axes_hdl=axes_hdl )
+
+str_aux = 'Sección HP'
+print( str_aux )
+print( '-' * len(str_aux) )
+
+this_lti = sig.TransferFunction(sig.lti(this_z,this_p,this_k))
+pretty_print_lti(this_lti)
+print( '\n\n')
+
+for ii in np.arange(1, p_bp_n.shape[0]/2, dtype='int'):
+    
+    this_k = 1
+    this_z = []
+    this_p = p_bp_n[ii*2:ii*2+2]
+    this_lti = sig.TransferFunction(sig.lti(this_z,this_p,this_k))
+
+    str_aux = 'Sección LP'
+    print( str_aux )
+    print( '-' * len(str_aux) )
+    
+    pretty_print_lti(this_lti)
+
+    print( '\n\n')
+    
+    bodePlot(this_lti, label = 'LP', fig_id=fig_id, axes_hdl=axes_hdl )
+
+    
     
