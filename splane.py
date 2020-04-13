@@ -199,14 +199,14 @@ def pzmap(myFilter, filter_description='none',fig_id='none', axes_hdl='none'):
     
     
     # Plot the poles and set marker properties
-    poles = plt.plot(p.real, p.imag, 'x', markersize=9, alpha=0.5, label=filter_description)
+    poles = plt.plot(p.real, p.imag, 'x', markersize=9, label=filter_description)
     
 #    if filter_description != 'none':
 #        poles[0].label = filter_description
     
     # Plot the zeros and set marker properties
     zeros = plt.plot(z.real, z.imag,  'o', markersize=9, 
-             color='none', alpha=0.5,
+             color='none',
              markeredgecolor=poles[0].get_color(), # same color as poles
              markerfacecolor='white'
              )

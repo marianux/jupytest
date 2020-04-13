@@ -23,8 +23,8 @@ mpl.rcParams['figure.figsize'] = (10,10)
         
 # Tipo de aproximación.
         
-#aprox_name = 'Butterworth'
-aprox_name = 'Chebyshev1'
+aprox_name = 'Butterworth'
+# aprox_name = 'Chebyshev1'
 #aprox_name = 'Chebyshev2'
 #aprox_name = 'Bessel'
 #aprox_name = 'Cauer'
@@ -32,13 +32,15 @@ aprox_name = 'Chebyshev1'
 # Requerimientos de plantilla
 
 ripple = [3, 3, 3] # dB \alpha_{max} <-- Sin parametrizar, lo dejo en Butterworth
-#ripple = [1, 3, 6] # dB \alpha_{max}
+# ripple = [1, 3, 6] # dB \alpha_{max}
 
+# orders2analyze = [2, 2, 2] # <-- Sin parametrizar, orden fijo
+orders2analyze = [2, 3, 14]
+
+# Solo para Cauer
 attenuation = [40, 40, 40]  # dB \alpha_{min} <-- Sin parametrizar, att fija
 #attenuation = [20, 40, 60]  # dB \alpha_{min}
 
-#orders2analyze = [2, 2, 2] # <-- Sin parametrizar, orden fijo
-orders2analyze = [2, 3, 4]
 
 all_sys = []
 filter_names = []
