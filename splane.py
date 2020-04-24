@@ -34,9 +34,23 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
 from collections import defaultdict
-from scipy.signal import tf2zpk,tf2sos
+from scipy.signal import tf2zpk,tf2sos, TransferFunction
 from IPython.display import display, Math, Latex
  
+
+def tfcascade(tfa, tfb):
+
+    tfc = TransferFunction( np.polymul(tfa.num, tfb.num), np.polymul(tfa.den, tfb.den) )
+
+    return tfc
+
+def tfadd(tfa, tfb):
+
+    tfc = TransferFunction( np.polyadd(np.polymul(tfa.num,tfb.den),np.polymul(tfa.den,tfb.num)),
+                            np.polymul(tfa.den,tfb.den) )
+    return tfc
+
+
 def build_poly_str(this_poly):
     
     poly_str = ''
@@ -212,7 +226,9 @@ def pzmap(myFilter, filter_description='none',fig_id='none', axes_hdl='none'):
              )
 
     # Scale axes to fit
-    r = 1.1 * np.amax(np.concatenate((abs(z), abs(p), [1])))
+    r_old = axes_hdl.get_ylim()[1]
+    
+    r = 1.1 * np.amax(np.concatenate(([r_old/1.1], abs(z), abs(p), [1])))
     plt.axis('scaled')
     plt.axis([-r, r, -r, r])
 #    ticks = [-1, -.5, .5, 1]
@@ -275,7 +291,7 @@ def pzmap(myFilter, filter_description='none',fig_id='none', axes_hdl='none'):
 
 def grpDelay(myFilter, fig_id='none'):
 
-    w,_,phase = myFilter.bode()
+    w,_,phase = myFilter.bode( np.logspace(-2,2,100) )
 
     phaseRad = phase * np.pi / 180.0
     groupDelay = -np.diff(phaseRad)/np.diff(w)
@@ -302,7 +318,7 @@ def grpDelay(myFilter, fig_id='none'):
 
 def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '' ):
     
-    w, mag, phase = myFilter.bode()
+    w, mag, phase = myFilter.bode(np.logspace(-2,2,100))
 
     if fig_id == 'none':
         fig_hdl, axes_hdl = plt.subplots(2, 1, sharex='col')
