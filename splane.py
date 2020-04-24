@@ -35,7 +35,7 @@ import matplotlib.pyplot as plt
 from matplotlib import patches
 from collections import defaultdict
 from scipy.signal import tf2zpk,tf2sos, TransferFunction
-from IPython.display import display, Math, Latex
+from IPython.display import display, Math, Markdown
  
 
 def tfcascade(tfa, tfb):
@@ -72,6 +72,10 @@ def build_poly_str(this_poly):
                     poly_str +=  '\,\, {:3.3g} '.format(this_poly[ii])
                 
     return poly_str[2:]
+
+def print_subtitle(strAux):
+    
+    display(Markdown('#### ' + strAux))
 
 
 def pretty_print_lti(this_lti):
