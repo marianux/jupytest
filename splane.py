@@ -66,10 +66,10 @@ def build_poly_str(this_poly):
                 poly_str +=  '+ s^{:d} '.format(this_poly.shape[0]-ii-1) 
 
             if (this_poly.shape[0]-1) == ii:
-                poly_str += '+ {:3.3g} '.format(this_poly[ii])
+                poly_str += '+ {:3.4g} '.format(this_poly[ii])
             else:
                 if this_poly[ii] != 1.0:
-                    poly_str +=  '\,\, {:3.3g} '.format(this_poly[ii])
+                    poly_str +=  '\,\, {:3.4g} '.format(this_poly[ii])
                 
     return poly_str[2:]
 
@@ -322,7 +322,7 @@ def grpDelay(myFilter, fig_id='none'):
 
 def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '' ):
     
-    w, mag, phase = myFilter.bode(np.logspace(-2,2,100))
+    w, mag, phase = myFilter.bode(np.logspace(-2,2,1000))
 
     if fig_id == 'none':
         fig_hdl, axes_hdl = plt.subplots(2, 1, sharex='col')

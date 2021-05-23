@@ -19,9 +19,9 @@ import numpy as np
         
         
 #aprox_name = 'Butterworth'
-#aprox_name = 'Chebyshev1'
+aprox_name = 'Chebyshev1'
 #aprox_name = 'Chebyshev2'
-aprox_name = 'Bessel'
+# aprox_name = 'Bessel'
 #aprox_name = 'Cauer'
 
 ripple = [3, 3, 3] # dB \alpha_{max} <-- Sin parametrizar, lo dejo en Butterworth
