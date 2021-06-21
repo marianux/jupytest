@@ -6,24 +6,39 @@ Created on Wed May  8 23:14:49 2019
 @author: mariano
 """
 
-import scipy.signal as sig
+import matplotlib.pyplot as plt
 import numpy as np
-from splane import tfadd, tfcascade, analyze_sys, pzmap, grpDelay, bodePlot, pretty_print_lti
+from splane import tf2sos_analog, analyze_sys, pretty_print_SOS
 
-kn = 1
 
 # num
-qn = 1e6
-wn = 2
-# num
-qd = np.sqrt(2)/2
-wd = 1
+qn = np.sqrt(2)
+wn = 1
+# den
+qp = np.sqrt(2)/2
+wp = 1
 
-tf_bicuad = sig.TransferFunction(kn*np.array([1, wn/qn, wn**2]), np.array([1, wd/qd, wd**2]))
+# # Omega y Q
+num = np.array([1, wn/qn, wn**2]) 
 
+# kn = 1/wn**2 
+# kp = 1/wp**2 
 
-pretty_print_lti(tf_bicuad)
+kn = 1 
+kp = 1 
 
+# coeficientes
+# num = kn * np.array([1, 0, wn**2])
 
-analyze_sys([tf_bicuad], ['bicuad'])
+den = kp * np.array([1, wp/qp, wp**2])
+
+# todavía tiene algunos bugs ...
+# tf_bicuad_sos = tf2sos_analog(num, den)
+
+tf_bicuad_sos = np.hstack((num,den)).reshape((1,6))
+
+pretty_print_SOS(tf_bicuad_sos, mode='omegayq')
+
+plt.close('all')
+analyze_sys(tf_bicuad_sos, 'mi_bicuad')
 

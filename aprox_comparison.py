@@ -13,6 +13,7 @@ de aproximación implementadas en scipy.signal
 import scipy.signal as sig
 import matplotlib as mpl
 from splane import analyze_sys
+import numpy as np
 
 
 #####################
@@ -35,6 +36,12 @@ filter_names = []
 # Butter
 z,p,k = sig.buttap(order2analyze)
 
+eps = np.sqrt( 10**(ripple/10) - 1 )
+num, den = sig.zpk2tf(z,p,k)
+num, den = sig.lp2lp(num, den, eps**(-1/order2analyze))
+
+z,p,k = sig.tf2zpk(num, den)
+
 num, den = sig.zpk2tf(z,p,k)
 
 all_sys.append(sig.TransferFunction(num,den))
@@ -53,9 +60,9 @@ filter_names.append('Cheby_ord_'+str(order2analyze))
     
 # Bessel
     
-z,p,k = sig.besselap(order2analyze, norm='mag')
+z,p,k = sig.besselap(order2analyze, norm='delay')
 
-num, den = sig.zpk2tf(z,p,k)
+num, den = sig.zpk2tf( z,p,k)
 
 all_sys.append(sig.TransferFunction(num,den))
 
@@ -63,13 +70,13 @@ filter_names.append('Bessel_ord_'+str(order2analyze))
 
 # Cauer
     
-z,p,k = sig.ellipap(order2analyze, ripple, attenuation)
+# z,p,k = sig.ellipap(order2analyze, ripple, attenuation)
 
-num, den = sig.zpk2tf(z,p,k)
+# num, den = sig.zpk2tf(z,p,k)
 
-all_sys.append(sig.TransferFunction(num,den))
+# all_sys.append(sig.TransferFunction(num,den))
 
-filter_names.append('Cauer_ord_'+str(order2analyze))
+# filter_names.append('Cauer_ord_'+str(order2analyze))
 
 # Analize and compare filters
 analyze_sys( all_sys, filter_names )
