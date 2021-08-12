@@ -34,6 +34,185 @@ from matplotlib import patches
 from collections import defaultdict
 from scipy.signal import tf2zpk, TransferFunction, zpk2tf
 from IPython.display import display, Math, Markdown
+import sympy as sp
+
+
+
+def y2mai(YY):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    Ymai = YY.row_insert(YY.shape[0], sp.Matrix([-sum(YY[:,ii] ) for ii in range(YY.shape[1])]).transpose() )
+    Ymai = Ymai.col_insert(Ymai.shape[1], sp.Matrix([-sum(Ymai[ii,:] ) for ii in range(Ymai.shape[0])]) )
+    Ymai[-1] = sum(YY)
+    
+    return(Ymai)
+
+def may2y(Ymai, nodes2del):
+    '''
+    Convierte la MAI en MAD luego de remover filas y columnas indicadas en nodes2del
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    YY = Ymai
+    
+    for ii in nodes2del:
+        YY.row_del(ii)
+    
+    for ii in nodes2del:
+        YY.col_del(ii)
+    
+    return(YY)
+
+
+def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
+    """
+    Calcula la transferencia de impedancia V_ij / I_mn
+    """
+    
+    if ii > jj:
+        max_ouput_idx = ii
+        min_ouput_idx = jj
+    else:
+        max_ouput_idx = jj
+        min_ouput_idx = ii
+    
+    if mm > nn:
+        max_input_idx = mm
+        min_input_idx = nn
+    else:
+        max_input_idx = nn
+        min_input_idx = mm
+    
+    # cofactor de 2do orden
+    num = Ymai.minor_submatrix(max_ouput_idx, max_input_idx).minor_submatrix(min_ouput_idx, min_input_idx)
+    # cualquier cofactor de primer orden
+    den = Ymai.minor_submatrix(min_input_idx, min_input_idx)
+
+    num_det = sp.simplify(num.det())
+    den_det = sp.simplify(den.det())
+    
+    sign_correction = mm+nn+ii+jj
+    Tz = sp.simplify(-1**(sign_correction) * num_det/den_det)
+    
+    if( verbose ):
+    
+        print_latex(r' [Y_{MAI}] = ' + sp.latex(Ymai) )
+        
+        print_latex(r' [Y^{{ {:d}{:d} }}_{{ {:d}{:d} }} ] = '.format(mm,nn,ii,jj) + sp.latex(num) )
+    
+        print_latex(r'[Y^{{ {:d} }}_{{ {:d} }}] = '.format(mm,mm) + sp.latex(den) )
+    
+        print_latex(r'\mathrm{{Tz}}^{{ {:d}{:d} }}_{{ {:d}{:d} }} = \frac{{ \underline{{Y}}^{{ {:d}{:d} }}_{{ {:d}{:d} }} }}{{ \underline{{Y}}^{{ {:d} }}_{{ {:d} }} }} = '.format(ii,jj,mm,nn,mm,nn,ii,jj,mm,mm) + r' -1^{{ {:d} }} '.format(sign_correction)  + r'\frac{{ ' + sp.latex(num_det) + r'}}{{' + sp.latex(den_det) + r'}} = ' + sp.latex(Tz))
+    
+    return(Tz)
+
+def calc_MAI_vtransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
+    """
+    Calcula la transferencia de tensión V_ij / V_mn
+    """
+    
+    if ii > jj:
+        max_ouput_idx = ii
+        min_ouput_idx = jj
+    else:
+        max_ouput_idx = jj
+        min_ouput_idx = ii
+    
+    if mm > nn:
+        max_input_idx = mm
+        min_input_idx = nn
+    else:
+        max_input_idx = nn
+        min_input_idx = mm
+    
+    # cofactores de 2do orden
+    num = Ymai.minor_submatrix(max_ouput_idx, max_input_idx).minor_submatrix(min_ouput_idx, min_input_idx)
+
+    den = Ymai.minor_submatrix(max_input_idx, max_input_idx).minor_submatrix(min_input_idx, min_input_idx)
+    
+    num_det = sp.simplify(num.det())
+    den_det = sp.simplify(den.det())
+    
+    sign_correction = mm+nn+ii+jj
+    Av = sp.simplify(-1**(sign_correction) * num_det/den_det)
+    
+    if( verbose ):
+    
+        print_latex(r' [Y_{MAI}] = ' + sp.latex(Ymai) )
+        
+        print_latex(r' [Y^{{ {:d}{:d} }}_{{ {:d}{:d} }} ] = '.format(mm,nn,ii,jj) + sp.latex(num) )
+    
+        print_latex(r'[Y^{{ {:d}{:d} }}_{{ {:d}{:d} }} ] = '.format(mm,nn,mm,nn) + sp.latex(den) )
+    
+        print_latex(r'T^{{ {:d}{:d} }}_{{ {:d}{:d} }} = \frac{{ \underline{{Y}}^{{ {:d}{:d} }}_{{ {:d}{:d} }} }}{{ \underline{{Y}}^{{ {:d}{:d} }}_{{ {:d}{:d} }} }} = '.format(ii,jj,mm,nn,mm,nn,ii,jj,mm,nn,mm,nn) + r' -1^{{ {:d} }} '.format(sign_correction)  + r'\frac{{ ' + sp.latex(num_det) + r'}}{{' + sp.latex(den_det) + r'}} = ' + sp.latex(Av) )
+    
+    return(Av)
+
+
+def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
+    
+    if ii > jj:
+        max_idx = ii
+        min_idx = jj
+    else:
+        max_idx = jj
+        min_idx = ii
+ 
+    # cofactor de 2do orden
+    num = Ymai.minor_submatrix(max_idx, max_idx).minor_submatrix(min_idx, min_idx)
+    # cualquier cofactor de primer orden
+    den = Ymai.minor_submatrix(min_idx, min_idx)
+    
+    ZZ = sp.simplify(num.det()/den.det())
+    
+    if( verbose ):
+
+        print_latex(r' [Y_{MAI}] = ' + sp.latex(Ymai) )
+        
+        print_latex(r' [Y^{{ {:d}{:d} }}_{{ {:d}{:d} }} ] = '.format(ii,ii,jj,jj) + sp.latex(num) )
+
+        print_latex(r'[Y^{{ {:d} }}_{{ {:d} }}] = '.format(ii,ii) + sp.latex(den) )
+
+        print_latex(r'Z_{{ {:d}{:d} }} = \frac{{ \underline{{Y}}^{{ {:d}{:d} }}_{{ {:d}{:d} }} }}{{ \underline{{Y}}^{{ {:d} }}_{{ {:d} }} }} = '.format(ii,jj,ii,ii,jj,jj,ii,ii) + sp.latex(ZZ))
+
+    return(ZZ)
+
+
+def modsq2mod( aa ):
+    
+    rr = np.roots(aa)
+    bb = rr[np.real(rr) == 0]
+    bb = bb[ :(bb.size//2)]
+    bb = np.concatenate( [bb, rr[np.real(rr) < 0]])
+    
+    return np.flip(np.real(np.polynomial.polynomial.polyfromroots(bb)))
 
 def tfcascade(tfa, tfb):
 

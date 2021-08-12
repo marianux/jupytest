@@ -57,10 +57,10 @@ def besselord( omega_p, omega_s, alfa_max, alfa_min, omega_d, max_pc_delay ):
 
 # Plantilla de módulo
 #####################
-alfa_max = 0.5 # dB
-alfa_min = 16 # dB
+alfa_max = 3 # dB
+alfa_min = 40 # dB
 omega_p = 1 # norm omega
-omega_s = 3 # norm omega
+omega_s = 4 # norm omega
 
 # Plantilla de demora (solo para Bessel)
 #########################################
@@ -82,14 +82,14 @@ aprox_name = 'Chebyshev1' # equiripple banda de paso
 # Forzar orden
 ##############
 force_order = -1
-# force_order = 5
+# force_order = 3
 
 # Freq. transformation
 #######################
 
 # aprox_type = 'LP'
-# aprox_type = 'HP'
-aprox_type = 'BP'
+aprox_type = 'HP'
+# aprox_type = 'BP'
 Qbp = 5
 
 BWbp = 1/Qbp
@@ -126,11 +126,10 @@ elif aprox_name == 'Chebyshev1':
 
     z,p,k = sig.cheb1ap(this_order, alfa_max)
     
-    if force_order <= 0:
-        eps = np.sqrt( 10**(alfa_max/10.0) - 1 )
-        print_console_alert( aprox_name + ': parameters calculated')
-        print('Chebyshev type 1 (equiripple in band-pass) order n = {:d}'.format(this_order)) 
-        print_latex('\epsilon = ' + '{:3.4g}'.format(eps)) 
+    eps = np.sqrt( 10**(alfa_max/10.0) - 1 )
+    print_console_alert( aprox_name + ': parameters calculated')
+    print('Chebyshev type 1 (equiripple in band-pass) order n = {:d}'.format(this_order)) 
+    print_latex('\epsilon = ' + '{:3.4g}'.format(eps)) 
     
 elif aprox_name == 'Chebyshev2':
 

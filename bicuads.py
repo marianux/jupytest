@@ -12,23 +12,22 @@ from splane import tf2sos_analog, analyze_sys, pretty_print_SOS
 
 
 # num
-qn = np.sqrt(2)
-wn = 1
+qn = -2
+wn = 10
 # den
-qp = np.sqrt(2)/2
-wp = 1
-
-# # Omega y Q
-num = np.array([1, wn/qn, wn**2]) 
+qp = 2
+wp = 10
 
 # kn = 1/wn**2 
 # kp = 1/wp**2 
 
-kn = 1 
+kn = -1 
 kp = 1 
 
 # coeficientes
 # num = kn * np.array([1, 0, wn**2])
+# # Omega y Q
+num = kn * np.array([1, wn/qn, wn**2]) 
 
 den = kp * np.array([1, wp/qp, wp**2])
 
