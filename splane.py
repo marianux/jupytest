@@ -35,7 +35,452 @@ from collections import defaultdict
 from scipy.signal import tf2zpk, TransferFunction, zpk2tf
 from IPython.display import display, Math, Markdown
 import sympy as sp
+from schemdraw import Drawing
+from schemdraw.elements import  Resistor, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
+
+
+'''
+    Bloque de funciones para la síntesis gráfica de imitancias
+'''
+
+def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl = None):
+    
+    d += Dot(open=True)
+    
+    if voltage_lbl is None:
+        d += Gap().down().label( '' )
+    else:
+        d += Gap().down().label( voltage_lbl, fontsize=16)
+    
+    d.push()
+
+    if not(port_name is None):
+        d += Gap().left().label( '' ).length(d.unit*.35)
+        d += Gap().up().label( port_name, fontsize=22)
+        d.pop()
+        
+    d += Dot(open=True)
+    d += Line().right().length(d.unit*.5)
+    d += Gap().up().label( '' )
+    d.push()
+    
+    if current_lbl is None:
+        d += Line().left().length(d.unit*.5)
+    else:
+        d += Line().left().length(d.unit*.25)
+        d += Arrow(reverse=True).left().label( current_lbl, fontsize=16).length(d.unit*.25)
+    
+    d.pop()
+
+    return(d)
+
+def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl = None):
+    
+    if current_lbl is None:
+        d += Line().right().length(d.unit*.5)
+    else:
+        d += Line().right().length(d.unit*.25)
+        d += Arrow(reverse=True).right().label( current_lbl, fontsize=16).length(d.unit*.25)
+    
+    d += Dot(open=True)
+
+    if voltage_lbl is None:
+        d += Gap().down().label( '' )
+    else:
+        d += Gap().down().label( voltage_lbl, fontsize=16)
+
+    d.push()
+
+    if not(port_name is None):
+        d += Gap().right().label( '' ).length(d.unit*.35)
+        d += Gap().up().label( port_name, fontsize=22)
+        d.pop()
+
+    d += Dot(open=True)
+    d += Line().left().length(d.unit*.5)
+
+    return(d)
+
+def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_salida  = False, hacia_entrada  = False ):
+
+    half_width = d.unit*k_gap_width/2
+    
+    d += Line().right().length(half_width)
+    d.push()
+    d += Gap().down().label('')
+    d.push()
+    lbl = d.add(Gap().down().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=22 ).length(0.5*half_width))
+    d.pop()
+    d.push()
+    d += Line().up().at( (d.here.x, d.here.y - .2 * half_width) ).length(half_width).linewidth(1)
+    
+    if( hacia_salida ):
+        d.push()
+        d += Arrow().right().length(.5*half_width).linewidth(1)
+        d.pop()
+        
+    if( hacia_entrada ):
+        d += Arrow().left().length(.5*half_width).linewidth(1)
+        
+    d.pop()
+    d.push()
+    d += Line().left().length(half_width)
+    d.pop()
+    d += Line().right().length(half_width)
+    d.pop()
+    d += Line().right().length(half_width)
+
+    return([d, lbl])
+
+def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_salida = False, hacia_entrada = False ):
+
+    half_width = d.unit*k_gap_width/2
+    
+    d += Line().right().length(half_width)
+    d.push()
+    lbl = d.add(Gap().up().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=22 ).length(3* half_width))
+    d.pop()
+    d.push()
+    d += Line().down().at( (d.here.x, d.here.y + .2 * half_width) ).length(half_width).linewidth(1)
+    
+    if( hacia_salida ):
+        d.push()
+        d += Arrow().right().length(.5*half_width).linewidth(1)
+        d.pop()
+        
+    if( hacia_entrada ):
+        d += Arrow().left().length(.5*half_width).linewidth(1)
+        
+    d.pop()
+    d.push()
+    d += Gap().down().label('')
+    d.push()
+    d += Line().left().length(half_width)
+    d.pop()
+    d += Line().right().length(half_width)
+    d.pop()
+    d += Line().right().length(half_width)
+
+
+
+    return([d, lbl])
+
+def dibujar_elemento_serie(d, elemento, sym_label=''):
+    
+    if isinstance(sym_label, sp.Number ):
+        sym_label = to_latex(sym_label)
+    else:
+        sym_label = str_to_latex(sym_label)
+    
+    d += elemento().right().label(sym_label, fontsize=16)
+    d.push()
+    d += Gap().down().label( '' )
+    d += Line().left()
+    d.pop()
+
+    return(d)
+
+def dibujar_elemento_derivacion(d, elemento, sym_label=''):
+    
+    if isinstance(sym_label, sp.Number ):
+        sym_label = to_latex(sym_label)
+    else:
+        sym_label = str_to_latex(sym_label)
+    
+    d += Dot()
+    d.push()
+    d += elemento().down().label(sym_label, fontsize=16)
+    d += Dot()
+    d.pop()
+
+    return(d)
+
+
+def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
+    
+    if isinstance(sym_ind_label, sp.Number ):
+        sym_ind_label = to_latex(sym_ind_label)
+    else:
+        sym_ind_label = str_to_latex(sym_ind_label)
+    
+    if isinstance(sym_cap_label, sp.Number ):
+        sym_cap_label = to_latex(sym_cap_label)
+    else:
+        sym_cap_label = str_to_latex(sym_cap_label)
+    
+    d.push()
+    d += Dot()
+    d += Capacitor().right().label(sym_cap_label, fontsize=16)
+    d.pop()
+    d += Line().up().length(d.unit*.5)
+    d += Inductor().right().label(sym_ind_label, fontsize=16)
+    d += Line().down().length(d.unit*.5)
+    d += Dot()
+    d.push()
+    d += Gap().down().label( '' )
+    d += Line().left()
+    d.pop()
+
+    return(d)
+
+def dibujar_tanque_derivacion(d, sym_ind_label='', sym_cap_label=''):
+    
+    if isinstance(sym_ind_label, sp.Number ):
+        sym_ind_label = to_latex(sym_ind_label)
+    else:
+        sym_ind_label = str_to_latex(sym_ind_label)
+    
+    if isinstance(sym_cap_label, sp.Number ):
+        sym_cap_label = to_latex(sym_cap_label)
+    else:
+        sym_cap_label = str_to_latex(sym_cap_label)
+    
+    d.push()
+    d += Dot()
+    d += Capacitor().down().label(sym_cap_label, fontsize=16).length(d.unit*.5)
+    d += Inductor().down().label(sym_ind_label, fontsize=16).length(d.unit*.5)
+    d += Dot()
+    d.pop()
+
+    return(d)
+
+
+'''
+    Bloque de funciones para la síntesis gráfica de imitancias
+'''
+
+s = sp.symbols('s ', complex=True)
+
+def remover_polo_jw( imit, omega, omega_zero = None ):
+    '''
+    Se removerá el residuo en sobre el eje $j.\omega$ (omega) de la imitancia 
+    $I$ (imit) de forma completa, o parcial en el caso que se especifique una 
+    omega_zero.
+    Como resultado de la remoción, quedará otra función racional definida
+    como:
+        
+    $$ I_{R}=I-\frac{2.k.s}{s^{2}+\omega^{2}} $$
+    
+    siendo 
+
+    $$ k=\lim\limits _{s^2\to-\omega^2}I\frac{2.k.s}{s^{2}+\omega^{2}} $$
+    
+    En cuanto se especifique omega_zero, la remoción parcial estará definida 
+    como
+
+    $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_{z}^{2}}=0=I-\frac{2.k.s}{s^{2}+\omega^{2}}\biggr\rfloor_{s^{2}=-\omega_{z}^{2}} $$
+    
+    siendo 
+    
+    $$ 2.k^{'}=I.\frac{s^{2}+\omega^{2}}{s}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    
+
+    Parameters
+    ----------
+    imit : Symbolic
+        Imitancia que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en \omega.
+    omega_zero : Symbolic
+        Frecuencia a la que la imitancia será cero luego de la remoción.
+
+    Returns
+    -------
+    imit_r : Symbolic
+        Imitancia luego de la remoción
+    k_inf : Symbolic
+        Valor del residuo en infinito
+    '''
+
+    if omega_zero is None:
+        # remoción total
+        # kk = sp.limit(imit*(s**2+omega**2)/s, s**2, -omega**2)
+        kk = sp.simplify(sp.expand(imit*(s**2+omega**2)/s)).subs(s**2, -(omega**2) )
+        
+    else:
+        # remoción parcial
+        kk = sp.simplify(sp.expand(imit*(s**2+omega**2)/s)).subs(s**2, -(omega_zero**2) )
+    
+    # extraigo kk
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - kk*s/(s**2+omega**2))))
+
+    return( [imit_r, kk] )
+
+def remover_polo_dc( imit, omega_zero = None ):
+    '''
+    Se removerá el residuo en continua (s=0) de la imitancia ($I$) de forma 
+    completa, o parcial en el caso que se especifique una omega_zero. 
+    Como resultado de la remoción, quedará otra función racional definida
+    como:
+        
+    $$ I_R = I - k_0/s  $$
+    
+    siendo 
+
+    $$ k_0=\lim\limits _{s\to0}I.s $$
+    
+    En cuanto se especifique omega_zero, la remoción parcial estará definida 
+    como
+
+    $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_z^{2}}=0=I-s.k_{0}^{'}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    
+    siendo 
+    
+    $$ k_{0}^{'}=I.s\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    
+
+    Parameters
+    ----------
+    imit : Symbolic
+        Imitancia que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en 0, es decir la 
+        diferencia de grados entre num y den será exactamente -1.
+    omega_zero : Symbolic
+        Frecuencia a la que la imitancia será cero luego de la remoción.
+
+    Returns
+    -------
+    imit_r : Symbolic
+        Imitancia luego de la remoción
+    k_inf : Symbolic
+        Valor del residuo en infinito
+    '''
+
+    if omega_zero is None:
+        # remoción total
+        k_cero = sp.limit(imit*s, s, sp.oo)
+        
+    else:
+        # remoción parcial
+        k_cero = sp.simplify(sp.expand(imit*s)).subs(s**2, -(omega_zero**2) )
+
+    
+    # extraigo C3
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_cero/s)))
+
+    return( [imit_r, k_cero] )
+
+def remover_polo_infinito( imit, omega_zero = None ):
+    '''
+    Se removerá el residuo en infinito de la imitancia ($I$) de forma 
+    completa, o parcial en el caso que se especifique una omega_zero. 
+    Como resultado de la remoción, quedará otra función racional definida
+    como:
+        
+    $$ I_R = I - s.k_\infty  $$
+    
+    siendo 
+
+    $$ k_{\infty}=\lim\limits _{s\to\infty}I.\nicefrac{1}{s} $$
+    
+    En cuanto se especifique omega_zero, la remoción parcial estará definida 
+    como
+
+    $$ I_{R}\biggr\rfloor_{s^{2}=-\omega_z^{2}}=0=I-s.k_{\infty}^{'}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    
+    siendo 
+    
+    $$ k_{\infty}^{'}=I.\nicefrac{1}{s}\biggr\rfloor_{s^{2}=-\omega_z^{2}} $$
+    
+
+    Parameters
+    ----------
+    imit : Symbolic
+        Imitancia que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en infinito, es decir la 
+        diferencia de grados entre num y den será exactamente 1.
+    omega_zero : Symbolic
+        Frecuencia a la que la imitancia será cero luego de la remoción.
+
+    Returns
+    -------
+    imit_r : Symbolic
+        Imitancia luego de la remoción
+    k_inf : Symbolic
+        Valor del residuo en infinito
+    '''
+
+    if omega_zero is None:
+        # remoción total
+        k_inf = sp.limit(imit/s, s, sp.oo)
+        
+    else:
+        # remoción parcial
+        k_inf = sp.simplify(sp.expand(imit/s)).subs(s**2, -(omega_zero**2) )
+
+    
+    # extraigo C3
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_inf*s)))
+
+    return( [imit_r, k_inf] )
+
+
+def tanque_z( doska, omegasq ):
+    '''
+    Calcula los valores de L y C que componen un tanque resonante LC 
+    (tanque Z), a partir del valor del residuo ($ k $) y la omega al cuadrado 
+    ($ \omega^2 $) de la expresión de impedancia dada por:
+        
+        $$ Z_{LC} = \frac{2.k.s}{(s^2+\omega^2)} $$
+
+    Parameters
+    ----------
+    doska : Symbolic
+        Dos veces el residuo.
+    omegasq : Symbolic
+        Cuadrado de la omega a la que el tanque resuena.
+
+    Returns
+    -------
+    L : Symbolic
+        Valor de la admitancia
+    C : Symbolic
+        Valor de la capacidad
+
+    '''
+    
+    return( [doska/omegasq, 1/doska] )
+
+def tanque_y( doska, omegasq ):
+    '''
+    Calcula los valores de L y C que componen un tanque resonante LC 
+    (tanque Z), a partir del valor del residuo ($ k $) y la omega al cuadrado 
+    ($ \omega^2 $) de la expresión de impedancia dada por:
+        
+        $$ Y_{LC} = \frac{2.k.s}{(s^2+\omega^2)} $$
+
+    Parameters
+    ----------
+    doska : Symbolic
+        Dos veces el residuo.
+    omegasq : Symbolic
+        Cuadrado de la omega a la que el tanque resuena.
+
+    Returns
+    -------
+    L : Symbolic
+        Valor de la admitancia
+    C : Symbolic
+        Valor de la capacidad
+
+    '''
+    
+    return( [1/doska, doska/omegasq] )
+
+
+def to_latex( unsimbolo ):
+    '''
+    Convierte un símbolo en un string formateado para visualizarse en LaTex 
+    '''
+    
+    return('$'+ sp.latex(unsimbolo) + '$')
+
+def str_to_latex( unstr):
+    '''
+    Formatea un string para visualizarse en LaTex 
+    '''
+    
+    return('$'+ unstr + '$')
 
 
 def y2mai(YY):
@@ -429,7 +874,7 @@ def analyze_sys( all_sys, aprox_name, img_ext = 'none', same_figs=True ):
         all_sys = [all_sys]
         cant_sys = 1
 
-    if ~isinstance(aprox_name, list):
+    if not isinstance(aprox_name, list):
         aprox_name = [aprox_name]
         
     ## BODE plots
@@ -747,7 +1192,7 @@ def GroupDelay(myFilter, fig_id='none', label = '', npoints = 1000):
             fig_hdl = plt.figure(fig_id)
             fig_id = fig_hdl.number
 
-    aux_hdl = plt.semilogx(w[1:], groupDelay)    # Bode phase plot
+    aux_hdl = plt.semilogx(w[1:], groupDelay, label=label)    # Bode phase plot
 
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -762,7 +1207,8 @@ def GroupDelay(myFilter, fig_id='none', label = '', npoints = 1000):
     axes_hdl = plt.gca()
     
     if label != '' :
-        axes_hdl.legend( label )
+        # axes_hdl.legend( label )
+        axes_hdl.legend()
 
     return fig_id, axes_hdl
 
@@ -813,7 +1259,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
     (mag_ax_hdl, phase_ax_hdl) = axes_hdl
     
     plt.sca(mag_ax_hdl)
-    aux_hdl = plt.semilogx(w, mag)    # Bode magnitude plot
+    aux_hdl = plt.semilogx(w, mag, label=label)    # Bode magnitude plot
     
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -826,10 +1272,12 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
     plt.title('Magnitude response')
     
     if label != '' :
-        mag_ax_hdl.legend( label )
+        # mag_ax_hdl.legend( label )
+        mag_ax_hdl.legend()
+
         
     plt.sca(phase_ax_hdl)
-    aux_hdl = plt.semilogx(w, phase)    # Bode phase plot
+    aux_hdl = plt.semilogx(w, phase, label=label)    # Bode phase plot
     
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -842,7 +1290,8 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
     plt.title('Phase response')
     
     if label != '' :
-        phase_ax_hdl.legend( label )
+        # phase_ax_hdl.legend( label )
+        phase_ax_hdl.legend()
     
     return fig_id, axes_hdl
     
@@ -1053,7 +1502,7 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
     
     for si in range(n_sections):
         
-        num, den = zpk2tf(z_sos[si, ~np.isnan(z_sos[si]) ], p_sos[si, ~np.isnan(p_sos[si])], 1) # no gain
+        num, den = zpk2tf(z_sos[si, np.logical_not( np.isnan(z_sos[si])) ], p_sos[si, np.logical_not(np.isnan(p_sos[si]))], 1) # no gain
         
         # find maximum in transfer function
         thisFilter = TransferFunction(num, den)
@@ -1072,7 +1521,7 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
         if si > 0:
             gains[si] = (mmi[si-1]/mmi[si])
 
-        num, den = zpk2tf(z_sos[si, ~np.isnan(z_sos[si]) ], p_sos[si, ~np.isnan(p_sos[si])], gains[si]) # now with gain
+        num, den = zpk2tf(z_sos[si, np.logical_not(np.isnan(z_sos[si])) ], p_sos[si, np.logical_not(np.isnan(p_sos[si]))], gains[si]) # now with gain
         
         num = np.concatenate((np.zeros(np.max(3 - len(num), 0)), num))
         den = np.concatenate((np.zeros(np.max(3 - len(den), 0)), den))

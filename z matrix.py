@@ -48,3 +48,4 @@ YdobleT = Zc**-1+Zb**-1
 # V2/V1 bicuad notch. Tabla 5-4 fila 2
 Tbn = simplify_n_monic( YdobleT[1,0] / (YdobleT[1,1] *(k-1)/k + YdobleT[1,0] - s*m*C/k ))
 
+display(Tbn)
