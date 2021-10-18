@@ -41,7 +41,35 @@ from schemdraw.elements import  Resistor, Capacitor, Inductor, Line, Dot, Gap, A
 
 
 '''
-    Bloque de funciones para la síntesis gráfica de imitancias
+    Bloque de funciones para parametros imagen
+'''
+
+def I2T(gamma, z01, z02 = None):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    TT = sp.Matrix([[0, 0], [0, 0]])
+    
+    
+    return(TT)
+
+
+'''
+    Bloque de funciones para dibujar redes de forma bonita
 '''
 
 def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl = None):
@@ -481,6 +509,119 @@ def str_to_latex( unstr):
     '''
     
     return('$'+ unstr + '$')
+
+
+'''
+    Funciones de conversión de matrices de cuadripolos lineales
+'''
+
+def Y2T(YY):
+    
+    TT = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Y22/Y21
+    TT[0,0] = sp.simplify(sp.expand(-YY[1,1]/YY[1,0]))
+    # B = -1/Y21
+    TT[0,1] = sp.simplify(sp.expand(-1/YY[1,0]))
+    # C = -DY/Y21
+    TT[0,0] = sp.simplify(sp.expand(-sp.Determinant(YY)/YY[1,0]))
+    # D = Y11/Y21
+    TT[0,0] = sp.simplify(sp.expand(-YY[1,1]/YY[1,0]))
+    
+    return(TT)
+
+def Z2T(ZZ):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    TT = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    TT[0,0] = sp.simplify(sp.expand(ZZ[0,0]/ZZ[1,0]))
+    # B = DZ/Z21
+    TT[0,1] = sp.simplify(sp.expand(sp.Determinant(ZZ)/ZZ[1,0]))
+    # C = 1/Z21
+    TT[0,0] = sp.simplify(sp.expand(1/ZZ[1,0]))
+    # D = Z22/Z21
+    TT[0,0] = sp.simplify(sp.expand(ZZ[1,1]/ZZ[1,0]))
+    
+    return(TT)
+
+def T2Z(TT):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    ZZ = sp.Matrix([[0, 0], [0, 0]])
+    
+    # Z11 = A/C
+    ZZ[0,0] = sp.simplify(sp.expand(TT[0,0]/TT[1,0]))
+    # Z11 = DT/C
+    ZZ[0,1] = sp.simplify(sp.expand(sp.Determinant(TT)/TT[1,0]))
+    # Z21 = 1/C
+    ZZ[0,0] = sp.simplify(sp.expand(1/TT[1,0]))
+    # Z22 = D/C
+    ZZ[0,0] = sp.simplify(sp.expand(TT[1,1]/TT[1,0]))
+    
+    return(ZZ)
+
+def T2Y(TT):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    YY = sp.Matrix([[0, 0], [0, 0]])
+    
+    # Y11 = D/B
+    YY[0,0] = sp.simplify(sp.expand(TT[1,1]/TT[0,1]))
+    # Y12 = -DT/B
+    YY[0,1] = sp.simplify(sp.expand(-sp.Determinant(TT)/TT[0,1]))
+    # Y21 = -1/B
+    YY[0,0] = sp.simplify(sp.expand(-1/TT[0,1]))
+    # Y22 = A/B
+    YY[0,0] = sp.simplify(sp.expand(TT[0,0]/TT[0,1]))
+    
+    return(YY)
 
 
 def y2mai(YY):
