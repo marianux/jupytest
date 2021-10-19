@@ -36,13 +36,36 @@ from scipy.signal import tf2zpk, TransferFunction, zpk2tf
 from IPython.display import display, Math, Markdown
 import sympy as sp
 from schemdraw import Drawing
-from schemdraw.elements import  Resistor, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
+from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
+
+def pp(z1, z2):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+
+    return(z1*z2/(z1+z2))
+    
 
 
 '''
     Bloque de funciones para parametros imagen
 '''
+
+    
 
 def I2T(gamma, z01, z02 = None):
     '''
@@ -61,8 +84,43 @@ def I2T(gamma, z01, z02 = None):
         Matriz admitancia 
 
     '''
+    if z02 is None:
+        z02 = z01
+
+    # if np.sqrt(z02/z01)
     
-    TT = sp.Matrix([[0, 0], [0, 0]])
+    TT = np.matrix([[np.cosh(gamma)*np.sqrt(z01/z02),
+                     np.sinh(gamma)*np.sqrt(z01*z02)], 
+                    [np.sinh(gamma)/np.sqrt(z01*z02),
+                     np.cosh(gamma)*np.sqrt(z02/z01)]])
+    
+    
+    return(TT)
+
+def I2T_s(gamma, z01, z02 = None):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    if z02 is None:
+        z02 = z01
+    
+    TT = sp.Matrix([[sp.cosh(gamma)*sp.sqrt(z01/z02),
+                     sp.sinh(gamma)*sp.sqrt(z01*z02)], 
+                    [sp.sinh(gamma)/sp.sqrt(z01*z02),
+                     sp.cosh(gamma)*sp.sqrt(z02/z01)]])
     
     
     return(TT)
@@ -198,8 +256,13 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
     
     if isinstance(sym_label, sp.Number ):
         sym_label = to_latex(sym_label)
-    else:
+    elif isinstance(sym_label, np.number):
+        sym_label = str_to_latex('{:3.3f}'.format(sym_label))
+    elif isinstance(sym_label, str):
         sym_label = str_to_latex(sym_label)
+    else:
+        sym_label = '$ ?? $'
+
     
     d += elemento().right().label(sym_label, fontsize=16)
     d.push()
@@ -213,8 +276,12 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     
     if isinstance(sym_label, sp.Number ):
         sym_label = to_latex(sym_label)
-    else:
+    elif isinstance(sym_label, np.number):
+        sym_label = str_to_latex('{:3.3f}'.format(sym_label))
+    elif isinstance(sym_label, str):
         sym_label = str_to_latex(sym_label)
+    else:
+        sym_label = '$ ?? $'
     
     d += Dot()
     d.push()
@@ -515,7 +582,7 @@ def str_to_latex( unstr):
     Funciones de conversión de matrices de cuadripolos lineales
 '''
 
-def Y2T(YY):
+def Y2T_s(YY):
     
     TT = sp.Matrix([[0, 0], [0, 0]])
     
@@ -524,13 +591,13 @@ def Y2T(YY):
     # B = -1/Y21
     TT[0,1] = sp.simplify(sp.expand(-1/YY[1,0]))
     # C = -DY/Y21
-    TT[0,0] = sp.simplify(sp.expand(-sp.Determinant(YY)/YY[1,0]))
+    TT[1,0] = sp.simplify(sp.expand(-sp.Determinant(YY)/YY[1,0]))
     # D = Y11/Y21
-    TT[0,0] = sp.simplify(sp.expand(-YY[1,1]/YY[1,0]))
+    TT[1,1] = sp.simplify(sp.expand(-YY[1,1]/YY[1,0]))
     
     return(TT)
 
-def Z2T(ZZ):
+def Z2T_s(ZZ):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -555,13 +622,13 @@ def Z2T(ZZ):
     # B = DZ/Z21
     TT[0,1] = sp.simplify(sp.expand(sp.Determinant(ZZ)/ZZ[1,0]))
     # C = 1/Z21
-    TT[0,0] = sp.simplify(sp.expand(1/ZZ[1,0]))
+    TT[1,0] = sp.simplify(sp.expand(1/ZZ[1,0]))
     # D = Z22/Z21
-    TT[0,0] = sp.simplify(sp.expand(ZZ[1,1]/ZZ[1,0]))
+    TT[1,1] = sp.simplify(sp.expand(ZZ[1,1]/ZZ[1,0]))
     
     return(TT)
 
-def T2Z(TT):
+def T2Z_s(TT):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -586,13 +653,13 @@ def T2Z(TT):
     # Z11 = DT/C
     ZZ[0,1] = sp.simplify(sp.expand(sp.Determinant(TT)/TT[1,0]))
     # Z21 = 1/C
-    ZZ[0,0] = sp.simplify(sp.expand(1/TT[1,0]))
+    ZZ[1,0] = sp.simplify(sp.expand(1/TT[1,0]))
     # Z22 = D/C
-    ZZ[0,0] = sp.simplify(sp.expand(TT[1,1]/TT[1,0]))
+    ZZ[1,1] = sp.simplify(sp.expand(TT[1,1]/TT[1,0]))
     
     return(ZZ)
 
-def T2Y(TT):
+def T2Y_s(TT):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.
 
@@ -617,11 +684,220 @@ def T2Y(TT):
     # Y12 = -DT/B
     YY[0,1] = sp.simplify(sp.expand(-sp.Determinant(TT)/TT[0,1]))
     # Y21 = -1/B
-    YY[0,0] = sp.simplify(sp.expand(-1/TT[0,1]))
+    YY[1,0] = sp.simplify(sp.expand(-1/TT[0,1]))
     # Y22 = A/B
-    YY[0,0] = sp.simplify(sp.expand(TT[0,0]/TT[0,1]))
+    YY[1,1] = sp.simplify(sp.expand(TT[0,0]/TT[0,1]))
     
     return(YY)
+
+def Y2T(YY):
+    
+    TT = np.zeros_like(YY)
+    
+    # A = Y22/Y21
+    TT[0,0] = -YY[1,1]/YY[1,0]
+    # B = -1/Y21
+    TT[0,1] = -1/YY[1,0]
+    # C = -DY/Y21
+    TT[1,0] = -np.linalg.det(YY)/YY[1,0]
+    # D = Y11/Y21
+    TT[1,1] = -YY[1,1]/YY[1,0]
+    
+    return(TT)
+
+def Z2T(ZZ):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    TT = np.zeros_like(ZZ)
+    
+    # A = Z11/Z21
+    TT[0,0] = ZZ[0,0]/ZZ[1,0]
+    # B = DZ/Z21
+    TT[0,1] = np.linalg.det(ZZ)/ZZ[1,0]
+    # C = 1/Z21
+    TT[1,0] = 1/ZZ[1,0]
+    # D = Z22/Z21
+    TT[1,1] = ZZ[1,1]/ZZ[1,0]
+    
+    return(TT)
+
+def T2Z(TT):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    ZZ = np.zeros_like(TT)
+    
+    # Z11 = A/C
+    ZZ[0,0] = TT[0,0]/TT[1,0]
+    # Z11 = DT/C
+    ZZ[0,1] = np.linalg.det(TT)/TT[1,0]
+    # Z21 = 1/C
+    ZZ[1,0] = 1/TT[1,0]
+    # Z22 = D/C
+    ZZ[1,1] = TT[1,1]/TT[1,0]
+    
+    return(ZZ)
+
+def T2Y(TT):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    YY = np.zeros_like(TT)
+    
+    # Y11 = D/B
+    YY[0,0] = TT[1,1]/TT[0,1]
+    # Y12 = -DT/B
+    YY[0,1] = -np.linalg.det(TT)/TT[0,1]
+    # Y21 = -1/B
+    YY[1,0] = -1/TT[0,1]
+    # Y22 = A/B
+    YY[1,1] = TT[0,0]/TT[0,1]
+    
+    return(YY)
+
+
+def Z2tee(ZZ):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    # Dibujo la red Tee
+    
+    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+    
+    d = dibujar_puerto_entrada(d,
+                                   port_name = 'In', 
+                                   voltage_lbl = ('+', '$V_1$', '-'), 
+                                   current_lbl = '$I_1$')
+    
+    Za = ZZ[0,0] - ZZ[0,1] 
+    Zb = ZZ[0,1] 
+    Zc = ZZ[1,1] - ZZ[0,1] 
+    
+    d = dibujar_elemento_serie(d, ResistorIEC, Za )
+    d = dibujar_elemento_derivacion(d, ResistorIEC, Zb )
+    d = dibujar_elemento_serie(d, ResistorIEC, Zc )
+    
+    d = dibujar_puerto_salida(d, 
+                                  port_name = 'Out', 
+                                  current_lbl = '$I_2$' )
+
+    display(d)        
+    
+    return([Za,Zb,Zc])
+
+
+def Y2Pi(YY):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    # Dibujo la red Tee
+    
+    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+    
+    d = dibujar_puerto_entrada(d,
+                                   port_name = 'In', 
+                                   voltage_lbl = ('+', '$V_1$', '-'), 
+                                   current_lbl = '$I_1$')
+    
+    Ya = YY[0,0] + YY[0,1]
+    Yb = -YY[0,1]
+    Yc = YY[1,1] + YY[0,1]
+    
+    if isinstance(YY[0,0], sp.Symbol):
+        
+        Za = sp.simplify(sp.expand(1/Ya))
+        Zb = sp.simplify(sp.expand(1/Yb))
+        Zc = sp.simplify(sp.expand(1/Yc))
+        
+    else:
+
+        Za = 1/(YY[0,0] + YY[0,1])
+        Zb = 1/(-YY[0,1])
+        Zc = 1/(YY[1,1] + YY[0,1])
+    
+    d = dibujar_elemento_derivacion(d, ResistorIEC, Za )
+    d = dibujar_elemento_serie(d, ResistorIEC, Zb )
+    d = dibujar_elemento_derivacion(d, ResistorIEC, Zc )
+    
+    d = dibujar_puerto_salida(d, 
+                                  port_name = 'Out', 
+                                  current_lbl = '$I_2$' )
+    
+    display(d)        
+    
+    return([Ya, Yb, Yc])
+
+
 
 
 def y2mai(YY):
@@ -790,6 +1066,12 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
 
     return(ZZ)
 
+
+
+'''
+Otras funciones
+
+'''
 
 def modsq2mod( aa ):
     
