@@ -124,6 +124,34 @@ def I2T_s(gamma, z01, z02 = None):
     
     return(TT)
 
+def I2T_s(gamma, z01, z02 = None):
+    '''
+    Convierte la MAD en MAI luego de levantar de referencia.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    if z02 is None:
+        z02 = z01
+    
+    TT = sp.Matrix([[sp.cosh(gamma)*sp.sqrt(z01/z02),
+                     sp.sinh(gamma)*sp.sqrt(z01*z02)], 
+                    [sp.sinh(gamma)/sp.sqrt(z01*z02),
+                     sp.cosh(gamma)*sp.sqrt(z02/z01)]])
+    
+    
+    return(TT)
+
 
 '''
     Bloque de funciones para dibujar redes de forma bonita
