@@ -197,15 +197,17 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
         d += Arrow(reverse=True).right().label( current_lbl, fontsize=16).length(d.unit*.25)
     
     d += Dot(open=True)
+    
+    d.push()
 
     if voltage_lbl is None:
         d += Gap().down().label( '' )
     else:
         d += Gap().down().label( voltage_lbl, fontsize=16)
 
-    d.push()
 
     if not(port_name is None):
+        d.push()
         d += Gap().right().label( '' ).length(d.unit*.35)
         d += Gap().up().label( port_name, fontsize=22)
         d.pop()
@@ -213,7 +215,25 @@ def dibujar_puerto_salida(d, port_name = None, voltage_lbl = None, current_lbl =
     d += Dot(open=True)
     d += Line().left().length(d.unit*.5)
 
+    d.pop()
+
     return(d)
+
+
+def dibujar_espaciador( d ):
+
+    d += Line().right().length(d.unit*.5)
+
+    d.push()
+
+    d += Gap().down().label( '' )
+
+    d += Line().left().length(d.unit*.5)
+
+    d.pop()
+
+    return(d)
+
 
 def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_salida  = False, hacia_entrada  = False ):
 
@@ -1099,6 +1119,35 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
 Otras funciones
 
 '''
+
+def modsq2mod_s( aa ):
+
+    num, den = sp.fraction(aa)
+    
+    roots_num = sp.solve(num)
+    
+    real_part_roots = [ (s-roots_numm) for roots_numm in roots_num if sp.re(roots_numm) <= 0]
+
+    poly_acc = sp.Rational('1')
+    
+    for roots_numm in real_part_roots:
+        poly_acc *= roots_numm
+    
+    num = sp.simplify(sp.expand(poly_acc))
+
+    roots_num = sp.solve(den)
+    
+    real_part_roots = [ (s-roots_numm) for roots_numm in roots_num if sp.re(roots_numm) <= 0]
+
+    poly_acc = sp.Rational('1')
+    
+    for roots_numm in real_part_roots:
+        poly_acc *= roots_numm
+    
+    poly_acc = sp.simplify(sp.expand(poly_acc))
+
+    return(sp.simplify(sp.expand(num/poly_acc))) 
+
 
 def modsq2mod( aa ):
     
