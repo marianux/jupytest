@@ -21,7 +21,7 @@ wp = 10
 # kn = 1/wn**2 
 # kp = 1/wp**2 
 
-kn = -1 
+kn = 1 
 kp = 1 
 
 # coeficientes
