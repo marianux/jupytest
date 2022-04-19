@@ -1251,13 +1251,20 @@ def pretty_print_lti(this_lti, displaystr = True):
 
         
 
-def pretty_print_bicuad_omegayq(this_sos, displaystr = True):
+def pretty_print_bicuad_omegayq(num, den = None, displaystr = True):
     
+    if den is None:
+        this_sos = num.reshape((1,6))
+    else:
+        this_sos = np.hstack((
+            np.pad(num, (3-len(num),0)),
+            np.pad(den, (3-len(den),0)))
+        ).reshape((1,6))
     
-    num = this_sos[:3]
-    den = this_sos[3:]
+    num = this_sos[0,:3]
+    den = this_sos[0,3:]
     
-    if np.all( num > 0):
+    if np.all( np.abs(num) > 0):
         # complete 2nd order, omega and Q parametrization
         num_str_aux = build_omegayq_str(num)
     elif np.all(num[[0,2]] == 0) and num[1] > 0 :
@@ -1357,7 +1364,7 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
 
 
 
-def analyze_sys( all_sys, aprox_name, img_ext = 'none', same_figs=True ):
+def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True ):
     
     
     
@@ -1373,8 +1380,11 @@ def analyze_sys( all_sys, aprox_name, img_ext = 'none', same_figs=True ):
         all_sys = [all_sys]
         cant_sys = 1
 
-    if not isinstance(aprox_name, list):
-        aprox_name = [aprox_name]
+    if sys_name is None:
+        sys_name = [str(ii) for ii in range(cant_sys)]
+        
+    if not isinstance(sys_name, list):
+        sys_name = [sys_name]
         
     ## BODE plots
     if same_figs:
@@ -1384,21 +1394,21 @@ def analyze_sys( all_sys, aprox_name, img_ext = 'none', same_figs=True ):
     axes_hdl = ()
 
     for ii in range(cant_sys):
-        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, label = aprox_name[ii])
+        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, label = sys_name[ii])
 
     if img_ext != 'none':
-        plt.savefig('_'.join(aprox_name) + '_Bode.' + img_ext, format=img_ext)
+        plt.savefig('_'.join(sys_name) + '_Bode.' + img_ext, format=img_ext)
 
     # fig_id = 6
     # axes_hdl = ()
 
     # for ii in range(cant_sys):
-    #     fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, label = aprox_name[ii])
+    #     fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, label = sys_name[ii])
 
     # axes_hdl[0].set_ylim(bottom=-3)
 
     # if img_ext != 'none':
-    #     plt.savefig('_'.join(aprox_name) + '_Bode-3db.' + img_ext, format=img_ext)
+    #     plt.savefig('_'.join(sys_name) + '_Bode-3db.' + img_ext, format=img_ext)
 
 
     ## PZ Maps
@@ -1418,26 +1428,26 @@ def analyze_sys( all_sys, aprox_name, img_ext = 'none', same_figs=True ):
             
             thisFilter = sos2tf_analog(all_sys[ii])
 
-            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=aprox_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = True)
+            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = True)
             
         else:
                 
             if all_sys[ii].dt is None:
-                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=aprox_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl)
+                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl)
             else:
-                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=aprox_name[ii], fig_id = digital_fig_id, axes_hdl=digital_axes_hdl)
+                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = digital_fig_id, axes_hdl=digital_axes_hdl)
             
 
     if isinstance(all_sys[ii], np.ndarray) or ( isinstance(all_sys[ii], TransferFunction) and all_sys[ii].dt is None) :
         analog_axes_hdl.legend()
         if img_ext != 'none':
             plt.figure(analog_fig_id)
-            plt.savefig('_'.join(aprox_name) + '_Analog_PZmap.' + img_ext, format=img_ext)
+            plt.savefig('_'.join(sys_name) + '_Analog_PZmap.' + img_ext, format=img_ext)
     else:
         digital_axes_hdl.legend()
         if img_ext != 'none':
             plt.figure(digital_fig_id)
-            plt.savefig('_'.join(aprox_name) + '_Digital_PZmap.' + img_ext, format=img_ext)
+            plt.savefig('_'.join(sys_name) + '_Digital_PZmap.' + img_ext, format=img_ext)
     
 #    plt.show()
     
@@ -1448,14 +1458,14 @@ def analyze_sys( all_sys, aprox_name, img_ext = 'none', same_figs=True ):
         fig_id = 'none'
     
     for ii in range(cant_sys):
-        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, label = aprox_name[ii])
+        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, label = sys_name[ii])
     
-    # axes_hdl.legend(aprox_name)
+    # axes_hdl.legend(sys_name)
 
     axes_hdl.set_ylim(bottom=0)
 
     if img_ext != 'none':
-        plt.savefig('_'.join(aprox_name) + '_GroupDelay.'  + img_ext, format=img_ext)
+        plt.savefig('_'.join(sys_name) + '_GroupDelay.'  + img_ext, format=img_ext)
 
 
 
