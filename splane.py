@@ -39,6 +39,18 @@ from schemdraw import Drawing
 from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
 
+def simplify_n_monic(tt):
+    
+    num, den = sp.fraction(sp.simplify(tt))
+    
+    num = sp.poly(num,s)
+    den = sp.poly(den,s)
+    
+    lcnum = sp.LC(num)
+    lcden = sp.LC(den)
+    
+    return( sp.simplify(lcnum/lcden) * (sp.monic(num) / sp.monic(den)) )
+
 def pp(z1, z2):
     '''
     Convierte la MAD en MAI luego de levantar de referencia.

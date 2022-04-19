@@ -1,0 +1,18 @@
+Circuit: * Z:\home\mariano\mariano\Docencia\TC2\scripts\analog filters\python\jupytest\ts16.asc
+
+
+Date: Thu Nov 25 10:37:46 2021
+Total elapsed time: 0.043 seconds.
+
+tnom = 27
+temp = 27
+method = trap
+totiter = 0
+traniter = 0
+tranpoints = 0
+accept = 0
+rejected = 0
+matrix size = 3
+fillins = 0
+solver = Normal
+
