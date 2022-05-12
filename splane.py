@@ -38,10 +38,38 @@ import sympy as sp
 from schemdraw import Drawing
 from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
+def parametrize_sos(tt):
+
+    num, den = sp.fraction(tt)
+    
+    num = sp.Poly(num,s)
+    den = sp.Poly(den,s)
+    
+    
+    if( num.degree() <= 2 and den.degree() == 2 ):
+        
+        k = num.LC() / den.LC()
+        omega_sq = den.EC()/den.LC()
+        
+        k = sp.simplify(sp.expand(k_omega_o_sq / omega_sq))
+        
+        den = den.monic()
+        
+        # Implementación de un inductor mediante GIC con modelo real
+        TL_opamp_ideal  = sp.Mul(k, omega_sq, evaluate=False)
+        TL_opamp_ideal = sp.Mul(TL_opamp_ideal, 1/den, evaluate=False)
+
+
+    else:
+    
+
+    den = den.monic()
+
+    return()
 
 def simplify_n_monic(tt):
     
-    num, den = sp.fraction(sp.simplify(tt))
+    num, den = sp.fraction(tt)
     
     num = sp.poly(num,s)
     den = sp.poly(den,s)
@@ -1376,7 +1404,7 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
 
 
 
-def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True ):
+def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True ):
     
     
     
@@ -1440,14 +1468,14 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True ):
             
             thisFilter = sos2tf_analog(all_sys[ii])
 
-            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = True)
+            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = annotations)
             
         else:
                 
             if all_sys[ii].dt is None:
-                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl)
+                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = annotations)
             else:
-                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = digital_fig_id, axes_hdl=digital_axes_hdl)
+                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = digital_fig_id, axes_hdl=digital_axes_hdl, annotations = annotations)
             
 
     if isinstance(all_sys[ii], np.ndarray) or ( isinstance(all_sys[ii], TransferFunction) and all_sys[ii].dt is None) :
