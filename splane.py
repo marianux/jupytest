@@ -38,6 +38,34 @@ import sympy as sp
 from schemdraw import Drawing
 from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
+def parametrize_sos(tt):
+
+    num, den = sp.fraction(tt)
+    
+    num = sp.Poly(num,s)
+    den = sp.Poly(den,s)
+    
+    
+    if( num.degree() <= 2 and den.degree() == 2 ):
+        
+        k = num.LC() / den.LC()
+        omega_sq = den.EC()/den.LC()
+        
+        k = sp.simplify(sp.expand(k_omega_o_sq / omega_sq))
+        
+        den = den.monic()
+        
+        # Implementación de un inductor mediante GIC con modelo real
+        TL_opamp_ideal  = sp.Mul(k, omega_sq, evaluate=False)
+        TL_opamp_ideal = sp.Mul(TL_opamp_ideal, 1/den, evaluate=False)
+
+
+    else:
+    
+
+    den = den.monic()
+
+    return()
 
 def parametrize_sos(tt):
     
