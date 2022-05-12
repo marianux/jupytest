@@ -10,24 +10,40 @@ import sympy as sp
 from sympy.abc import s
 from IPython.display import display, Math
 
-I1, V1, V2, V3, V4, V5 = sp.symbols("I1, V1, V2, V3, V4, V5")
-Y1, Y2, Y3, Y4, Y5, As, wt = sp.symbols("Y1, Y2, Y3, Y4, Y5, As, wt")
-G, C = sp.symbols("G, C") 
+Vi, VL, VB = sp.symbols("Vi, VL, VB")
+G1, G2, G3, G4, C, As, wt = sp.symbols("G1, G2, G3, G4, C, As, wt")
 
 # modelo ideal negativamente realimentado
 aa = sp.solve([ 
-                V1*Y1 - V2*Y1 - I1, 
-                -V2*Y2 + V1*(Y2+Y3) -V3*Y3,
-                -V3*Y4 + V1*(Y4+Y5)
+                -Vi*G1 - VL*G3 - VB*(G2+s*C), 
+                -VB*G3 + VL*s*C
                 ], 
-                [V1, V2, V3])
-Z1 = aa[V1]/I1
+                [Vi, VB, VL])
+TL = VL/aa[Vi]
 
-print('##############################')
-print('# Z1 para el GIC de Antoniou #')
-print('##############################')
+TL = sp.simplify(sp.expand(TL))
+                      
+num, den = sp.fraction(TL)
 
-display(Math( r' Z_1^i = ' + sp.latex(Z1) ))
+num = sp.Poly(num,s)
+den = sp.Poly(den,s)
+
+k_omega_o_sq = num.LC() / den.LC()
+omega_sq = den.EC()/den.LC()
+k = sp.simplify(sp.expand(k_omega_o_sq / omega_sq))
+
+den = den.monic()
+
+# Implementación de un inductor mediante GIC con modelo real
+TL_opamp_ideal  = sp.Mul(k, omega_sq, evaluate=False)
+TL_opamp_ideal = sp.Mul(TL_opamp_ideal, 1/den, evaluate=False)
+
+
+print('#################################')
+print('# TL para el Ackerberg-Mossberg #')
+print('#################################')
+
+display(Math( r' T_L^i = ' + sp.latex(TL_opamp_ideal) ))
 
 
 ######################################################
@@ -45,13 +61,6 @@ Z1 = aa[V1]/I1
 
 # modelo ideal sin asumir realimentación negativa
 Z1_opamp_ideal = sp.limit(Z1, As, sp.oo)
-
-print('#############################################################')
-print('# Z1 para el GIC de Antoniou sin considerar realim negativa #')
-print('#############################################################')
-
-display(Math( r' Z_1^{ir} = ' + sp.latex(Z1_opamp_ideal) ))
-
 
 # modelo integrador A(s)=\omega_t/s (sin asumir realimentación negativa)
 Z1 = sp.simplify(sp.expand(Z1.subs(As, wt/s)))

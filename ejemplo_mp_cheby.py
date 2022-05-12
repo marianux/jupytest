@@ -18,7 +18,7 @@ ws = 2
 # epsilon cuadrado
 ee = 10**(alfa_max/10)-1
 
-for nn in range(2,5):
+for nn in range(2,9):
     
     alfa_min_b = 10*np.log10(1 + ee * ws**(2*nn))
     alfa_min_c = 10*np.log10(1 + ee * np.cosh(nn * np.arccosh(ws))**2 )

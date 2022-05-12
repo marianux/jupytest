@@ -39,9 +39,58 @@ from schemdraw import Drawing
 from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
 
+def parametrize_sos(tt):
+    
+    num, den = sp.fraction(tt)
+    
+    num = sp.poly(num,s)
+    den = sp.poly(den,s)
+    
+    sos = tt
+    wo = sp.Rational('1')
+    Q = sp.Rational('1')
+    K = sp.Rational('1')
+    
+    if num.degree() == 2:
+        num_coeffs = num.all_coeffs()
+        k_omega_o_sq = lcnum / lcden
+
+    if den.degree() == 2:
+        
+        den_coeffs = den.all_coeffs()
+        
+        wo = sp.sqrt(den_coeffs[2]/den_coeffs[0])
+        
+        omega_Q = den_coeffs[1]/den_coeffs[0]
+        
+        Q = sp.simplify(sp.expand(wo / omega_Q)
+        
+        kden = den_coeffs[0]
+        
+        # wo-Q parametrization
+        den  = sp.poly( s**2 + s * sp.Mul(wo, 1/Q, evaluate=False) + wo**2, s)
+        
+        num = num.monic()
+        den = den.monic()
+
+    elif den.degree() == 1:
+
+        den_coeffs = den.all_coeffs()
+
+        wo = den_coeffs[1] / den_coeffs[0]
+        
+        kden = den_coeffs[0]
+        
+        den  = sp.poly( s * wo, s)
+        
+
+    return( sos, wo, Q, K )
+
+
+
 def simplify_n_monic(tt):
     
-    num, den = sp.fraction(sp.simplify(tt))
+    num, den = sp.fraction(tt)
     
     num = sp.poly(num,s)
     den = sp.poly(den,s)
@@ -49,7 +98,12 @@ def simplify_n_monic(tt):
     lcnum = sp.LC(num)
     lcden = sp.LC(den)
     
-    return( sp.simplify(lcnum/lcden) * (sp.monic(num) / sp.monic(den)) )
+    k = num.LC() / den.LC()
+    
+    num = num.monic()
+    den = den.monic()
+
+    return( sp.Mul(k,num/den, evaluate=False) )
 
 def pp(z1, z2):
     '''
@@ -1376,7 +1430,7 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
 
 
 
-def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True ):
+def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True ):
     
     
     
@@ -1440,14 +1494,14 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True ):
             
             thisFilter = sos2tf_analog(all_sys[ii])
 
-            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = True)
+            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = annotations)
             
         else:
                 
             if all_sys[ii].dt is None:
-                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl)
+                analog_fig_id, analog_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = annotations)
             else:
-                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = digital_fig_id, axes_hdl=digital_axes_hdl)
+                digital_fig_id, digital_axes_hdl = pzmap(all_sys[ii], filter_description=sys_name[ii], fig_id = digital_fig_id, axes_hdl=digital_axes_hdl, annotations = annotations)
             
 
     if isinstance(all_sys[ii], np.ndarray) or ( isinstance(all_sys[ii], TransferFunction) and all_sys[ii].dt is None) :

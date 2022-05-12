@@ -12,6 +12,7 @@ de aproximación implementadas en scipy.signal
 import numpy as np
 import scipy.signal as sig
 from splane import analyze_sys
+import matplotlib.pyplot as plt
 import matplotlib as mpl
 
 #####################
@@ -35,7 +36,7 @@ ripple = [3, 3, 3] # dB \alpha_{max} <-- Sin parametrizar, lo dejo en Butterwort
 # ripple = [1, 3, 6] # dB \alpha_{max}
 
 # orders2analyze = [2, 2, 2] # <-- Sin parametrizar, orden fijo
-orders2analyze = [2, 3, 14]
+orders2analyze = [2, 3, 4]
 
 # Solo para Cauer
 attenuation = [40, 40, 40]  # dB \alpha_{min} <-- Sin parametrizar, att fija
@@ -79,7 +80,8 @@ for (this_order, this_ripple, this_att) in zip(orders2analyze, ripple, attenuati
     all_sys.append(sig.TransferFunction(num,den))
     filter_names.append(aprox_name + '_ord_' + str(this_order) + '_rip_' + str(this_ripple)+ '_att_' + str(this_att))
 
+plt.close('all')
 
-analyze_sys( all_sys, filter_names )
+analyze_sys( all_sys, filter_names)
 
 
