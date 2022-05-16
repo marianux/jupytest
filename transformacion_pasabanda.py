@@ -11,10 +11,11 @@ aplicada a un sistema de primer y segundo orden.
 
 import sympy as sp
 from sympy.abc import s
-from splane import simplify_n_monic
+from splane import simplify_n_monic, parametrize_sos
 from IPython.display import display, Math
 
 w_o, Q, Q_bp, B_bp, W_o_bp = sp.symbols("w_o, Q, Q_bp, B_bp, W_o_bp")
+a, b, c, d, e, f = sp.symbols("a, b, c, d, e, f")
 
 
 # print('##############################')
@@ -28,14 +29,23 @@ w_o, Q, Q_bp, B_bp, W_o_bp = sp.symbols("w_o, Q, Q_bp, B_bp, W_o_bp")
 
 H1 = 1/(s+w_o)
 
-H2 = w_o**2/(s**2 + s*w_o/Q + w_o**2)
+# H2 = w_o**2/(s**2 + s*w_o/Q + w_o**2)
+H2 = b/(s**2 + s*a + b)
 
 # nucleo de transformación pasabanda
-Kbp = Q_bp * (s**2 + W_o_bp**2) / (W_o_bp*s)
+Kbp = Q_bp * (s**2 + 1) / s
 
-H1bp = simplify_n_monic(H1.subs(s, Kbp))
+H1bp = sp.simplify(sp.expand(H1.subs(s, Kbp)))
+num, den = sp.fraction(H1bp)
+num = sp.Poly(num,s)
+den = sp.Poly(den,s)
+H1bp, w_on, Q_n, w_od, Q_d, K  = parametrize_sos(num, den)
 
-H2bp = simplify_n_monic(H2.subs(s, Kbp))
+H2bp = sp.simplify(sp.expand(H2.subs(s, Kbp)))
+num, den = sp.fraction(H2bp)
+num = sp.Poly(num,s)
+den = sp.Poly(den,s)
+H2bp, w_on, Q_n, w_od, Q_d, K  = parametrize_sos(num, den)
 
 
 

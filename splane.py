@@ -35,85 +35,201 @@ from collections import defaultdict
 from scipy.signal import tf2zpk, TransferFunction, zpk2tf
 from IPython.display import display, Math, Markdown
 import sympy as sp
+from sympy.abc import s
 from schemdraw import Drawing
 from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
-def parametrize_sos(tt):
 
-    num, den = sp.fraction(tt)
+def parametrize_sos(num, den):
     
-    num = sp.Poly(num,s)
-    den = sp.Poly(den,s)
+    '''
+    Parameters
+    ----------
+    num : TYPE
+        DESCRIPTION.
+    den : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    Example
+    -------
+
+    num = sp.Poly((a*s + b),s)
+    den = sp.Poly((c*s + d),s)
+    sos_bili, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly((a*s),s)
+    sos_bili1, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly((a),s)
+    sos_bili2, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly((a*s**2 + b*s + c),s)
+    den = sp.Poly((d*s**2 + e*s + f),s)
+    sos_1, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly((a*s**2 + c**2),s)
+    sos_2, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly((a*s**2 + s*b),s)
+    sos_3, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly(a,s)
+    sos_4, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly(a*s**2 ,s)
+    sos_5, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    num = sp.Poly((b*s),s)
+    sos_6, w_on, Q_n, w_od, Q_d, K = parametrize_sos(num, den)
+
+    '''    
     
     
-    if( num.degree() <= 2 and den.degree() == 2 ):
+    sos = num/den
+    w_od = sp.Rational('0')
+    Q_d = sp.Rational('0')
+    w_on = sp.Rational('0')
+    Q_n = sp.Rational('0')
+    K = sp.Rational('0')
+    
+    den_coeffs = den.all_coeffs()
+    num_coeffs = num.all_coeffs()
+
+    if len(den_coeffs) == 3:
+    # only 2nd order denominators allowed
         
-        k = num.LC() / den.LC()
-        omega_sq = den.EC()/den.LC()
-        
-        k = sp.simplify(sp.expand(k_omega_o_sq / omega_sq))
-        
-        den = den.monic()
-        
-        # Implementación de un inductor mediante GIC con modelo real
-        TL_opamp_ideal  = sp.Mul(k, omega_sq, evaluate=False)
-        TL_opamp_ideal = sp.Mul(TL_opamp_ideal, 1/den, evaluate=False)
-
-
-    else:
-    
-
-    den = den.monic()
-
-    return()
-
-def parametrize_sos(tt):
-    
-    num, den = sp.fraction(tt)
-    
-    num = sp.poly(num,s)
-    den = sp.poly(den,s)
-    
-    sos = tt
-    wo = sp.Rational('1')
-    Q = sp.Rational('1')
-    K = sp.Rational('1')
-    
-    if num.degree() == 2:
-        num_coeffs = num.all_coeffs()
-        k_omega_o_sq = lcnum / lcden
-
-    if den.degree() == 2:
-        
-        den_coeffs = den.all_coeffs()
-        
-        wo = sp.sqrt(den_coeffs[2]/den_coeffs[0])
+        w_od = sp.sqrt(den_coeffs[2]/den_coeffs[0])
         
         omega_Q = den_coeffs[1]/den_coeffs[0]
         
-        Q = sp.simplify(sp.expand(wo / omega_Q)
+        Q_d = sp.simplify(sp.expand(w_od / omega_Q))
         
-        kden = den_coeffs[0]
+        k_d = den_coeffs[0]
         
         # wo-Q parametrization
-        den  = sp.poly( s**2 + s * sp.Mul(wo, 1/Q, evaluate=False) + wo**2, s)
+        den  = sp.poly( s**2 + s * sp.Mul(w_od, 1/Q_d, evaluate=False) + w_od**2, s)
+
+
+        if num.is_monomial:
+            
+            if num.degree() == 2:
+                #pasaaltos
+                
+                k_n = num_coeffs[0]
+                
+                num  = sp.poly( s**2, s)
+
+            elif num.degree() == 1:
+                #pasabanda
+                
+                k_n = num_coeffs[0] * Q_d / w_od
+                
+                # wo-Q parametrization
+                num  = sp.poly( s * w_od / Q_d , s)
+
+            else:
+                #pasabajos
+                
+                k_n = num_coeffs[0] / w_od**2
+                
+                num  = sp.poly( w_od**2, s)
+
+                
+        else:
+        # no monomial
         
-        num = num.monic()
-        den = den.monic()
+            if num.degree() == 2:
 
-    elif den.degree() == 1:
+                if num_coeffs[1].is_zero:
+                    
+                    # zero at w_on
+                    w_on = sp.sqrt(num_coeffs[2]/num_coeffs[0])
 
-        den_coeffs = den.all_coeffs()
+                    k_n = num_coeffs[0]
+                
+                    num  = sp.poly( s**2 + w_on**2, s)
 
-        wo = den_coeffs[1] / den_coeffs[0]
+                if num_coeffs[2].is_zero:
+                
+                    # zero at w=0 and at w_on
+                    w_on = num_coeffs[1]/num_coeffs[0]
+
+                    k_n = num_coeffs[0]
+
+                    num = sp.poly( s*( s + w_on), s)
+                
+                else: 
+                    # complete poly -> full bicuad
+                
+                    w_on = sp.sqrt(num_coeffs[2]/num_coeffs[0])
+                
+                    omega_Q = num_coeffs[1]/num_coeffs[0]
+                    
+                    Q_n = sp.simplify(sp.expand(w_on / omega_Q))
+                    
+                    k_n = num_coeffs[0]
+                    
+                    # wo-Q parametrization
+                    num  = sp.poly( s**2 + s * sp.Mul(w_on, 1/Q_n, evaluate=False) + w_on**2, s)
+
+            
+            else:
+                # only first order
+                
+                w_on = num_coeffs[1] / num_coeffs[0]
+                
+                k_n = num_coeffs[0]
+                
+                num  = sp.poly( s * w_on, s)
+
         
-        kden = den_coeffs[0]
-        
-        den  = sp.poly( s * wo, s)
-        
+        K = sp.simplify(sp.expand(k_n / k_d))
+        sos = sp.Mul(K, num/den, evaluate=False)
 
-    return( sos, wo, Q, K )
+    elif len(den_coeffs) == 2:
+        # bilineal
+        w_od = den_coeffs[1]/den_coeffs[0]
+        
+        k_d = den_coeffs[0]
+        
+        # wo-Q parametrization
+        den  = sp.poly( s + w_od, s)        
+    
+        if num.is_monomial:
+            
+            if num.degree() == 1:
+                
+                k_n = num_coeffs[0]
+                
+                # wo-Q parametrization
+                num = sp.poly( s, s)        
 
+            else:
+                                
+                k_n = num_coeffs[0] / w_od
+                
+                num  = sp.poly( w_od, s)
+
+                
+        else:
+        # no monomial
+        
+            w_on = num_coeffs[1]/num_coeffs[0]
+            
+            k_n = num_coeffs[0]
+            
+            # wo-Q parametrization
+            num = sp.poly( s + w_on, s)        
+    
+        K = sp.simplify(sp.expand(k_n / k_d))
+        sos = sp.Mul(K, num/den, evaluate=False)
+
+
+    return( sos, w_on, Q_n, w_od, Q_d, K )
 
 
 def simplify_n_monic(tt):
@@ -1331,7 +1447,12 @@ def print_latex(strAux):
     display(Math(strAux))
 
 
-def pretty_print_lti(this_lti, displaystr = True):
+def pretty_print_lti(num, den = None, displaystr = True):
+    
+    if den is None:
+        this_lti = num
+    else:
+        this_lti = TransferFunction(num, den)
     
     num_str_aux = build_poly_str(this_lti.num)
     den_str_aux = build_poly_str(this_lti.den)
@@ -2112,7 +2233,8 @@ def zpk2sos_analog(z, p, k, pairing='nearest'):
         
         _, mag, _ = thisFilter.bode(np.logspace(-2,2,100))
         
-        maxima_tf[si] = np.max(mag)
+        # bode in dB
+        maxima_tf[si] = 10**(np.max(mag)/20)
     
     mmi = np.cumprod(maxima_tf) # M_i according to Schaumann eq 5.76
 
