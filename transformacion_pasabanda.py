@@ -14,8 +14,9 @@ from sympy.abc import s
 from splane import simplify_n_monic, parametrize_sos
 from IPython.display import display, Math
 
-w_o, Q, Q_bp, B_bp, W_o_bp = sp.symbols("w_o, Q, Q_bp, B_bp, W_o_bp")
+w_o, q, Q_bp, B_bp, W_o_bp = sp.symbols("w_o, q, Q_bp, B_bp, W_o_bp")
 a, b, c, d, e, f = sp.symbols("a, b, c, d, e, f")
+p1 = sp.symbols("p1", complex=True )
 
 
 # print('##############################')
@@ -29,8 +30,9 @@ a, b, c, d, e, f = sp.symbols("a, b, c, d, e, f")
 
 H1 = 1/(s+w_o)
 
-# H2 = w_o**2/(s**2 + s*w_o/Q + w_o**2)
-H2 = b/(s**2 + s*a + b)
+H2 = w_o**2/(s + p1 )/(s + sp.conjugate(p1))
+# H2 = w_o**2/(s**2 + s*w_o/q + w_o**2)
+# H2 = b/(s**2 + s*a + b)
 
 # nucleo de transformación pasabanda
 Kbp = Q_bp * (s**2 + 1) / s
