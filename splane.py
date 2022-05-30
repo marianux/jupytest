@@ -88,8 +88,6 @@ def parametrize_sos(num, den):
 
     '''    
     
-    
-    sos = num/den
     w_od = sp.Rational('0')
     Q_d = sp.Rational('0')
     w_on = sp.Rational('0')
@@ -188,7 +186,6 @@ def parametrize_sos(num, den):
 
         
         K = sp.simplify(sp.expand(k_n / k_d))
-        sos = sp.Mul(K, num/den, evaluate=False)
 
     elif len(den_coeffs) == 2:
         # bilineal
@@ -226,10 +223,8 @@ def parametrize_sos(num, den):
             num = sp.poly( s + w_on, s)        
     
         K = sp.simplify(sp.expand(k_n / k_d))
-        sos = sp.Mul(K, num/den, evaluate=False)
 
-
-    return( sos, w_on, Q_n, w_od, Q_d, K )
+    return( num, den, w_on, Q_n, w_od, Q_d, K )
 
 
 def simplify_n_monic(tt):
