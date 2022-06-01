@@ -39,6 +39,8 @@ from sympy.abc import s
 from schemdraw import Drawing
 from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
 
+from fractions import Fraction
+
 
 def parametrize_sos(num, den):
     
@@ -1996,7 +1998,41 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
 
         
     plt.sca(phase_ax_hdl)
-    aux_hdl = plt.semilogx(w, phase, label=label)    # Bode phase plot
+    aux_hdl = plt.semilogx(w, np.pi/180*phase, label=label)    # Bode phase plot
+    
+    # Scale axes to fit
+    ylim = plt.gca().get_ylim()
+
+    ticks = np.linspace(start=np.round(ylim[0]/np.pi)*np.pi, stop=np.round(ylim[1]/np.pi)*np.pi, num = 5, endpoint=True)
+
+    ylabs = []
+    for aa in ticks:
+        
+        if aa == 0:
+            ylabs += ['0'] 
+        else:
+            bb = Fraction(aa/np.pi).limit_denominator(1000000)
+            if np.abs(bb.numerator) != 1:
+                if np.abs(bb.denominator) != 1:
+                    str_aux = r'$\frac{{{:d}}}{{{:d}}} \pi$'.format(bb.numerator, bb.denominator)
+                else:
+                    str_aux = r'${:d}\pi$'.format(bb.numerator)
+                    
+            else:
+                if np.abs(bb.denominator) == 1:
+                    if np.sign(bb.numerator) == -1:
+                        str_aux = r'$-\pi$'
+                    else:
+                        str_aux = r'$\pi$'
+                else:
+                    if np.sign(bb.numerator) == -1:
+                        str_aux = r'$-\frac{{\pi}}{{{:d}}}$'.format(bb.denominator)
+                    else:
+                        str_aux = r'$\frac{{\pi}}{{{:d}}}$'.format(bb.denominator)
+                    
+            ylabs += [ str_aux ]
+            
+    plt.yticks(ticks, labels = ylabs )
     
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -2005,7 +2041,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
     
     plt.grid(True)
     plt.xlabel('Angular frequency [rad/sec]')
-    plt.ylabel('Phase [deg]')
+    plt.ylabel('Phase [rad]')
     plt.title('Phase response')
     
     if label != '' :
