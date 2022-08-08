@@ -25,13 +25,17 @@ kn = 1
 kp = 1 
 
 # coeficientes
-num = kn * np.array([1, 0, wn**2])
+num = kn * np.array([1, 0])
 # # Omega y Q
 # num = kn * np.array([1, wn/qn, wn**2]) 
 
-den = kp * np.array([1, wp/qp, wp**2])
+den = kp * np.array([1, 2, 2, 1])
+# Omega y Q
+# den = kp * np.array([1, wp/qp, wp**2])
 
-tf_bicuad_sos = np.hstack((num,den)).reshape((1,6))
+# tf_bicuad_sos = np.hstack((num,den)).reshape((1,6))
+tf_bicuad_sos = tf2sos_analog( num, den )
+
 
 pretty_print_SOS(tf_bicuad_sos, mode='omegayq')
  

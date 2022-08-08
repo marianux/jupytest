@@ -1606,7 +1606,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     axes_hdl = ()
 
     for ii in range(cant_sys):
-        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, label = sys_name[ii])
+        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description = sys_name[ii])
 
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_Bode.' + img_ext, format=img_ext)
@@ -1615,7 +1615,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     # axes_hdl = ()
 
     # for ii in range(cant_sys):
-    #     fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, label = sys_name[ii])
+    #     fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description = sys_name[ii])
 
     # axes_hdl[0].set_ylim(bottom=-3)
 
@@ -1670,7 +1670,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
         fig_id = 'none'
     
     for ii in range(cant_sys):
-        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, label = sys_name[ii])
+        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description = sys_name[ii])
     
     # axes_hdl.legend(sys_name)
 
@@ -1868,7 +1868,7 @@ def pzmap(myFilter, annotations = False, filter_description='none', fig_id='none
     return fig_id, axes_hdl
     
 
-def GroupDelay(myFilter, fig_id='none', label = '', npoints = 1000):
+def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000):
 
     
     if isinstance(myFilter, np.ndarray):
@@ -1882,22 +1882,22 @@ def GroupDelay(myFilter, fig_id='none', label = '', npoints = 1000):
             num, den = one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
             w, _, phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
-            sos_label += [label + ' - SOS {:d}'.format(ii)]
+            sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
         thisFilter = sos2tf_analog(myFilter)
         w, _, phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
-        sos_label += [label]
+        sos_label += [filter_description]
         
-        label = sos_label
+        filter_description = sos_label
         
     else:
         # LTI object
         cant_sos = 0
         w,_,phase = myFilter.bode( np.logspace(-2,2,npoints) )
         
-        if isinstance(label, str):
-            label = [label]
+        if isinstance(filter_description, str):
+            filter_description = [filter_description]
 
 
     phaseRad = phase * np.pi / 180.0
@@ -1913,7 +1913,7 @@ def GroupDelay(myFilter, fig_id='none', label = '', npoints = 1000):
             fig_hdl = plt.figure(fig_id)
             fig_id = fig_hdl.number
 
-    aux_hdl = plt.semilogx(w[1:], groupDelay, label=label)    # Bode phase plot
+    aux_hdl = plt.semilogx(w[1:], groupDelay, label=filter_description)    # Bode phase plot
 
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -1927,13 +1927,13 @@ def GroupDelay(myFilter, fig_id='none', label = '', npoints = 1000):
 
     axes_hdl = plt.gca()
     
-    if label != '' :
-        # axes_hdl.legend( label )
+    if filter_description != '' :
+        # axes_hdl.legend( filter_description )
         axes_hdl.legend()
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 1000 ):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', npoints = 1000 ):
     
     if isinstance(myFilter, np.ndarray):
         # SOS section
@@ -1947,22 +1947,22 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
             num, den = one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
             w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
-            sos_label += [label + ' - SOS {:d}'.format(ii)]
+            sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
         thisFilter = sos2tf_analog(myFilter)
         w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
-        sos_label += [label]
+        sos_label += [filter_description]
         
-        label = sos_label
+        filter_description = sos_label
         
     else:
         # LTI object
         cant_sos = 0
         w, mag, phase = myFilter.bode(np.logspace(-2,2,npoints))
         
-        if isinstance(label, str):
-            label = [label]
+        if isinstance(filter_description, str):
+            filter_description = [filter_description]
         
 
     if fig_id == 'none':
@@ -1980,7 +1980,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
     (mag_ax_hdl, phase_ax_hdl) = axes_hdl
     
     plt.sca(mag_ax_hdl)
-    aux_hdl = plt.semilogx(w, mag, label=label)    # Bode magnitude plot
+    aux_hdl = plt.semilogx(w, mag, label=filter_description)    # Bode magnitude plot
     
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -1992,13 +1992,13 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
     plt.ylabel('Magnitude [dB]')
     plt.title('Magnitude response')
     
-    if label != '' :
-        # mag_ax_hdl.legend( label )
+    if filter_description != '' :
+        # mag_ax_hdl.legend( filter_description )
         mag_ax_hdl.legend()
 
         
     plt.sca(phase_ax_hdl)
-    aux_hdl = plt.semilogx(w, np.pi/180*phase, label=label)    # Bode phase plot
+    aux_hdl = plt.semilogx(w, np.pi/180*phase, label=filter_description)    # Bode phase plot
     
     # Scale axes to fit
     ylim = plt.gca().get_ylim()
@@ -2044,8 +2044,8 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', label = '', npoints = 100
     plt.ylabel('Phase [rad]')
     plt.title('Phase response')
     
-    if label != '' :
-        # phase_ax_hdl.legend( label )
+    if filter_description != '' :
+        # phase_ax_hdl.legend( filter_description )
         phase_ax_hdl.legend()
     
     return fig_id, axes_hdl
