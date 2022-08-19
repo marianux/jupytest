@@ -1576,9 +1576,7 @@ def pretty_print_SOS(mySOS, mode = 'default', displaystr = True):
 
 
 
-def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True ):
-    
-    
+def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, annotations = True, digital = False, fs = 2*np.pi):
     
     valid_ext = ['none', 'png', 'svg']
     if img_ext not in valid_ext:
@@ -1606,7 +1604,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
     axes_hdl = ()
 
     for ii in range(cant_sys):
-        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description = sys_name[ii])
+        fig_id, axes_hdl = bodePlot(all_sys[ii], fig_id, axes_hdl, filter_description = sys_name[ii], digital = digital, fs = fs)
 
     if img_ext != 'none':
         plt.savefig('_'.join(sys_name) + '_Bode.' + img_ext, format=img_ext)
@@ -1640,7 +1638,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
             
             thisFilter = sos2tf_analog(all_sys[ii])
 
-            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = annotations)
+            analog_fig_id, analog_axes_hdl = pzmap(thisFilter, filter_description=sys_name[ii], fig_id = analog_fig_id, axes_hdl=analog_axes_hdl, annotations = annotations, digital = digital, fs = fs)
             
         else:
                 
@@ -1670,7 +1668,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
         fig_id = 'none'
     
     for ii in range(cant_sys):
-        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description = sys_name[ii])
+        fig_id, axes_hdl = GroupDelay(all_sys[ii], fig_id, filter_description = sys_name[ii], digital = digital, fs = fs)
     
     # axes_hdl.legend(sys_name)
 
@@ -1868,8 +1866,9 @@ def pzmap(myFilter, annotations = False, filter_description='none', fig_id='none
     return fig_id, axes_hdl
     
 
-def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000):
+def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000, digital = False, fs = 2*np.pi):
 
+    w_nyq = 2*np.pi*fs/2
     
     if isinstance(myFilter, np.ndarray):
         # SOS section
@@ -1881,12 +1880,22 @@ def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000)
             
             num, den = one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
-            w, _, phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
+            
+            if digital:
+                w, _, phase[:,ii] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+            else:
+                w, _, phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
+            
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
         thisFilter = sos2tf_analog(myFilter)
-        w, _, phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
+        
+        if digital:
+            w, _, phase[:,cant_sos] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+        else:
+            w, _, phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
+        
         sos_label += [filter_description]
         
         filter_description = sos_label
@@ -1894,7 +1903,11 @@ def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000)
     else:
         # LTI object
         cant_sos = 0
-        w,_,phase = myFilter.bode( np.logspace(-2,2,npoints) )
+        
+        if myFilter.dt is None:
+            w, _, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        else:
+            w, _, phase = myFilter.bode(np.linspace(10**-2, w_nyq, npoints))
         
         if isinstance(filter_description, str):
             filter_description = [filter_description]
@@ -1913,7 +1926,10 @@ def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000)
             fig_hdl = plt.figure(fig_id)
             fig_id = fig_hdl.number
 
-    aux_hdl = plt.semilogx(w[1:], groupDelay, label=filter_description)    # Bode phase plot
+    if digital:
+        aux_hdl = plt.plot(w[1:] / w_nyq , groupDelay, label=filter_description)    # Bode phase plot
+    else:
+        aux_hdl = plt.semilogx(w[1:], groupDelay, label=filter_description)    # Bode phase plot
 
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -1921,7 +1937,16 @@ def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000)
         aux_hdl[-1].set_linewidth(2)
     
     plt.grid(True)
-    plt.xlabel('Angular frequency [rad/sec]')
+    
+    
+    if digital:
+
+        plt.gca().set_xlim([0, 1])
+        
+        plt.xlabel('Frecuencia normalizada a Nyq [#]')
+    else:
+        plt.xlabel('Angular frequency [rad/sec]')
+    
     plt.ylabel('Group Delay [sec]')
     plt.title('Group delay')
 
@@ -1933,7 +1958,9 @@ def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000)
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', npoints = 1000 ):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', npoints = 1000, digital = False, fs = 2*np.pi ):
+
+    w_nyq = 2*np.pi*fs/2
     
     if isinstance(myFilter, np.ndarray):
         # SOS section
@@ -1946,12 +1973,21 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
             
             num, den = one_sos2tf(myFilter[ii,:])
             thisFilter = TransferFunction(num, den)
-            w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
+            if digital:
+                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.linspace(10**-2, w_nyq,npoints))
+            else:
+                w, mag[:, ii], phase[:,ii] = thisFilter.bode(np.logspace(-2,2,npoints))
+                
             sos_label += [filter_description + ' - SOS {:d}'.format(ii)]
         
         # whole filter
         thisFilter = sos2tf_analog(myFilter)
-        w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
+
+        if digital:
+            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.linspace(10**-2, w_nyq, npoints))
+        else:
+            w, mag[:, cant_sos], phase[:,cant_sos] = thisFilter.bode(np.logspace(-2,2,npoints))
+            
         sos_label += [filter_description]
         
         filter_description = sos_label
@@ -1959,7 +1995,12 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
     else:
         # LTI object
         cant_sos = 0
-        w, mag, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        
+        if myFilter.dt is None:
+            # filtro analógico normalizado
+            w, mag, phase = myFilter.bode(np.logspace(-2,2,npoints))
+        else:
+            w, mag, phase = myFilter.bode(np.linspace(10**-2, w_nyq, npoints))
         
         if isinstance(filter_description, str):
             filter_description = [filter_description]
@@ -1980,7 +2021,11 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
     (mag_ax_hdl, phase_ax_hdl) = axes_hdl
     
     plt.sca(mag_ax_hdl)
-    aux_hdl = plt.semilogx(w, mag, label=filter_description)    # Bode magnitude plot
+
+    if digital:
+        aux_hdl = plt.plot(w / w_nyq, mag, label=filter_description)    # Bode magnitude plot
+    else:
+        aux_hdl = plt.semilogx(w, mag, label=filter_description)    # Bode magnitude plot
     
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -1998,11 +2043,17 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
 
         
     plt.sca(phase_ax_hdl)
-    aux_hdl = plt.semilogx(w, np.pi/180*phase, label=filter_description)    # Bode phase plot
+    
+    if digital:
+        aux_hdl = plt.plot(w / w_nyq, np.pi/180*phase, label=filter_description)    # Bode phase plot
+    else:
+        aux_hdl = plt.semilogx(w, np.pi/180*phase, label=filter_description)    # Bode phase plot
+    
     
     # Scale axes to fit
     ylim = plt.gca().get_ylim()
 
+    # presentar la fase como fracciones de \pi
     ticks = np.linspace(start=np.round(ylim[0]/np.pi)*np.pi, stop=np.round(ylim[1]/np.pi)*np.pi, num = 5, endpoint=True)
 
     ylabs = []
@@ -2040,7 +2091,14 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
         aux_hdl[-1].set_linewidth(2)
     
     plt.grid(True)
-    plt.xlabel('Angular frequency [rad/sec]')
+
+    if digital:
+
+        plt.gca().set_xlim([0, 1])
+        
+        plt.xlabel('Frecuencia normalizada a Nyq [#]')
+    else:
+        plt.xlabel('Angular frequency [rad/sec]')
     plt.ylabel('Phase [rad]')
     plt.title('Phase response')
     
