@@ -1679,7 +1679,7 @@ def analyze_sys( all_sys, sys_name = None, img_ext = 'none', same_figs=True, ann
 
 
 
-def pzmap(myFilter, annotations = False, filter_description='none', fig_id='none', axes_hdl='none'):
+def pzmap(myFilter, annotations = False, filter_description = None, fig_id='none', axes_hdl='none'):
     """Plot the complex s-plane given zeros and poles.
     Pamams:
      - b: array_like. Numerator polynomial coefficients.
@@ -1717,11 +1717,12 @@ def pzmap(myFilter, annotations = False, filter_description='none', fig_id='none
     
 #        maxRadius = np.abs(10*np.sqrt(p[0]))
     
-    # Plot the poles and set marker properties
-    poles = plt.plot(p.real, p.imag, 'x', markersize=9, label=filter_description)
     
-#    if filter_description != 'none':
-#        poles[0].label = filter_description
+    # Plot the poles and set marker properties
+    if filter_description is None:
+        poles = plt.plot(p.real, p.imag, 'x', markersize=9)
+    else:
+        poles = plt.plot(p.real, p.imag, 'x', markersize=9, label=filter_description)
     
     # Plot the zeros and set marker properties
     zeros = plt.plot(z.real, z.imag,  'o', markersize=9, 
@@ -1861,12 +1862,13 @@ def pzmap(myFilter, annotations = False, filter_description='none', fig_id='none
 
     fig_hdl.suptitle('Poles and Zeros map')
 
-    axes_hdl.legend()
+    if not(filter_description is None):
+       axes_hdl.legend()
 
     return fig_id, axes_hdl
     
 
-def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000, digital = False, fs = 2*np.pi):
+def GroupDelay(myFilter, fig_id='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi):
 
     w_nyq = 2*np.pi*fs/2
     
@@ -1952,13 +1954,13 @@ def GroupDelay(myFilter, fig_id='none', filter_description = '', npoints = 1000,
 
     axes_hdl = plt.gca()
     
-    if filter_description != '' :
+    if not(filter_description is None):
         # axes_hdl.legend( filter_description )
         axes_hdl.legend()
 
     return fig_id, axes_hdl
 
-def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', npoints = 1000, digital = False, fs = 2*np.pi ):
+def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, npoints = 1000, digital = False, fs = 2*np.pi ):
 
     w_nyq = 2*np.pi*fs/2
     
@@ -2023,9 +2025,15 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
     plt.sca(mag_ax_hdl)
 
     if digital:
-        aux_hdl = plt.plot(w / w_nyq, mag, label=filter_description)    # Bode magnitude plot
+        if filter_description is None:
+            aux_hdl = plt.plot(w / w_nyq, mag)    # Bode magnitude plot
+        else:
+            aux_hdl = plt.plot(w / w_nyq, mag, label=filter_description)    # Bode magnitude plot
     else:
-        aux_hdl = plt.semilogx(w, mag, label=filter_description)    # Bode magnitude plot
+        if filter_description is None:
+            aux_hdl = plt.semilogx(w, mag)    # Bode magnitude plot
+        else:
+            aux_hdl = plt.semilogx(w, mag, label=filter_description)    # Bode magnitude plot
     
     if cant_sos > 0:
         # distinguish SOS from total response
@@ -2037,7 +2045,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
     plt.ylabel('Magnitude [dB]')
     plt.title('Magnitude response')
     
-    if filter_description != '' :
+    if not(filter_description is None):
         # mag_ax_hdl.legend( filter_description )
         mag_ax_hdl.legend()
 
@@ -2045,9 +2053,16 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
     plt.sca(phase_ax_hdl)
     
     if digital:
-        aux_hdl = plt.plot(w / w_nyq, np.pi/180*phase, label=filter_description)    # Bode phase plot
+        if filter_description is None:
+            aux_hdl = plt.plot(w / w_nyq, np.pi/180*phase)    # Bode phase plot
+        else:
+            aux_hdl = plt.plot(w / w_nyq, np.pi/180*phase, label=filter_description)    # Bode phase plot
+            
     else:
-        aux_hdl = plt.semilogx(w, np.pi/180*phase, label=filter_description)    # Bode phase plot
+        if filter_description is None:
+            aux_hdl = plt.semilogx(w, np.pi/180*phase)    # Bode phase plot
+        else:
+            aux_hdl = plt.semilogx(w, np.pi/180*phase, label=filter_description)    # Bode phase plot
     
     
     # Scale axes to fit
@@ -2102,7 +2117,7 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', 
     plt.ylabel('Phase [rad]')
     plt.title('Phase response')
     
-    if filter_description != '' :
+    if not(filter_description is None):
         # phase_ax_hdl.legend( filter_description )
         phase_ax_hdl.legend()
     
