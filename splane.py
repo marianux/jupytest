@@ -2123,6 +2123,80 @@ def bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description=None, 
     
     return fig_id, axes_hdl
     
+
+def plot_plantilla(filter_type = 'lowpass', fpass = 0.25, ripple = 0.5, fstop = 0.6, attenuation = 40, fs = 2 ):
+    
+    # para sobreimprimir la plantilla de diseño de un filtro
+    
+    xmin, xmax, ymin, ymax = plt.axis()
+    
+    # banda de paso digital
+    plt.fill([xmin, xmin, fs/2, fs/2],   [ymin, ymax, ymax, ymin], 'g', alpha= 0.2, lw=1, label = 'bw digital') # pass
+    
+    if filter_type == 'lowpass':
+    
+        fstop_start = fstop
+        fstop_end = xmax
+        
+        fpass_start = xmin
+        fpass_end   = fpass
+    
+        plt.fill( [fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # stop
+        plt.fill( [fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
+    
+    elif filter_type == 'highpass':
+    
+        fstop_start = xmin
+        fstop_end = fstop 
+        
+        fpass_start = fpass
+        fpass_end   = xmax
+    
+        plt.fill( [fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # stop
+        plt.fill( [fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
+    
+    
+    elif filter_type == 'bandpass':
+    
+        fstop_start = xmin
+        fstop_end = fstop[0]
+        
+        fpass_start = fpass[0]
+        fpass_end   = fpass[1]
+        
+        fstop2_start = fstop[1]
+        fstop2_end =  xmax
+        
+        plt.fill( [fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # stop
+        plt.fill( [fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
+        plt.fill( [fstop2_start, fstop2_end,   fstop2_end, fstop2_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k') # stop
+        
+    elif filter_type == 'bandstop':
+    
+        fpass_start = xmin
+        fpass_end   = fpass[0]
+    
+        fstop_start = fstop[0]
+        fstop_end = fstop[1]
+        
+        fpass2_start = fpass[1]
+        fpass2_end   = xmax
+            
+        plt.fill([fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # pass
+        plt.fill([fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k') # stop
+        plt.fill([fpass2_start, fpass2_start, fpass2_end, fpass2_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
+    
+    
+    plt.axis([xmin, xmax, np.max([ymin, -100]), np.max([ymax, 5])])
+    
+    axes_hdl = plt.gca()
+    axes_hdl.legend()
+    
+    plt.show()
+    
+    
+
+
 def sos2tf_analog(mySOS):
     
     SOSnumber, _ = mySOS.shape

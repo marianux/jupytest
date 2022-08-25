@@ -18,7 +18,7 @@ import sys
 
 sys.path.append('/home/mariano/scripts/analog filters/python') 
 
-from splane import analyze_sys
+from splane import analyze_sys, plot_plantilla
 
 #####################
 ## Start of script ##
@@ -30,16 +30,24 @@ mpl.rcParams['figure.figsize'] = (10,10)
 
 #%% 
 
-############################################
-## Diseño a partir de un filtro analógico ##
-############################################
+###############################################################
+## Diseño a partir de un filtro analógico - Métodos directos ##
+###############################################################
+
+#  En este caso, a diferencia del método basado en la transformación bilineal,
+#  tenemos control total de la plantilla, y todas las aproximaciones analógicas 
+#  reciben la misma plantilla para comenzar el diseño del filtro.
+#  En los métodos directos, el resultado de cada aproximación devuelve el menor 
+#  orden que cumple con la plantilla pedida, tanto para filtros analógicos como 
+#  digitales,y cualquiera sea el tipo de transferencia deseada: pasabajo, 
+#  pasaltos, etc.
 
 # Tipo de aproximación.
         
-aprox_name = 'butter'
-#aprox_name = 'cheby1'
-#aprox_name = 'cheby2'
-#aprox_name = 'ellip'
+# aprox_name = 'butter'
+# aprox_name = 'cheby1'
+# aprox_name = 'cheby2'
+aprox_name = 'ellip'
 
 # Por qué no hay bessel ?
 #aprox_name = 'bessel'
@@ -48,8 +56,8 @@ aprox_name = 'butter'
 
 # filter_type = 'lowpass'
 # filter_type = 'highpass'
-# filter_type = 'bandpass'
-filter_type = 'bandstop'
+filter_type = 'bandpass'
+# filter_type = 'bandstop'
 
 
 # plantillas normalizadas a Nyquist y en dB
@@ -164,73 +172,7 @@ plt.grid(which='both', axis='both')
 
 plt.gca().set_xlim([0, 2])
 
-xmin, xmax, ymin, ymax = plt.axis()
-
-
-# banda de paso digital
-plt.fill([xmin, xmin, fs/2, fs/2],   [ymin, ymax, ymax, ymin], 'g', alpha= 0.2, lw=1, label = 'bw digital') # pass
-
-if filter_type == 'lowpass':
-
-    fstop_start = fstop
-    fstop_end = xmax
-    
-    fpass_start = xmin
-    fpass_end   = fpass
-
-    plt.fill( [fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # stop
-    plt.fill( [fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
-
-elif filter_type == 'highpass':
-
-    fstop_start = xmin
-    fstop_end = fstop 
-    
-    fpass_start = fpass
-    fpass_end   = xmax
-
-    plt.fill( [fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # stop
-    plt.fill( [fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
-
-
-elif filter_type == 'bandpass':
-
-    fstop_start = xmin
-    fstop_end = fstop[0]
-    
-    fpass_start = fpass[0]
-    fpass_end   = fpass[1]
-    
-    fstop2_start = fstop[1]
-    fstop2_end =  xmax
-    
-    plt.fill( [fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # stop
-    plt.fill( [fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
-    plt.fill( [fstop2_start, fstop2_end,   fstop2_end, fstop2_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k') # stop
-    
-else:
-
-    fpass_start = xmin
-    fpass_end   = fpass[0]
-
-    fstop_start = fstop[0]
-    fstop_end = fstop[1]
-    
-    fpass2_start = fpass[1]
-    fpass2_end   = xmax
-        
-    plt.fill([fpass_start, fpass_start, fpass_end, fpass_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k', label = 'plantilla') # pass
-    plt.fill([fstop_start, fstop_end,   fstop_end, fstop_start], [-attenuation, -attenuation, ymax, ymax], '0.9', lw=1, ls = '--', ec = 'k') # stop
-    plt.fill([fpass2_start, fpass2_start, fpass2_end, fpass2_end],   [ymin, -ripple, -ripple, ymin], '0.9', lw=1, ls = '--', ec = 'k') # pass
+plot_plantilla(filter_type = filter_type , fpass = fpass, ripple = ripple , fstop = fstop, attenuation = attenuation, fs = fs)
 
 
 
-plt.axis([xmin, xmax, np.max([ymin, -100]), np.max([ymax, 5])])
-
-axes_hdl = plt.gca()
-axes_hdl.legend()
-
-plt.show()
-
-# Analizamos y comparamos los filtros
-#analyze_sys( all_sys, filter_names )
