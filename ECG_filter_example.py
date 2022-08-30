@@ -34,6 +34,13 @@ import matplotlib.pyplot as plt
 import scipy.io as sio
 from splane import plot_plantilla
 
+def group_delay(ww, phase):
+    
+    groupDelay = -np.diff(phase)/np.diff(ww)
+    
+    return(np.append(groupDelay, groupDelay[-1]))
+
+
 # Setup inline graphics
 mpl.rcParams['figure.figsize'] = (10,10)
 
@@ -53,10 +60,10 @@ nyq_frec = fs / 2
 ripple = 0 # dB
 atenuacion = 40 # dB
 
-ws1 = 1.0 #Hz
-wp1 = 3.0 #Hz
-wp2 = 25.0 #Hz
-ws2 = 35.0 #Hz
+ws1 = 0.1 #Hz
+wp1 = 1.0 #Hz
+wp2 = 40.0 #Hz
+ws2 = 50.0 #Hz
 
 frecs = np.array([0.0,         ws1,         wp1,     wp2,     ws2,         nyq_frec   ]) / nyq_frec
 gains = np.array([-atenuacion, -atenuacion, -ripple, -ripple, -atenuacion, -atenuacion])
@@ -68,7 +75,7 @@ bp_sos_cheby = sig.iirdesign(wp=np.array([wp1, wp2]) / nyq_frec, ws=np.array([ws
 bp_sos_cauer = sig.iirdesign(wp=np.array([wp1, wp2]) / nyq_frec, ws=np.array([ws1, ws2]) / nyq_frec, gpass=0.5, gstop=40., analog=False, ftype='ellip', output='sos')
 
 # cant_coef = bellanger_order_estimate(gains[2], gains[0], wp1 - ws1, fs)
-cant_coef = 1000
+cant_coef = 1500
 
 if cant_coef % 2 == 0:
     cant_coef += 1
@@ -90,45 +97,106 @@ num_remez = sig.convolve(num_remez_hp, num_remez_lp)
 
 num_win =   sig.firwin2(num_remez.shape[0], frecs, gains , window='blackmanharris' )
 
+## Rick Lyons high pass with DC-block filter.
+# dd = 16;
+# num_rl = np.hstack([-1/dd**2, np.zeros(dd-2), 1, (2/dd**2-2), 1, np.zeros(dd-2), -1/dd**2])
+# den_rl = np.array([1, -2, 1])
+
+## Rick Lyons ECG filter
+dd = 32
+uu = 20
+num_rl = np.hstack([-1/dd, np.zeros(uu*(dd-1)-1), 1, np.zeros(uu-1), (2/dd**2-2), np.zeros(uu-1), 1, np.zeros(uu*(dd-1)-1), -1/dd**2])
+den_rl = np.hstack([1, np.zeros(uu-1), -2, np.zeros(uu-1), 1])
+
+# num_rl = np.hstack([-1/dd**2, np.zeros(uu*(dd-1)-1), 1, np.zeros(uu-1), (2/dd**2-2), np.zeros(uu-1), 1, np.zeros(uu*(dd-1)-1), -1/dd**2])
+# den_rl = np.hstack([1, np.zeros(uu-1), -2, np.zeros(uu-1), 1])
+
+demora_rl = int(uu*(dd-1))
+
 demora = int((num_remez.shape[0]-1)/2)
 
 den = 1.0
 
-w  = np.append(np.logspace(-1, 0.8, 250), np.logspace(0.9, 1.6, 250) )
-w  = np.append(w, np.linspace(110, nyq_frec, 100, endpoint=True) ) / nyq_frec * np.pi
+w_rad  = np.append(np.logspace(-2, 0.8, 250), np.logspace(0.9, 1.6, 250) )
+w_rad  = np.append(w_rad, np.linspace(40, nyq_frec, 500, endpoint=True) ) / nyq_frec * np.pi
+_, h_butter = sig.sosfreqz(bp_sos_butter, w_rad)
 
-_, h_butter = sig.sosfreqz(bp_sos_butter, w)
-_, h_cheby = sig.sosfreqz(bp_sos_cheby, w)
-_, h_cauer = sig.sosfreqz(bp_sos_cauer, w)
-_, hh_firls = sig.freqz(num_firls, den, w)
-_, hh_remez = sig.freqz(num_remez, den, w)
-_, hh_remez_hp = sig.freqz(num_remez_hp, den, w)
-_, hh_remez_lp = sig.freqz(num_remez_lp, den, w)
-_, hh_win = sig.freqz(num_win, den, w)
+# w_rad, h_butter = sig.sosfreqz(bp_sos_butter, 1024)
+_, h_cheby = sig.sosfreqz(bp_sos_cheby, w_rad)
+_, h_cauer = sig.sosfreqz(bp_sos_cauer, w_rad)
+_, hh_firls = sig.freqz(num_firls, den, w_rad)
+_, hh_remez = sig.freqz(num_remez, den, w_rad)
+_, hh_remez_hp = sig.freqz(num_remez_hp, den, w_rad)
+_, hh_remez_lp = sig.freqz(num_remez_lp, den, w_rad)
+_, hh_win = sig.freqz(num_win, den, w_rad)
+_, hh_rl = sig.freqz(num_rl, den_rl, w_rad)
 
-w = w / np.pi * nyq_frec
+w = w_rad / np.pi * nyq_frec
 
-plt.figure()
+plt.close('all')
+
+plt.figure(1)
+plt.clf()
 
 plt.plot(w, 20*np.log10(np.abs(h_butter)+1e-12), label='IIR-Butter {:d}'.format(bp_sos_butter.shape[0]*2) )
-# plt.plot(w, 20*np.log10(np.abs(h_cheby)+1e-12), label='IIR-Cheby {:d}'.format(bp_sos_cheby.shape[0]*2) )
-# plt.plot(w, 20*np.log10(np.abs(h_cauer)+1e-12), label='IIR-Cauer {:d}'.format(bp_sos_cauer.shape[0]*2) )
-# plt.plot(w, 20 * np.log10(abs(hh_firls)), label='FIR-ls {:d}'.format(num_firls.shape[0]))
-# plt.plot(w, 20 * np.log10(abs(hh_remez)), label='FIR-remez {:d}'.format(num_remez.shape[0]))
+plt.plot(w, 20*np.log10(np.abs(h_cheby)+1e-12), label='IIR-Cheby {:d}'.format(bp_sos_cheby.shape[0]*2) )
+plt.plot(w, 20*np.log10(np.abs(h_cauer)+1e-12), label='IIR-Cauer {:d}'.format(bp_sos_cauer.shape[0]*2) )
+plt.plot(w, 20 * np.log10(abs(hh_firls)), label='FIR-ls {:d}'.format(num_firls.shape[0]))
+plt.plot(w, 20 * np.log10(abs(hh_remez)), label='FIR-remez {:d}'.format(num_remez.shape[0]))
 # plt.plot(w, 20 * np.log10(abs(hh_remez_hp)), label='FIR-remez-HP {:d}'.format(num_remez_hp.shape[0]))
 # plt.plot(w, 20 * np.log10(abs(hh_remez_lp)), label='FIR-remez-LP {:d}'.format(num_remez_lp.shape[0]))
-# plt.plot(w, 20 * np.log10(abs(hh_win)), label='FIR-Win {:d}'.format(num_win.shape[0]))
+plt.plot(w, 20 * np.log10(abs(hh_win)), label='FIR-Win {:d}'.format(num_win.shape[0]))
+plt.plot(w, 20 * np.log10(abs(hh_rl)), label='FIR-Rick {:d}'.format(num_rl.shape[0]))
 
 plot_plantilla(filter_type = 'bandpass', fpass = frecs[[2, 3]]* nyq_frec, ripple = ripple , fstop = frecs[ [1, 4] ]* nyq_frec, attenuation = atenuacion, fs = fs)
 
 plt.title('FIR diseñado por métodos directos')
 plt.xlabel('Frequencia [Hz]')
 plt.ylabel('Modulo [dB]')
-plt.axis([0, 100, -60, 5 ]);
+plt.axis([0, 500, -60, 5 ]);
 
 plt.grid()
 
 
+
+axes_hdl = plt.gca()
+axes_hdl.legend()
+            
+plt.figure(2)
+
+phase_win = np.angle(hh_win)
+phase_firls = np.angle(hh_firls)
+phase_rl = np.angle(hh_rl)
+
+plt.plot(w, phase_win, label='FIR-Win {:d}'.format(num_win.shape[0]))    # Bode phase plot
+plt.plot(w, phase_firls, label='FIR-ls {:d}'.format(num_firls.shape[0]))    # Bode phase plot
+plt.plot(w, phase_rl, label='FIR-Rick {:d}'.format(num_rl.shape[0]))    # Bode phase plot
+
+plt.title('FIR diseñado retardo')
+plt.xlabel('Frequencia [Hz]')
+plt.ylabel('Fase [rad]')
+
+axes_hdl = plt.gca()
+axes_hdl.legend()
+
+plt.show()
+
+plt.figure(3)
+
+gd_win = group_delay(w_rad, phase_win)
+gd_firls = group_delay(w_rad, phase_firls)
+gd_rl = group_delay(w_rad, phase_rl)
+
+# Para órdenes grandes 
+plt.plot(w[gd_win>0], gd_win[gd_win>0], label='FIR-Win {:d}'.format(num_win.shape[0]))    # Bode phase plot
+plt.plot(w[gd_firls>0], gd_firls[gd_firls>0], label='FIR-ls {:d}'.format(num_firls.shape[0]))    # Bode phase plot
+plt.plot(w[gd_rl>0], gd_rl[gd_rl>0], label='FIR-Rick {:d}'.format(num_rl.shape[0]))    # Bode phase plot
+
+plt.axis([0, 500, 0, 1.5*demora ])
+
+plt.title('FIR diseñado retardo')
+plt.xlabel('Frequencia [Hz]')
+plt.ylabel('Retardo [s]')
 
 axes_hdl = plt.gca()
 axes_hdl.legend()
@@ -147,6 +215,7 @@ plt.show()
 # ECG_f_ls = sig.lfilter(num_firls, den, ecg_one_lead)
 # ECG_f_remez = sig.lfilter(num_remez, den, ecg_one_lead)
 # ECG_f_win = sig.lfilter(num_win, den, ecg_one_lead)
+ECG_f_rl = sig.lfilter(num_rl, den_rl, ecg_one_lead)
 
 
 # # FIltrado bidireccional
@@ -158,6 +227,7 @@ ECG_f_cauer = sig.sosfiltfilt(bp_sos_cauer, ecg_one_lead)
 ECG_f_ls = sig.filtfilt(num_firls, den, ecg_one_lead)
 ECG_f_remez = sig.filtfilt(num_remez, den, ecg_one_lead)
 ECG_f_win = sig.filtfilt(num_win, den, ecg_one_lead)
+# ECG_f_rl = sig.filtfilt(num_rl, den_rl, ecg_one_lead)
 
 
 
@@ -179,17 +249,18 @@ for ii in regs_interes:
     
     plt.figure()
     plt.plot(zoom_region, ecg_one_lead[zoom_region], label='ECG', linewidth=2)
-    # plt.plot(zoom_region, ECG_f_butt[zoom_region], label='Butter')
-    # plt.plot(zoom_region, ECG_f_cheb[zoom_region], label='Cheby')
-    # plt.plot(zoom_region, ECG_f_cauer[zoom_region], label='Cauer')
-    # plt.plot(zoom_region, ECG_f_remez[zoom_region], label='Remez')
-    # plt.plot(zoom_region, ECG_f_ls[zoom_region], label='LS')
-    # plt.plot(zoom_region, ECG_f_win[zoom_region], label='Win')
+    plt.plot(zoom_region, ECG_f_butt[zoom_region], label='Butter')
+    plt.plot(zoom_region, ECG_f_cheb[zoom_region], label='Cheby')
+    plt.plot(zoom_region, ECG_f_cauer[zoom_region], label='Cauer')
+    plt.plot(zoom_region, ECG_f_remez[zoom_region], label='Remez')
+    plt.plot(zoom_region, ECG_f_ls[zoom_region], label='LS')
+    plt.plot(zoom_region, ECG_f_win[zoom_region], label='Win')
     
     # FIR con corrección de demora
     # plt.plot(zoom_region, ECG_f_remez[zoom_region+demora], label='Remez')
     # plt.plot(zoom_region, ECG_f_ls[zoom_region+demora], label='LS')
     # plt.plot(zoom_region, ECG_f_win[zoom_region+demora], label='Win')
+    plt.plot(zoom_region, ECG_f_rl[zoom_region+demora_rl], label='Rick')
     
     plt.title('ECG filtering example from ' + str(ii[0]) + ' to ' + str(ii[1]) )
     plt.ylabel('Adimensional')
