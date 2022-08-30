@@ -25,6 +25,14 @@ type III – zero at zero and Nyquist frequencies
 type IV – zero at zero frequency
 
 '''
+
+def group_delay(ww, phase):
+    
+    groupDelay = -np.diff(phase)/np.diff(ww)
+    
+    return(np.append(groupDelay, groupDelay[-1]))
+
+
 cant_coef = 51
 
 #####################
@@ -79,10 +87,10 @@ num_remez = sig.remez(cant_coef, frecs, gains[::2], fs=fs)
 # coeficientes a_0 = 1; a_i = 0, i=1:cant_coef para los filtros FIR
 den = 1
 
-ww, hh_win = sig.freqz(num_win, den)
+ww_rad, hh_win = sig.freqz(num_win, den)
 _,  hh_firls = sig.freqz(num_firls, den)
 _,  hh_remez = sig.freqz(num_remez, den)
-ww = ww / np.pi
+ww = ww_rad / np.pi
 
 plt.figure()
 
@@ -104,17 +112,38 @@ plt.show()
 
 plt.figure()
 
-plt.plot(ww, np.unwrap(np.angle(hh_win)), label='win')
-plt.plot(ww, np.unwrap(np.angle(hh_firls)), label='ls')
-plt.plot(ww, np.unwrap(np.angle(hh_remez)), label='remez')
+phase_win = np.unwrap(np.angle(hh_win))
+phase_firls = np.unwrap(np.angle(hh_firls))
+phase_remez = np.unwrap(np.angle(hh_remez))
+
+plt.plot(ww, phase_win, label='win')
+plt.plot(ww, phase_firls, label='ls')
+plt.plot(ww, phase_remez, label='remez')
 
 plt.title('FIR diseñado por métodos directos')
 plt.xlabel('Frequencia normalizada')
 plt.ylabel('Fase [rad]')
 plt.grid(which='both', axis='both')
+
+axes_hdl = plt.gca()
+axes_hdl.legend()
 plt.show()
 
+gd_win = group_delay(ww_rad, phase_win)
+gd_firls = group_delay(ww_rad, phase_firls)
+gd_remez = group_delay(ww_rad, phase_remez)
 
+plt.figure()
 
+plt.plot(ww, gd_win , label='win')
+plt.plot(ww, gd_firls , label='ls')
+plt.plot(ww, gd_remez, label='remez')
 
+plt.title('FIR diseñado por métodos directos')
+plt.xlabel('Frequencia normalizada')
+plt.ylabel('Retardo [# muestras]')
+plt.grid(which='both', axis='both')
 
+axes_hdl = plt.gca()
+axes_hdl.legend()
+plt.show()
