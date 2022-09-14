@@ -36,10 +36,654 @@ from scipy.signal import tf2zpk, TransferFunction, zpk2tf
 from IPython.display import display, Math, Markdown
 import sympy as sp
 from sympy.abc import s
+from sympy.polys.partfrac import apart
+
 from schemdraw import Drawing
-from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow, CurrentLabelInline
+from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line, Dot, Gap, Arrow
 
 from fractions import Fraction
+
+s = sp.symbols('s', complex=True)
+
+
+def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
+    '''
+    Description
+    -----------
+    Draws a parallel non-disipative admitance following Foster synthesis method.
+
+        YorZ = ki / s +  1 / ( ki_i / s + koo_i * s ) 
+    
+    Parameters
+    ----------
+    ki : symbolic positive real number. The residue value at DC or s->0.
+        
+    koo : symbolic positive real number. The residue value at inf or s->oo.
+        
+    ki : symbolic positive real array of numbers. A list of residue pairs at 
+         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
+         is the ki_i value (capacitor), while the other is the koo_i (inductor)
+         value.
+
+    Returns
+    -------
+    The drawing object.
+    
+    Ejemplo
+    -------
+
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Foster
+    ki, koo, ki = tc2.foster(Imm)
+    
+    # Tratamos a nuestra función imitancia como una Z
+    tc2.dibujar_foster_derivacion(ki, koo, ki, y_exc = Imm)
+
+    '''    
+    if y_exc is None and z_exc is None:
+
+        assert('Hay que definir si se trata de una impedancia o admitancia')
+
+    if not(ki is None) or len(ki) > 0:
+        # si hay algo para dibujar ...
+        
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+
+        d = dibujar_puerto_entrada(d,
+                                       voltage_lbl = ('+', '$V$', '-'), 
+                                       current_lbl = '$I$')
+
+        if y_exc is None:
+            
+            bIsImpedance = True
+            
+            d, _ = dibujar_funcion_exc_abajo(d, 
+                                                      'Z',  
+                                                      z_exc, 
+                                                      hacia_salida = True,
+                                                      k_gap_width = 0.5)
+        else:
+            bIsImpedance = False
+            
+            d, _ = dibujar_funcion_exc_abajo(d, 
+                                                      'Y',  
+                                                      y_exc, 
+                                                      hacia_salida = True,
+                                                      k_gap_width = 0.5)
+    
+        if bIsImpedance:
+            bSeries = True
+        else:
+            bSeries = False
+        
+        bComponenteDibujadoDerivacion = False
+
+        for kii in ki:
+
+
+            if bSeries:
+                
+                if sp.degree(kii*s) == 1:
+                    d = dibujar_elemento_serie(d, Resistor, kii)
+                elif sp.degree(kii*s) == 0:
+                    d = dibujar_elemento_serie(d, Capacitor, 1/(s*kii))
+                else:
+                    d = dibujar_elemento_serie(d, Inductor, kii/s)
+                    
+                bComponenteDibujadoDerivacion = False
+
+            else:
+
+                if bComponenteDibujadoDerivacion:
+                    
+                    dibujar_espacio_derivacion(d)
+
+                if sp.degree(kii*s) == 1:
+                    d = dibujar_elemento_derivacion(d, Resistor, 1/kii)
+                elif sp.degree(kii*s) == 2:
+                    d = dibujar_elemento_derivacion(d, Capacitor, kii/s)
+                else:
+                    d = dibujar_elemento_derivacion(d, Inductor, 1/(s*kii))
+                
+                bComponenteDibujadoDerivacion = True
+
+            bSeries = not bSeries
+
+        if not bComponenteDibujadoDerivacion:
+            
+            d += Line().right().length(d.unit*.25)
+            d += Line().down()
+            d += Line().left().length(d.unit*.25)
+        
+        display(d)
+
+    else:    
+        
+        print('Nada para dibujar')
+
+
+def dibujar_cauer_LC(ki = None, y_exc = None, z_exc = None):
+    '''
+    Description
+    -----------
+    Draws a parallel non-disipative admitance following Foster synthesis method.
+
+        YorZ = ki / s +  1 / ( ki_i / s + koo_i * s ) 
+    
+    Parameters
+    ----------
+    ki : symbolic positive real number. The residue value at DC or s->0.
+        
+    koo : symbolic positive real number. The residue value at inf or s->oo.
+        
+    ki : symbolic positive real array of numbers. A list of residue pairs at 
+         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
+         is the ki_i value (capacitor), while the other is the koo_i (inductor)
+         value.
+
+    Returns
+    -------
+    The drawing object.
+    
+    Ejemplo
+    -------
+
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Foster
+    ki, koo, ki = tc2.foster(Imm)
+    
+    # Tratamos a nuestra función imitancia como una Z
+    tc2.dibujar_foster_derivacion(ki, koo, ki, y_exc = Imm)
+
+    '''    
+    if y_exc is None and z_exc is None:
+
+        assert('Hay que definir si se trata de una impedancia o admitancia')
+
+    if not(ki is None) or len(ki) > 0:
+        # si hay algo para dibujar ...
+        
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+
+        d = dibujar_puerto_entrada(d,
+                                       voltage_lbl = ('+', '$V$', '-'), 
+                                       current_lbl = '$I$')
+
+        if y_exc is None:
+            
+            bIsImpedance = True
+            
+            d, _ = dibujar_funcion_exc_abajo(d, 
+                                                      'Z',  
+                                                      z_exc, 
+                                                      hacia_salida = True,
+                                                      k_gap_width = 0.5)
+        else:
+            bIsImpedance = False
+            
+            d, _ = dibujar_funcion_exc_abajo(d, 
+                                                      'Y',  
+                                                      y_exc, 
+                                                      hacia_salida = True,
+                                                      k_gap_width = 0.5)
+    
+        if bIsImpedance:
+            bSeries = True
+        else:
+            bSeries = False
+
+        # 1/s me da orden 1, atenti.
+        if sp.degree(ki[0]*s) == 2 :
+            bCauer1 = True
+        else:
+            bCauer1 = False
+        
+        
+        bComponenteDibujadoDerivacion = False
+
+        for kii in ki:
+
+
+            if bSeries:
+                
+                if bCauer1:
+                    d = dibujar_elemento_serie(d, Inductor, kii/s)
+                else:
+                    d = dibujar_elemento_serie(d, Capacitor, 1/(s*kii))
+                    
+                bComponenteDibujadoDerivacion = False
+
+            else:
+
+                if bComponenteDibujadoDerivacion:
+                    
+                    dibujar_espacio_derivacion(d)
+
+                if bCauer1:
+                    d = dibujar_elemento_derivacion(d, Capacitor, kii/s)
+                else:
+                    d = dibujar_elemento_derivacion(d, Inductor, 1/(s*kii))
+                
+                bComponenteDibujadoDerivacion = True
+
+            bSeries = not bSeries
+
+        if not bComponenteDibujadoDerivacion:
+            
+            d += Line().right().length(d.unit*.25)
+            d += Line().down()
+            d += Line().left().length(d.unit*.25)
+        
+        display(d)
+
+    else:    
+        
+        print('Nada para dibujar')
+
+
+
+def cauer_RC( imm, remover_en_inf=True ):
+    '''
+    Description
+    -----------
+    Perform continued fraction expansion over imm following Cauer 2 synthesis method.
+
+        imm = k0_0 / s + 1 / ( k0_1 + 1/ (k0_2 / s  + 1/ ... )) 
+
+    Parameters
+    ----------
+    immittance : symbolic rational function
+        La inmitancia a sintetizar.
+
+    Returns
+    -------
+    A list k0 with the i-th k0_i resulted from continued fraction expansion.
+
+    Ejemplo
+    -------
+    
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Cauer 1 o remociones continuas en infinito
+    imm_cauer_0, k0 = tc2.cauer_0(Imm)
+
+    '''    
+    
+    ko = []
+
+    if remover_en_inf:
+        rem, koi = remover_polo_infinito(imm)
+        bRemoverPolo = False
+
+        if koi.is_zero:
+            rem, koi = remover_valor_en_infinito(imm)
+            bRemoverPolo = True
+            
+    else:
+        
+        rem, koi = remover_polo_dc(imm)
+        bRemoverPolo = False
+
+        if koi.is_zero:
+            rem, koi = remover_valor_en_dc(imm)
+            bRemoverPolo = True
+
+    
+        
+    while not(rem.is_zero):
+        
+        ko += [koi]
+        rem = 1/rem
+
+        if remover_en_inf:
+            
+            if bRemoverPolo:
+                rem, koi = remover_polo_infinito(rem)
+                bRemoverPolo = False
+            else:
+                rem, koi = remover_valor_en_infinito(rem)
+                bRemoverPolo = True
+        else:
+            
+            if bRemoverPolo:
+                rem, koi = remover_polo_dc(rem)
+                bRemoverPolo = False
+            else:
+                rem, koi = remover_valor_en_dc(rem)
+                bRemoverPolo = True
+
+
+    ko += [koi]
+
+    imm_as_cauer = koi
+    
+    for ii in np.flipud(np.arange(len(ko)-1)):
+
+        imm_as_cauer = ko[ii] + 1/imm_as_cauer
+        
+    return(ko, imm_as_cauer, rem)
+
+def cauer_LC( imm, remover_en_inf = True ):
+    '''
+    Description
+    -----------
+    Perform continued fraction expansion over imm following Cauer 1 synthesis method.
+
+        imm = koo_0 * s + 1 / ( koo_1 * s + 1/ (koo_2 * s  + 1/ ... )) 
+
+    Parameters
+    ----------
+    immittance : symbolic rational function
+        La inmitancia a sintetizar.
+
+    Returns
+    -------
+    A list koo with the i-th koo_i resulted from continued fraction expansion.
+
+    Ejemplo
+    -------
+    
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Cauer 1 o remociones continuas en infinito
+    imm_cauer_oo, koo = tc2.cauer_oo(Imm)
+
+    '''    
+        
+    rem = imm
+    ko = []
+
+    if remover_en_inf:
+        rem, koi = remover_polo_infinito(rem)
+    else:
+        rem, koi = remover_polo_dc(rem)
+        
+    
+    while not(rem.is_zero):
+        
+        ko += [koi]
+        rem = 1/rem
+
+        if remover_en_inf:
+            rem, koi = remover_polo_infinito(rem)
+        else:
+            rem, koi = remover_polo_dc(rem)
+
+    ko += [koi]
+
+    imm_as_cauer = koi
+
+    for ii in np.flipud(np.arange(len(ko)-1)):
+        
+        imm_as_cauer = ko[ii] + 1/imm_as_cauer
+        
+    return(ko, imm_as_cauer, rem)
+
+
+
+def dibujar_foster_derivacion(k0 = None, koo = None, ki = None, y_exc = None):
+    '''
+    Description
+    -----------
+    Draws a parallel non-disipative admitance following Foster synthesis method.
+
+        Y = k0 / s + koo * s +  1 / ( k0_i / s + koo_i * s ) 
+    
+    Parameters
+    ----------
+    k0 : symbolic positive real number. The residue value at DC or s->0.
+        
+    koo : symbolic positive real number. The residue value at inf or s->oo.
+        
+    ki : symbolic positive real array of numbers. A list of residue pairs at 
+         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
+         is the k0_i value (capacitor), while the other is the koo_i (inductor)
+         value.
+
+    Returns
+    -------
+    The drawing object.
+    
+    Ejemplo
+    -------
+
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Foster
+    k0, koo, ki = tc2.foster(Imm)
+    
+    # Tratamos a nuestra función imitancia como una Z
+    tc2.dibujar_foster_derivacion(k0, koo, ki, y_exc = Imm)
+
+    '''    
+
+    if not(k0 is None and koo is None and ki is None):
+        # si hay algo para dibujar ...
+        
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+
+        d = dibujar_puerto_entrada(d,
+                                       voltage_lbl = ('+', '$V$', '-'), 
+                                       current_lbl = '$I$')
+
+        if not(y_exc is None):
+            d, _ = dibujar_funcion_exc_abajo(d, 
+                                                      'Y',  
+                                                      y_exc, 
+                                                      hacia_salida = True,
+                                                      k_gap_width = 0.5)
+
+        if not(k0 is None):
+        
+            d = dibujar_elemento_derivacion(d, Inductor, 1/k0)
+            
+            bComponenteDibujado = True
+            
+            
+        if not(koo is None):
+        
+            if bComponenteDibujado:
+                
+                dibujar_espacio_derivacion(d)
+                    
+            d = dibujar_elemento_derivacion(d, Capacitor, koo)
+
+            bComponenteDibujado = True
+            
+        if not(ki is None):
+
+            for un_tanque in ki:
+
+                if bComponenteDibujado:
+                    
+                    dibujar_espacio_derivacion(d)
+                
+                d = dibujar_tanque_derivacion(d, un_tanque[0], un_tanque[1])
+
+                bComponenteDibujado = True
+
+        
+        display(d)
+
+    else:    
+        
+        print('Nada para dibujar')
+
+
+def dibujar_foster_serie(k0 = None, koo = None, ki = None, z_exc = None):
+    '''
+    Description
+    -----------
+    Draws a series non-disipative impedance following Foster synthesis method.
+
+        Z = k0 / s + koo * s +  1 / ( k0_i / s + koo_i * s ) 
+    
+    Parameters
+    ----------
+    k0 : symbolic positive real number. The residue value at DC or s->0.
+        
+    koo : symbolic positive real number. The residue value at inf or s->oo.
+        
+    ki : symbolic positive real array of numbers. A list of residue pairs at 
+         each i-th finite pole or s**2->-(w_i**2). The first element of the pair
+         is the k0_i value (inductor), while the other is the koo_i (capacitor)
+         value.
+
+    Returns
+    -------
+    The drawing object.
+    
+    Ejemplo
+    -------
+
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Foster
+    k0, koo, ki = tc2.foster(Imm)
+    
+    # Tratamos a nuestra función imitancia como una Z
+    tc2.dibujar_foster_serie(k0, koo, ki, z_exc = Imm)
+
+    '''    
+
+    if not(k0 is None and koo is None and ki is None):
+        # si hay algo para dibujar ...
+        
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+
+        d = dibujar_puerto_entrada(d,
+                                       voltage_lbl = ('+', '$V$', '-'), 
+                                       current_lbl = '$I$')
+
+        if not(z_exc is None):
+            d, z5_lbl = dibujar_funcion_exc_abajo(d, 
+                                                      'Z',  
+                                                      z_exc, 
+                                                      hacia_salida = True,
+                                                      k_gap_width = 0.5)
+
+        if not(k0 is None):
+        
+            d = dibujar_elemento_serie(d, Inductor, 1/k0)
+            
+        if not(koo is None):
+        
+            d = dibujar_elemento_serie(d, Capacitor, koo)
+            
+        if not(ki is None):
+
+            for un_tanque in ki:
+                
+                d = dibujar_tanque_serie(d, un_tanque[0], un_tanque[1])
+
+
+        d += Line().right().length(d.unit*.25)
+        d += Line().down()
+        d += Line().left().length(d.unit*.25)
+        
+        display(d)
+        
+        return(d)
+
+    else:    
+        
+        print('Nada para dibujar')
+
+
+
+def foster( imm ):
+    '''
+    Parameters
+    ----------
+    immittance : symbolic rational function
+        La inmitancia a sintetizar.
+
+    Returns
+    -------
+    Una lista imm_list con los elementos obtenidos de la siguientes expansión en 
+    fracciones simples:
+        
+        Imm = k0 / s + koo * s +  1 / ( k0_i / s + koo_i * s ) 
+
+
+    imm_list = [ k0, koo, [k00, koo0], [k01, koo1], ..., [k0N, kooN]  ]
+    
+    Si algún elemento no está presente, su valor será de "None".
+
+    Ejemplo
+    -------
+    
+    # Sea la siguiente función de excitación
+    Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+    
+    # Implementaremos Imm mediante Foster
+    k0, koo, ki = tc2.foster(Imm)
+
+
+    '''    
+        
+    imm_foster = apart(imm)
+    
+    all_terms = imm_foster.as_ordered_terms()
+    
+    k0 = None
+    koo = None
+    ki = []
+    ii = 0
+    
+    for this_term in all_terms:
+        
+        num, den = this_term.as_numer_denom()
+        
+        if sp.degree(num) == 1 and sp.degree(den) == 0:
+        
+            koo = num.as_poly().LC() / den
+            
+        elif sp.degree(den) == 1 and sp.degree(num) == 0:
+            
+            k0 = den.as_poly().LC() / num
+    
+        elif sp.degree(num) == 1 and sp.degree(den) == 2:
+            # tanque
+            tank_el = (den / num).expand().as_ordered_terms()
+    
+            koo_i = None
+            k0_i = None
+            
+            for this_el in tank_el:
+                
+                num, den = this_el.as_numer_denom()
+                
+                if sp.degree(num) == 1 and sp.degree(den) == 0:
+                
+                    koo_i = num.as_poly().LC() / den
+    
+                elif sp.degree(den) == 1 and sp.degree(num) == 0:
+                    
+                    k0_i = den.as_poly().LC() / num
+                    
+            
+            ki += [[k0_i, koo_i]]
+            ii += 1
+            
+        else:
+            # error
+            assert('Error al expandir en fracciones simples.')
+    
+    if ii == 0:
+        ki = None
+
+    return([k0, koo, ki])
+
+
 
 
 def parametrize_sos(num, den):
@@ -303,33 +947,6 @@ def I2T(gamma, z01, z02 = None):
     
     return(TT)
 
-def I2T_s(gamma, z01, z02 = None):
-    '''
-    Convierte la MAD en MAI luego de levantar de referencia.
-
-    Parameters
-    ----------
-    Ymai : Symbolic Matrix
-        Matriz admitancia indefinida.
-    nodes2del : list or integer
-        Nodos que se van a eliminar.
-
-    Returns
-    -------
-    YY : Symbolic Matrix
-        Matriz admitancia 
-
-    '''
-    if z02 is None:
-        z02 = z01
-    
-    TT = sp.Matrix([[sp.cosh(gamma)*sp.sqrt(z01/z02),
-                     sp.sinh(gamma)*sp.sqrt(z01*z02)], 
-                    [sp.sinh(gamma)/sp.sqrt(z01*z02),
-                     sp.cosh(gamma)*sp.sqrt(z02/z01)]])
-    
-    
-    return(TT)
 
 def I2T_s(gamma, z01, z02 = None):
     '''
@@ -450,7 +1067,7 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     d.push()
     d += Gap().down().label('')
     d.push()
-    lbl = d.add(Gap().down().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=22 ).length(0.5*half_width))
+    lbl = d.add(Gap().down().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=18 ).length(0.5*half_width))
     d.pop()
     d.push()
     d += Line().up().at( (d.here.x, d.here.y - .2 * half_width) ).length(half_width).linewidth(1)
@@ -526,6 +1143,16 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
 
     return(d)
 
+def dibujar_espacio_derivacion(d):
+
+    d += Line().right().length(d.unit)
+    d.push()
+    d += Gap().down().label( '' )
+    d += Line().left().length(d.unit)
+    d.pop()
+
+    return(d)
+
 def dibujar_elemento_derivacion(d, elemento, sym_label=''):
     
     if isinstance(sym_label, sp.Number ):
@@ -545,6 +1172,54 @@ def dibujar_elemento_derivacion(d, elemento, sym_label=''):
 
     return(d)
 
+
+def dibujar_tanque_RC_serie(d, sym_R_label='', sym_cap_label=''):
+    
+    if isinstance(sym_R_label, sp.Number ):
+        sym_R_label = to_latex(sym_R_label)
+    else:
+        sym_R_label = str_to_latex(sym_R_label)
+    
+    if isinstance(sym_cap_label, sp.Number ):
+        sym_cap_label = to_latex(sym_cap_label)
+    else:
+        sym_cap_label = str_to_latex(sym_cap_label)
+    
+    d.push()
+    d += Dot()
+    d += Capacitor().right().label(sym_cap_label, fontsize=16)
+    d.pop()
+    d += Line().up().length(d.unit*.5)
+    d += Resistor().right().label(sym_R_label, fontsize=16)
+    d += Line().down().length(d.unit*.5)
+    d += Dot()
+    d.push()
+    d += Gap().down().label( '' )
+    d += Line().left()
+    d.pop()
+
+    return(d)
+
+def dibujar_tanque_RC_derivacion(d, sym_R_label='', sym_cap_label=''):
+    
+    if isinstance(sym_R_label, sp.Number ):
+        sym_R_label = to_latex(sym_R_label)
+    else:
+        sym_R_label = str_to_latex(sym_R_label)
+    
+    if isinstance(sym_cap_label, sp.Number ):
+        sym_cap_label = to_latex(sym_cap_label)
+    else:
+        sym_cap_label = str_to_latex(sym_cap_label)
+    
+    d.push()
+    d += Dot()
+    d += Capacitor().down().label(sym_cap_label, fontsize=16).length(d.unit*.5)
+    d += Resistor().down().label(sym_R_label, fontsize=16).length(d.unit*.5)
+    d += Dot()
+    d.pop()
+
+    return(d)
 
 def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     
@@ -599,7 +1274,80 @@ def dibujar_tanque_derivacion(d, sym_ind_label='', sym_cap_label=''):
     Bloque de funciones para la síntesis gráfica de imitancias
 '''
 
-s = sp.symbols('s ', complex=True)
+def remover_polo_sigma( sigma, zz = None, yy = None,  sigma_zero = None ):
+    '''
+    Se removerá el residuo en sobre el eje $\sigma$ (sigma) de la impedancia (zz) 
+    o admitancia (yy) de forma completa, o parcial en el caso que se especifique una 
+    sigma_i.
+    Como resultado de la remoción, quedará otra función racional definida
+    como:
+        
+    $$ Z_{R}= Z - \frac{k_i}{s + \sigma_i} $$
+    
+    siendo 
+
+    $$ k=\lim\limits _{s\to -\sigma_i} Z (s + \sigma_i) $$
+    
+    En cuanto se especifique sigma_i, la remoción parcial estará definida 
+    como
+
+    $$ Z_{R}\biggr\rfloor_{s=-\sigma_i}= 0 = Z - \frac{k_i}{s + \sigma_i}\biggr\rfloor_{s=-\sigma_i} $$
+    
+    siendo 
+    
+    $$ k = Z.(\frac{)s + \sigma_i)\biggr\rfloor_{s=-\sigma_i} $$
+    
+
+    Parameters
+    ----------
+    zz o yy: Symbolic
+        Impedancia o admitancia que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un polo de orden 1 en \omega.
+    omega_zero : Symbolic
+        Frecuencia a la que la imitancia será cero luego de la remoción.
+
+    Returns
+    -------
+    imit_r : Symbolic
+        Imitancia luego de la remoción
+    k : Symbolic
+        Valor del residuo.
+    '''
+
+    if yy is None and zz is None:
+
+        assert('Hay que definir si se trata de una impedancia o admitancia')
+
+    if yy is None:
+        bImpedancia = True
+    else:
+        bImpedancia = False
+
+    if sigma_zero is None:
+        # remoción total
+        
+        if bImpedancia:
+            kk = sp.limit(zz*(s + sigma), s, -sigma)
+        else:
+            kk = sp.limit(yy*(s + sigma)/s, s, -sigma)
+        
+    else:
+        # remoción parcial
+        if bImpedancia:
+            kk = sp.simplify(sp.expand(zz*(s + sigma))).subs(s, -sigma_zero)
+            
+        else:
+            kk = sp.simplify(sp.expand(yy*(s + sigma)/s)).subs(s, -sigma_zero)
+    
+    # extraigo kk
+    if bImpedancia:
+        kk  = kk/(s+sigma)
+    else:
+        kk  = kk*s/(s+sigma)
+
+    imit_r = sp.factor(sp.simplify(sp.expand(yy - kk)))
+
+    return( [imit_r, kk] )
 
 def remover_polo_jw( imit, omega, omega_zero = None ):
     '''
@@ -650,8 +1398,10 @@ def remover_polo_jw( imit, omega, omega_zero = None ):
         # remoción parcial
         kk = sp.simplify(sp.expand(imit*(s**2+omega**2)/s)).subs(s**2, -(omega_zero**2) )
     
+    kk = kk * s / (s**2+omega**2)
+    
     # extraigo kk
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - kk*s/(s**2+omega**2))))
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - kk)))
 
     return( [imit_r, kk] )
 
@@ -697,15 +1447,16 @@ def remover_polo_dc( imit, omega_zero = None ):
 
     if omega_zero is None:
         # remoción total
-        k_cero = sp.limit(imit*s, s, sp.oo)
+        k_cero = sp.limit(imit*s, s, 0)
         
     else:
         # remoción parcial
         k_cero = sp.simplify(sp.expand(imit*s)).subs(s**2, -(omega_zero**2) )
 
+    k_cero = k_cero/s
     
     # extraigo C3
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_cero/s)))
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_cero)))
 
     return( [imit_r, k_cero] )
 
@@ -757,11 +1508,119 @@ def remover_polo_infinito( imit, omega_zero = None ):
         # remoción parcial
         k_inf = sp.simplify(sp.expand(imit/s)).subs(s**2, -(omega_zero**2) )
 
-    
+    k_inf = k_inf * s
+
     # extraigo C3
-    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_inf*s)))
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_inf)))
 
     return( [imit_r, k_inf] )
+
+def remover_valor( imit, sigma_zero):
+    '''
+    Se removerá un valor constante de la imitancia ($I$) de forma 
+    que al removerlo, la imitancia luego de la remoción ($I_R$) tenga 
+    un cero en sigma_zero. Es decir:
+
+    $$ I_{R}\biggr\rfloor_{s = -\sigma_z} = 0 = (I - k_{\infty}^{'})\biggr\rfloor_{s = -\sigma_z} $$
+    
+    siendo 
+    
+    $$ k_{\infty}^{'}= I\biggr\rfloor_{s = -\sigma_z} $$
+
+    Parameters
+    ----------
+    imit : Symbolic
+        Imitancia que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un valor constante en infinito (mayor a su valor en s=0).
+        
+    omega_zero : Symbolic
+        Frecuencia a la que la imitancia será cero luego de la remoción.
+
+    Returns
+    -------
+    imit_r : Symbolic
+        Imitancia luego de la remoción
+    k_inf : Symbolic
+        Valor del residuo en infinito
+    '''
+
+    # remoción parcial
+    k_prima = sp.simplify(sp.expand(imit)).subs(s, -sigma_zero)
+    
+    # extraigo k_prima
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_prima)))
+
+    return( [imit_r, k_prima] )
+
+def remover_valor_en_infinito( imit ):
+    '''
+    Se removerá un valor constante en infinito de la imitancia ($I$) de forma 
+    completa. 
+    Como resultado de la remoción, quedará otra función racional definida
+    como:
+        
+    $$ I_R = I - k_{\infty}  $$
+    
+    siendo 
+
+    $$ k_{\infty}=\lim\limits _{s\to\infty}I $$
+
+    Parameters
+    ----------
+    imit : Symbolic
+        Imitancia que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un valor constante en infinito (mayor a su valor en s=0).
+
+    Returns
+    -------
+    imit_r : Symbolic
+        Imitancia luego de la remoción
+    k_inf : Symbolic
+        Valor del residuo en infinito
+    '''
+
+    # remoción total
+    k_inf = sp.limit(imit, s, sp.oo)
+
+    # extraigo k_inf
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - k_inf)))
+
+    return( [imit_r, k_inf] )
+
+def remover_valor_en_dc( imit ):
+    '''
+    Se removerá un valor constante en continua (s=0) de la imitancia ($I$) de forma 
+    completa. 
+    Como resultado de la remoción, quedará otra función racional definida
+    como:
+        
+    $$ I_R = I - k_0  $$
+    
+    siendo 
+
+    $$ k_0 = \lim\limits _{s \to 0}I $$
+    
+    Parameters
+    ----------
+    imit : Symbolic
+        Imitancia que se utilizará para la remoción. Es una función racional 
+        simbólica que tendrá un valor constante en infinito (mayor a su valor en s=0).
+        
+    Returns
+    -------
+    imit_r : Symbolic
+        Imitancia luego de la remoción
+    k_inf : Symbolic
+        Valor del residuo en infinito
+    '''
+
+    # remoción total
+    k0 = sp.limit(imit, s, 0)
+        
+    # extraigo k0
+    imit_r = sp.factor(sp.simplify(sp.expand(imit - k0)))
+
+    return( [imit_r, k0] )
 
 
 def tanque_z( doska, omegasq ):

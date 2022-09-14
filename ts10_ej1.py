@@ -7,15 +7,8 @@ TS10 ej 1
 """
 
 import sympy as sp
-import numpy as np
-import matplotlib.pyplot as plt
 from schemdraw import Drawing
-from schemdraw.elements import  Resistor, Capacitor, Inductor, Line, Dot
-
-
-def to_latex( unsimbolo ):
-    
-    return('$'+ sp.latex(unsimbolo)+ '$')
+import splane as tc2
 
 
 # Resolución simbólica
@@ -29,56 +22,53 @@ ZZ = (s**2+6*s+8)/(s**2+4*s+3)
 
 # remoción parcial para que el siguiente tanque R1-C1 resuenen a 6 r/s
 
+# Consignas del ejercicio: resonancias de dos tanques RC
 sigma1 = 6
-Ra = sp.simplify(ZZ.subs(s, -sigma1))
+sigma2 = sp.Rational('7/2')
 
-Z2 = sp.factor(sp.simplify(sp.expand(ZZ - Ra)))
+# La topología circuital guía las remociones:
+    
+Z2, Ra = tc2.remover_valor(ZZ, sigma1)
 
-k1 = sp.limit((s+6)/s/Z2,s,-sigma1)
+Y4, k1 = tc2.remover_polo_sigma(sigma1, yy = 1/Z2)
 
 R1 = 1/k1
 C1 = k1/sigma1
 
-Y4 = sp.factor(sp.simplify(sp.expand(1/Z2 - k1*s/(s+6))))
+Z6, Rb = tc2.remover_valor(1/Y4, sigma2)
 
-sigma2 = sp.Rational('7/2')
-
-Rb = sp.expand((1/Y4).subs(s, -sigma2 ))
-
-Z6 = sp.factor(sp.simplify(sp.expand(1/Y4 - Rb)))
-
-k2 = sp.limit((s+7/2)/s/Z6,s, -sigma2 )
+Y8, k2 = tc2.remover_polo_sigma(sigma2, yy = 1/Z6)
 
 R2 = 1/k2
 C2 = k2/sigma2
 
-Rc = 1/sp.factor(sp.simplify(sp.expand(1/Z6 - k2*s/(s+sigma2))))
+Rc = 1/Y8
 
-
-# fumada para dibujar el circuito resultante
+# Dibujamos la red resultante:
+    
 d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
-d += Dot()
-d += (dr_RA := Resistor().label(to_latex(Ra)))
-d.push()
-d += Dot()
-d += Resistor().right().label(to_latex(Rb))
-d += Dot()
-d += Line().right()
-d += Line().down()
-d += Resistor().down().label(to_latex(Rc), loc='bottom')
-d += Line().left()
-d += Dot()
-d += Resistor().up().label(to_latex(R2), loc='bottom')
-d += Capacitor().up().label(to_latex(C2), loc='bottom')
-d.pop()
-d += Capacitor().down().label(to_latex(C1), loc='bottom')
-d += Resistor().down().label(to_latex(R1), loc='bottom')
-d += Dot()
-d += Line().right()
-d += Line().left().tox(dr_RA.start)
-d += Dot()
 
-# funciona solo en modo interactivo ... no sé por qué
-# d.draw() 
+d = tc2.dibujar_puerto_entrada(d,
+                        voltage_lbl = ('+', '$V$', '-'), 
+                        current_lbl = '$I$')
 
-print('Ejecutar d.draw() para visualizar el circuito')
+d, zz_lbl = tc2.dibujar_funcion_exc_abajo(d, 
+                                          'Z',  
+                                          ZZ, 
+                                          hacia_salida = True,
+                                          k_gap_width = 0.5)
+
+d = tc2.dibujar_elemento_serie(d, Resistor, Ra)
+
+d = tc2.dibujar_tanque_RC_derivacion(d, R1, C1)
+    
+d = tc2.dibujar_elemento_serie(d, Resistor, Rb)
+
+d = tc2.dibujar_tanque_RC_derivacion(d, R2, C2)
+                        
+d = tc2.dibujar_espacio_derivacion(d)
+
+d = tc2.dibujar_elemento_derivacion(d, Resistor, Rb)
+
+display(d)
+

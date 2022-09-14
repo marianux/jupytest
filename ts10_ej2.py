@@ -10,6 +10,7 @@ import sympy as sp
 import numpy as np
 from schemdraw import Drawing
 from schemdraw.elements import  Resistor, Capacitor, Inductor, Line, Dot
+import splane as tc2
 
 
 
@@ -20,6 +21,8 @@ s = sp.symbols('s ', complex=True)
 ZZ = (s**2+s+1)/(s**2+2*s+5)/(s+1)
 
 # remoción total en infinito de 1/ZZ
+
+Y2, k1 = tc2.remover_polo_ (sigma1, yy = 1/ZZ)
 
 C1 = sp.limit(1/s/ZZ,s, sp.oo)
 
@@ -54,7 +57,7 @@ R3 = 1/Y10
 
 
 # fumada para dibujar el circuito resultante
-d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+d = Drawing(unit=2)  # unit=2 makes elements have shorter than normal leads
 d += Dot()
 d += Line().right()
 d.push()
@@ -84,7 +87,6 @@ d += Dot()
 d += Line().left()
 d += Dot()
 
-# funciona solo en modo interactivo ... no sé por qué
-# d.draw() 
+display(d)
 
-print('Ejecutar d.draw() para visualizar el circuito')
+
