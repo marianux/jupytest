@@ -1067,7 +1067,8 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     d.push()
     d += Gap().down().label('')
     d.push()
-    lbl = d.add(Gap().down().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=18 ).length(0.5*half_width))
+    lbl = d.add(Gap().down().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=22 ).length(0.5*half_width))
+    d += Gap().down().label('').length(0.5*half_width)
     d.pop()
     d.push()
     d += Line().up().at( (d.here.x, d.here.y - .2 * half_width) ).length(half_width).linewidth(1)
@@ -1341,13 +1342,22 @@ def remover_polo_sigma( sigma, zz = None, yy = None,  sigma_zero = None ):
     
     # extraigo kk
     if bImpedancia:
+        # Asumiendo Z_RC        
+        R = kk/sigma
+        C = 1/kk
         kk  = kk/(s+sigma)
+        
     else:
+        
+        # Asumiendo Y_RC        
+        C = kk/sigma
+        R = 1/kk
+        
         kk  = kk*s/(s+sigma)
 
     imit_r = sp.factor(sp.simplify(sp.expand(yy - kk)))
 
-    return( [imit_r, kk] )
+    return( [imit_r, kk, R, C] )
 
 def remover_polo_jw( imit, omega, omega_zero = None ):
     '''
@@ -1398,12 +1408,15 @@ def remover_polo_jw( imit, omega, omega_zero = None ):
         # remoción parcial
         kk = sp.simplify(sp.expand(imit*(s**2+omega**2)/s)).subs(s**2, -(omega_zero**2) )
     
+    # Asumo Z_LC
+    L = kk/omega**2
+    C = 1/kk
     kk = kk * s / (s**2+omega**2)
     
     # extraigo kk
     imit_r = sp.factor(sp.simplify(sp.expand(imit - kk)))
 
-    return( [imit_r, kk] )
+    return( [imit_r, kk, L, C] )
 
 def remover_polo_dc( imit, omega_zero = None ):
     '''

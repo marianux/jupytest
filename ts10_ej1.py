@@ -7,8 +7,9 @@ TS10 ej 1
 """
 
 import sympy as sp
-from schemdraw import Drawing
 import splane as tc2
+from schemdraw import Drawing
+from schemdraw.elements import  Resistor
 
 
 # Resolución simbólica
@@ -16,59 +17,31 @@ import splane as tc2
 s = sp.symbols('s ', complex=True)
 
 # Sea la siguiente función de excitación
-ZZ = (s**2+6*s+8)/(s**2+4*s+3)
+ZZ = (s**2+3)*(s**2+1)/(s*(s**2+2))
 
-# Halle los valores de los componentes de la topología resultante.
+# a) ZZ según Foster derivación
 
-# remoción parcial para que el siguiente tanque R1-C1 resuenen a 6 r/s
+# Implementaremos Imm mediante Foster
+k0, koo, ki = tc2.foster(ZZ)
 
-# Consignas del ejercicio: resonancias de dos tanques RC
-sigma1 = 6
-sigma2 = sp.Rational('7/2')
+tc2.dibujar_foster_derivacion(k0, koo, ki, y_exc = 1/ZZ)
 
-# La topología circuital guía las remociones:
+# b) ZZ según Cauer1 (removiendo en oo) 
+
+koo, imm_cauer_oo, rem = tc2.cauer_LC(ZZ, remover_en_inf=True)
+
+tc2.print_latex( r'$' + sp.latex(ZZ) + r'=' + sp.latex(imm_cauer_oo) + r'$' )
+
+# Tratamos a nuestra función inmitancia como una Z
+tc2.dibujar_cauer_LC(koo, z_exc = imm_cauer_oo)
+
+# b) ZZ según Cauer2 (removiendo en 0) 
+k0, imm_cauer_0, rem = tc2.cauer_LC(ZZ, remover_en_inf=False)
+
+tc2.print_latex( r'$' + sp.latex(ZZ) + r'=' + sp.latex(imm_cauer_0) + r'$' )
+
+# Tratamos a nuestra función inmitancia como una Z
+tc2.dibujar_cauer_LC(k0, z_exc = imm_cauer_0)
     
-Z2, Ra = tc2.remover_valor(ZZ, sigma1)
 
-Y4, k1 = tc2.remover_polo_sigma(sigma1, yy = 1/Z2)
-
-R1 = 1/k1
-C1 = k1/sigma1
-
-Z6, Rb = tc2.remover_valor(1/Y4, sigma2)
-
-Y8, k2 = tc2.remover_polo_sigma(sigma2, yy = 1/Z6)
-
-R2 = 1/k2
-C2 = k2/sigma2
-
-Rc = 1/Y8
-
-# Dibujamos la red resultante:
-    
-d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
-
-d = tc2.dibujar_puerto_entrada(d,
-                        voltage_lbl = ('+', '$V$', '-'), 
-                        current_lbl = '$I$')
-
-d, zz_lbl = tc2.dibujar_funcion_exc_abajo(d, 
-                                          'Z',  
-                                          ZZ, 
-                                          hacia_salida = True,
-                                          k_gap_width = 0.5)
-
-d = tc2.dibujar_elemento_serie(d, Resistor, Ra)
-
-d = tc2.dibujar_tanque_RC_derivacion(d, R1, C1)
-    
-d = tc2.dibujar_elemento_serie(d, Resistor, Rb)
-
-d = tc2.dibujar_tanque_RC_derivacion(d, R2, C2)
-                        
-d = tc2.dibujar_espacio_derivacion(d)
-
-d = tc2.dibujar_elemento_derivacion(d, Resistor, Rb)
-
-display(d)
 

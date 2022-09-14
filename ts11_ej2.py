@@ -18,22 +18,44 @@ import numpy as np
 
 s = sp.symbols('s ', complex=True)
 
-YY = 3*s*(s**2+sp.Rational(7,3))/(s**2+2)/(s**2+5)
+ZZ = (s**2+s+1)/(s**2+2*s+5)/(s+1)
 
-# Restricción circuital: L2*C2 = 1 r/s
-# remoción parcial en infinito de 1/YY
+# remoción total en infinito de 1/ZZ
 
-omega_L2C2 = 1
-
-Z2, Zc1 = tc2.remover_polo_dc(1/YY, omega_zero = omega_L2C2 )
+Y2, Yc1 = tc2.remover_polo_infinito(1/ZZ)
 
 # Yc1 es la admitancia removida
 # extraigo C1
-C1 = 1/(s*Zc1)
+C1 = Yc1/s
 
+Ginf = sp.limit(Y2, s, sp.oo)
+G0 = sp.limit(Y2, s, 0)
 
-Y4, Zc1, L2, C2 = tc2.remover_polo_jw(1/Z2, omega_L2C2 )
+# remuevo la menor admitancia
+R1 = 1/np.min((Ginf, G0))
+Y4 = sp.factor(sp.simplify(sp.expand(Y2 - 1/R1)))
 
+Z6, Zl1 = tc2.remover_polo_infinito(1/Y4)
+
+# Zl1  es la impedancia removida
+# extraigo L1
+L1 = Zl1/s
+
+# remuevo la menor resistencia
+Rinf = sp.limit(Z6, s, sp.oo)
+R0 = sp.limit(Z6, s, 0)
+R2 = np.min((Rinf, R0))
+Z8 = sp.factor(sp.simplify(sp.expand(Z6 - R2)))
+
+# extraigo C2
+C2 = sp.limit(1/s/Z8, s, sp.oo)
+
+Y10, Yc2 = tc2.remover_polo_infinito(1/Z8)
+# Yc1 es la admitancia removida
+# extraigo C1
+C2 = Yc2/s
+
+R3 = 1/Y10
 
 
 

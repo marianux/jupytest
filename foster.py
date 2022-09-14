@@ -10,11 +10,6 @@ import sympy as sp
 import splane as tc2
 
 
-def to_latex( unsimbolo ):
-    
-    return('$'+ sp.latex(unsimbolo)+ '$')
-
-
 # Resolución simbólica
 
 s = sp.symbols('s ', complex=True)
