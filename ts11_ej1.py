@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TS10 ej 1
+TS11 ej 1
 
 @author: mariano
 """
@@ -31,11 +31,11 @@ sigma2 = sp.Rational('7/2')
     
 Z2, Ra = tc2.remover_valor(ZZ, sigma1)
 
-Y4, k1, R1, C1 = tc2.remover_polo_sigma(sigma1, yy = 1/Z2)
+Y4, k1, R1, C1 = tc2.remover_polo_sigma(1/Z2, sigma1, isImpedance = False)
 
 Z6, Rb = tc2.remover_valor(1/Y4, sigma2)
 
-Y8, k2, R2, C2 = tc2.remover_polo_sigma(sigma2, yy = 1/Z6)
+Y8, k2, R2, C2 = tc2.remover_polo_sigma(1/Z6, sigma2, isImpedance = False)
 
 Rc = 1/Y8
 

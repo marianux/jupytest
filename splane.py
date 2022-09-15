@@ -1275,7 +1275,7 @@ def dibujar_tanque_derivacion(d, sym_ind_label='', sym_cap_label=''):
     Bloque de funciones para la síntesis gráfica de imitancias
 '''
 
-def remover_polo_sigma( sigma, zz = None, yy = None,  sigma_zero = None ):
+def remover_polo_sigma( imm, sigma, isImpedance = True,  sigma_zero = None ):
     '''
     Se removerá el residuo en sobre el eje $\sigma$ (sigma) de la impedancia (zz) 
     o admitancia (yy) de forma completa, o parcial en el caso que se especifique una 
@@ -1315,33 +1315,29 @@ def remover_polo_sigma( sigma, zz = None, yy = None,  sigma_zero = None ):
         Valor del residuo.
     '''
 
-    if yy is None and zz is None:
-
-        assert('Hay que definir si se trata de una impedancia o admitancia')
-
-    if yy is None:
-        bImpedancia = True
+    if isImpedance:
+        zz = imm
     else:
-        bImpedancia = False
+        yy = imm
 
     if sigma_zero is None:
         # remoción total
         
-        if bImpedancia:
+        if isImpedance:
             kk = sp.limit(zz*(s + sigma), s, -sigma)
         else:
             kk = sp.limit(yy*(s + sigma)/s, s, -sigma)
         
     else:
         # remoción parcial
-        if bImpedancia:
+        if isImpedance:
             kk = sp.simplify(sp.expand(zz*(s + sigma))).subs(s, -sigma_zero)
             
         else:
             kk = sp.simplify(sp.expand(yy*(s + sigma)/s)).subs(s, -sigma_zero)
     
     # extraigo kk
-    if bImpedancia:
+    if isImpedance:
         # Asumiendo Z_RC        
         R = kk/sigma
         C = 1/kk
@@ -1359,7 +1355,7 @@ def remover_polo_sigma( sigma, zz = None, yy = None,  sigma_zero = None ):
 
     return( [imit_r, kk, R, C] )
 
-def remover_polo_jw( imit, omega, omega_zero = None ):
+def remover_polo_jw( imit, omega = None , isImpedance = True, omega_zero = None ):
     '''
     Se removerá el residuo en sobre el eje $j.\omega$ (omega) de la imitancia 
     $I$ (imit) de forma completa, o parcial en el caso que se especifique una 
@@ -1399,6 +1395,20 @@ def remover_polo_jw( imit, omega, omega_zero = None ):
         Valor del residuo en infinito
     '''
 
+    if omega is None:
+        # busco el primer polo finito en imit sobre el jw
+        
+        _, den = (imit).as_numer_denom()
+        faux = sp.factor_list(den)
+        
+        if sp.degree(faux[1][0][0]) == 2:
+            
+            tt = faux[1][0][0].as_ordered_terms()
+            
+            # el último término sería omega**2. Cada factor sería
+            # s**2 + omega**2
+            omega = sp.sqrt(tt[-1])
+
     if omega_zero is None:
         # remoción total
         # kk = sp.limit(imit*(s**2+omega**2)/s, s**2, -omega**2)
@@ -1407,10 +1417,18 @@ def remover_polo_jw( imit, omega, omega_zero = None ):
     else:
         # remoción parcial
         kk = sp.simplify(sp.expand(imit*(s**2+omega**2)/s)).subs(s**2, -(omega_zero**2) )
+
     
-    # Asumo Z_LC
-    L = kk/omega**2
-    C = 1/kk
+    if isImpedance:
+        # Z_LC
+        L = kk/omega**2
+        C = 1/kk
+        
+    else:
+        # Y_LC
+        C = kk/omega**2
+        L = 1/kk
+
     kk = kk * s / (s**2+omega**2)
     
     # extraigo kk

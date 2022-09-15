@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TS10 ej 2
+TS11 ej 2
 
 @author: mariano
 """
@@ -73,7 +73,7 @@ d, zz_lbl = tc2.dibujar_funcion_exc_abajo(d,
                                           hacia_salida = True,
                                           k_gap_width = 0.5)
 
-d = tc2.dibujar_elemento_derivacion(d, Resistor, C1)
+d = tc2.dibujar_elemento_derivacion(d, Capacitor, C1)
 
 d = tc2.dibujar_espacio_derivacion(d)
 
@@ -83,7 +83,7 @@ d = tc2.dibujar_elemento_serie(d, Inductor, L1)
 
 d = tc2.dibujar_elemento_serie(d, Resistor, R2)
 
-d = tc2.dibujar_elemento_derivacion(d, Resistor, C2)
+d = tc2.dibujar_elemento_derivacion(d, Capacitor, C2)
 
 d = tc2.dibujar_espacio_derivacion(d)
 

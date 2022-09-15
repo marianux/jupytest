@@ -31,10 +31,10 @@ Z2, Zc1 = tc2.remover_polo_dc(1/YY, omega_zero = omega_L2C2 )
 # extraigo C1
 C1 = 1/(s*Zc1)
 
+Y4, Zt2, L2, C2 = tc2.remover_polo_jw(1/Z2, isImpedance = False, omega = omega_L2C2 )
 
-Y4, Zc1, L2, C2 = tc2.remover_polo_jw(1/Z2, omega_L2C2 )
-
-
+# quedaría solo un tanque en Y4, no especifico omega.
+Y6, Zt3, L3, C3 = tc2.remover_polo_jw(Y4, isImpedance = False)
 
 
 # Dibujamos la red resultante:
@@ -46,25 +46,17 @@ d = tc2.dibujar_puerto_entrada(d,
                         current_lbl = '$I$')
 
 d, zz_lbl = tc2.dibujar_funcion_exc_abajo(d, 
-                                          'Z',  
-                                          ZZ, 
+                                          'Y',  
+                                          YY, 
                                           hacia_salida = True,
                                           k_gap_width = 0.5)
 
-d = tc2.dibujar_elemento_derivacion(d, Resistor, C1)
+d = tc2.dibujar_elemento_serie(d, Capacitor, C1)
+
+d = tc2.dibujar_tanque_derivacion(d, L2, C2)
 
 d = tc2.dibujar_espacio_derivacion(d)
 
-d = tc2.dibujar_elemento_derivacion(d, Resistor, R1)
-    
-d = tc2.dibujar_elemento_serie(d, Inductor, L1)
-
-d = tc2.dibujar_elemento_serie(d, Resistor, R2)
-
-d = tc2.dibujar_elemento_derivacion(d, Resistor, C2)
-
-d = tc2.dibujar_espacio_derivacion(d)
-
-d = tc2.dibujar_elemento_derivacion(d, Resistor, R3)
+d = tc2.dibujar_tanque_derivacion(d, L3, C3)
 
 display(d)
