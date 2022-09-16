@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-TS13 ej 2
+TS14 ej 2
 
 @author: mariano
 """
@@ -11,11 +11,26 @@ import splane as tc2
 from schemdraw import Drawing
 from schemdraw.elements import  Resistor, Capacitor, Inductor
 
+# 2) Dada la siguiente transferencia de impedancia:
 
+s = sp.symbols('s ', complex=True)
+k = sp.symbols('k ')
+
+# Zt = V2/I1
+Zt = k*(s**2 + 9)/(s**3 + 2*s**2 + 2*s + 1)
+
+# a) Sintetizar un cuadripolo pasivo sin pérdidas, 
+#    que cumpla con la transimpedancia indicada, 
+#    cargado a la salida con una impedancia como se 
+#    muestra en la figura. (Ver TS14)
 
 # Resolución simbólica
 
-s = sp.symbols('s ', complex=True)
+
+# del esquema se deduce:
+
+# Zt = z21/(1+ z22)
+# Sintetizo z22
 
 z22 = (2*s**2+1)/(s**3+2*s)
 
@@ -33,7 +48,7 @@ y7, Yc1 = tc2.remover_polo_infinito(1/z5)
 
 c1 = Yc1/s
 
-print('Verificación')
+print('Verificación por parámetros ABCD (T)')
 
 Tc1 = sp.Matrix([[1, 0], [Yc1, 1]])
 Tc1l1 = sp.Matrix([[1, z4], [0, 1]])
@@ -41,9 +56,37 @@ Tc3yl = sp.Matrix([[1, 0], [Yc3+1, 1]])
 
 tt =  Tc1 * Tc1l1 * Tc3yl
 
+# calculo 1/C de la cascada total
 zverif = sp.factor(sp.simplify(sp.expand(1/tt[1,0])))
 
 display( zverif )
+
+print('Verificación por MAI')
+
+input_port = [0, 1]
+output_port = [2, 1]
+
+'''    
++ Numeramos los polos de 0 a n=3
+
+    0-------0---Y2----2------2
+            |         |      
+            Y1        Y3
+            |         |
+    1-------1---------1------1
+    
+'''    
+
+Ymai = sp.Matrix([  
+                    [ Yc1+1/z4,  -Yc1,      -1/z4 ],
+                    [ -Yc1,    Yc1+Yc3+1,   -Yc3-1  ],
+                    [ -1/z4,    -Yc3-1,     1/z4+Yc3+1]
+                 ])
+
+Zmai = tc2.calc_MAI_ztransf_ij_mn(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=True)
+
+display( Zmai )
+
 
 # Dibujo de la red sintetizada
 

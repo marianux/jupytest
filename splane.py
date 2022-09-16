@@ -1351,7 +1351,12 @@ def remover_polo_sigma( imm, sigma, isImpedance = True,  sigma_zero = None ):
         
         kk  = kk*s/(s+sigma)
 
-    imit_r = sp.factor(sp.simplify(sp.expand(yy - kk)))
+    if isImpedance:
+        imit_r = sp.factor(sp.simplify(sp.expand(zz - kk)))
+    
+    else:
+    
+        imit_r = sp.factor(sp.simplify(sp.expand(yy - kk)))
 
     return( [imit_r, kk, R, C] )
 
