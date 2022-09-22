@@ -29,11 +29,11 @@ sigma2 = sp.Rational('7/2')
 
 # La topología circuital guía las remociones:
     
-Z2, Ra = tc2.remover_valor(ZZ, sigma1)
+Z2, Ra = tc2.remover_valor(ZZ, sigma_zero = sigma1)
 
-Y4, k1, R1, C1 = tc2.remover_polo_sigma(1/Z2, sigma1, isImpedance = False)
+Y4, Y3, R1, C1 = tc2.remover_polo_sigma(1/Z2, sigma1, isImpedance = False)
 
-Z6, Rb = tc2.remover_valor(1/Y4, sigma2)
+Z6, Rb = tc2.remover_valor(1/Y4, sigma_zero = sigma2)
 
 Y8, k2, R2, C2 = tc2.remover_polo_sigma(1/Z6, sigma2, isImpedance = False)
 

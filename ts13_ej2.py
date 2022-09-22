@@ -13,6 +13,9 @@ from schemdraw.elements import  Resistor, Capacitor, Inductor
 
 # 2) Dada la siguiente transferencia de impedancia:
 
+s = sp.symbols('s ', complex=True)
+k = sp.symbols('k ')
+
 # Zt = V2/I1
 Zt = k*(s**2 + 9)/(s**3 + 2*s**2 + 2*s + 1)
 
@@ -23,7 +26,6 @@ Zt = k*(s**2 + 9)/(s**3 + 2*s**2 + 2*s + 1)
 
 # Resolución simbólica
 
-s = sp.symbols('s ', complex=True)
 
 # del esquema se deduce:
 
