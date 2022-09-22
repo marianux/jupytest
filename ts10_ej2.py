@@ -31,7 +31,7 @@ Z2, Zc1 = tc2.remover_polo_dc(1/YY, omega_zero = omega_L2C2 )
 # extraigo C1
 C1 = 1/(s*Zc1)
 
-Y4, Zt2, L2, C2 = tc2.remover_polo_jw(1/Z2, isImpedance = False, omega = omega_L2C2 )
+Y4, Yt2, L2, C2 = tc2.remover_polo_jw(1/Z2, isImpedance = False, omega = omega_L2C2 )
 
 # quedaría solo un tanque en Y4, no especifico omega.
 Y6, Zt3, L3, C3 = tc2.remover_polo_jw(Y4, isImpedance = False)

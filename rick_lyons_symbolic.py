@@ -71,6 +71,22 @@ Tdc_removal_4 = num/den
 
 display(Tdc_removal_4)
 
+D_par = 16
+
+num_rl4 = sp.zeros(4*D_par,1)
+
+num*z
+sp.expand(num*z).powsimp()
+
+for a_term in num.as_ordered_terms():
+    
+    z_coeff, var = a_term.as_coeff_Mul()
+    
+    zz, z_exp = var.as_base_exp()
+    
+    num_rl4[] = z_coeff.subs(D, D_par)
+    
+
 
 #%% Parte numérica 
 

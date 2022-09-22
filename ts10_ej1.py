@@ -24,6 +24,11 @@ ZZ = (s**2+3)*(s**2+1)/(s*(s**2+2))
 # Implementaremos Imm mediante Foster
 k0, koo, ki = tc2.foster(ZZ)
 
+tc2.dibujar_foster_serie(k0, koo, ki, z_exc = ZZ)
+
+# Implementaremos Imm mediante Foster
+k0, koo, ki = tc2.foster(1/ZZ)
+
 tc2.dibujar_foster_derivacion(k0, koo, ki, y_exc = 1/ZZ)
 
 # b) ZZ según Cauer1 (removiendo en oo) 
