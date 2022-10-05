@@ -335,7 +335,7 @@ def cauer_RC( imm, remover_en_inf=True ):
 
     
         
-    while not(rem.is_zero):
+    while not(rem.is_zero) and not(koi.is_zero):
         
         ko += [koi]
         rem = 1/rem
@@ -358,7 +358,12 @@ def cauer_RC( imm, remover_en_inf=True ):
                 bRemoverPolo = True
 
 
-    ko += [koi]
+    if koi.is_zero:
+        # deshago para entender al resto de la misma 
+        # naturaleza que el último elemento que retiró.
+        rem = 1/rem
+    else:
+        ko += [koi]
 
     imm_as_cauer = koi
     
@@ -405,7 +410,7 @@ def cauer_LC( imm, remover_en_inf = True ):
         rem, koi = remover_polo_dc(rem)
         
     
-    while not(rem.is_zero):
+    while not(rem.is_zero) and not(koi.is_zero):
         
         ko += [koi]
         rem = 1/rem
@@ -415,7 +420,12 @@ def cauer_LC( imm, remover_en_inf = True ):
         else:
             rem, koi = remover_polo_dc(rem)
 
-    ko += [koi]
+    if koi.is_zero:
+        # deshago para entender al resto de la misma 
+        # naturaleza que el último elemento que retiró.
+        rem = 1/rem
+    else:
+        ko += [koi]
 
     imm_as_cauer = koi
 
@@ -2309,30 +2319,48 @@ Otras funciones
 def modsq2mod_s( aa ):
 
     num, den = sp.fraction(aa)
+
+    k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
     
-    roots_num = sp.solve(num)
-    
-    real_part_roots = [ (s-roots_numm) for roots_numm in roots_num if sp.re(roots_numm) <= 0]
+    roots_num = sp.roots(num)
 
     poly_acc = sp.Rational('1')
     
-    for roots_numm in real_part_roots:
-        poly_acc *= roots_numm
-    
+    for this_root in roots_num.keys():
+        
+        if sp.re(this_root) <= 0:
+            
+            # multiplicidad
+            mult = roots_num[this_root]
+
+            if mult > 1:
+                poly_acc *= (s-this_root)**sp.Rational(mult/2)
+            else:
+                poly_acc *= (s-this_root)
+                
+            
+
     num = sp.simplify(sp.expand(poly_acc))
 
-    roots_num = sp.solve(den)
+    roots_num = sp.roots(den)
     
-    real_part_roots = [ (s-roots_numm) for roots_numm in roots_num if sp.re(roots_numm) <= 0]
-
     poly_acc = sp.Rational('1')
-    
-    for roots_numm in real_part_roots:
-        poly_acc *= roots_numm
+
+    for this_root in roots_num.keys():
+        
+        if sp.re(this_root) <= 0:
+            
+            # multiplicidad
+            mult = roots_num[this_root]
+
+            if mult > 1:
+                poly_acc *= (s-this_root)**sp.Rational(mult/2)
+            else:
+                poly_acc *= (s-this_root)
     
     poly_acc = sp.simplify(sp.expand(poly_acc))
 
-    return(sp.simplify(sp.expand(num/poly_acc))) 
+    return(sp.simplify(sp.expand(sp.sqrt(k) * num/poly_acc))) 
 
 
 def modsq2mod( aa ):
