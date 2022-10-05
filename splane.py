@@ -1160,10 +1160,10 @@ def dibujar_elemento_serie(d, elemento, sym_label=''):
 
 def dibujar_espacio_derivacion(d):
 
-    d += Line().right().length(d.unit*.5)
+    d += Line().right().length(d.unit*.25)
     d.push()
     d += Gap().down().label( '' )
-    d += Line().left().length(d.unit*.5)
+    d += Line().left().length(d.unit*.25)
     d.pop()
 
     return(d)
@@ -1236,7 +1236,55 @@ def dibujar_tanque_RC_derivacion(d, sym_R_label='', capacitor_lbl=''):
 
     return(d)
 
-def dibujar_tanque_RL_serie(d, sym_R_label='', inductor_lbl=''):
+def dibujar_tanque_RL_serie(d, sym_R_label='', sym_ind_label=''):
+    
+    if isinstance(sym_R_label, sp.Number ):
+        sym_R_label = to_latex(sym_R_label)
+    else:
+        sym_R_label = str_to_latex(sym_R_label)
+    
+    if isinstance(sym_ind_label, sp.Number ):
+        sym_ind_label = to_latex(sym_ind_label)
+    else:
+        sym_ind_label = str_to_latex(sym_ind_label)
+    
+    d.push()
+    d += Dot()
+    d += Inductor().right().label(sym_ind_label, fontsize=16)
+    d.pop()
+    d += Line().up().length(d.unit*.5)
+    d += Resistor().right().label(sym_R_label, fontsize=16)
+    d += Line().down().length(d.unit*.5)
+    d += Dot()
+    d.push()
+    d += Gap().down().label( '' )
+    d += Line().left()
+    d.pop()
+
+    return(d)
+
+def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
+    
+    if isinstance(sym_R_label, sp.Number ):
+        sym_R_label = to_latex(sym_R_label)
+    else:
+        sym_R_label = str_to_latex(sym_R_label)
+    
+    if isinstance(sym_ind_label, sp.Number ):
+        sym_ind_label = to_latex(sym_ind_label)
+    else:
+        sym_ind_label = str_to_latex(sym_ind_label)
+    
+    d.push()
+    d += Dot()
+    d += Inductor().down().label(sym_ind_label, fontsize=16).length(d.unit*.5)
+    d += Resistor().down().label(sym_R_label, fontsize=16).length(d.unit*.5)
+    d += Dot()
+    d.pop()
+
+    return(d)
+
+def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     
     if isinstance(sym_R_label, sp.Number ):
         sym_R_label = to_latex(sym_R_label)
