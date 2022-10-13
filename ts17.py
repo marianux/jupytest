@@ -26,8 +26,57 @@ from schemdraw.elements import SourceSin, Resistor, Capacitor, Inductor
 
 import os
 
+# Para cuando se pueda usar ngSpice
 os.environ['NGSPICE_LIBRARY_PATH'] = '/usr/lib/x86_64-linux-gnu/libngspice.so.0'
 os.environ['NGSPICE'] = '/usr/bin/ngspice'
+
+# mientras tanto trabajaremos con LTspice
+
+ltspice_lines = [
+    'Version 4', 
+    'SHEET 1 916 680', 
+    'FLAG 32 -192 0', 
+    'FLAG 32 -272 vi', 
+    'FLAG 640 -192 0', 
+    'FLAG 640 -272 vo', 
+    'SYMBOL voltage 32 -288 R0', 
+    'WINDOW 3 24 180 Left 2', 
+    'WINDOW 123 24 124 Left 2', 
+    'WINDOW 39 24 152 Left 2', 
+    'WINDOW 0 39 33 Left 2', 
+    'SYMATTR Value SINE()', 
+    'SYMATTR Value2 AC 1 0', 
+    'SYMATTR SpiceLine Rser={RG}', 
+    'SYMATTR InstName Vg', 
+    'SYMBOL res 624 -288 R0', 
+    'SYMATTR InstName RL', 
+    'SYMATTR Value {RL}', 
+    'TEXT -40 424 Left 2 !.net I(RL) Vg', 
+    'TEXT -40 392 Left 2 !.ac dec 1000 .001 100', 
+    'TEXT 304 -312 Left 2 ;Red', 
+    'TEXT -40 -320 Left 2 ;Generador', 
+    'TEXT 600 -320 Left 2 ;Carga', 
+    'TEXT 296 -224 Left 1 ;Será definida \nen Python', 
+    'TEXT -40 224 Left 2 ;Valores de la red (se definirá en Python)', 
+    'TEXT -40 296 Left 2 !.param RG=1 RL=1', 
+    'TEXT -40 264 Left 2 !.param L1=3.346 C1=0.4483', 
+    'TEXT 56 -384 Left 2 ;Esquema del filtro - acoplador - ecualizador', 
+    'TEXT -40 352 Left 2 ;Valores de la simulación: Se sugiere no tocar para transferencias normalizadas.', 
+    'TEXT -48 -48 Left 2 ;Red', 
+    'LINE Normal 288 -304 256 -304', 
+    'LINE Normal 288 -192 256 -192', 
+    'LINE Normal 480 -192 512 -192', 
+    'LINE Normal 480 -304 512 -304', 
+    'RECTANGLE Normal 480 -144 288 -336', 
+    'RECTANGLE Normal 768 -144 576 -336 2', 
+    'RECTANGLE Normal 192 -80 -48 -336 2', 
+    'CIRCLE Normal 256 -288 224 -320', 
+    'CIRCLE Normal 256 -176 224 -208', 
+    'CIRCLE Normal 512 -208 544 -176', 
+    'CIRCLE Normal 512 -320 544 -288'
+    ]
+
+
 
 # Resolución simbólica
 
@@ -83,6 +132,50 @@ nodo = 1
 pCircuit1.SinusoidalVoltageSource('input', nodo, pCircuit1.gnd, amplitude=1)
 
 pCircuit1.R('gen', 'in',  1, 1)
+
+
+
+'''
+    'FLAG 0 0 vi', 
+    
+    'SYMBOL ind -16 -16 R0', 
+    'SYMATTR InstName L1', 
+    'SYMATTR Value {L1}', 
+    
+    'FLAG 0 80 v1', 
+
+    'SYMBOL cap -16 80 R0', 
+    'WINDOW 0 41 28 Left 2', 
+    'WINDOW 3 43 54 Left 2', 
+    'SYMATTR InstName C1', 
+    'SYMATTR Value {C1}', 
+    
+    'FLAG 0 144 0', 
+    
+
+
+    'FLAG 128 0 v1', 
+
+    'SYMBOL ind 112 -16 R0', 
+    'SYMATTR InstName L2', 
+    'SYMATTR Value {L1}', 
+
+    'FLAG 128 80 vo', 
+
+    'SYMBOL cap 112 80 R0', 
+    'WINDOW 0 41 28 Left 2', 
+    'WINDOW 3 43 54 Left 2', 
+    'SYMATTR InstName C2', 
+    'SYMATTR Value {C1}', 
+
+    'FLAG 128 144 0', 
+
+'''
+
+lts_x = 0
+lts_y = 0
+lts_x_space = 128
+
 
 # arranco en serie
 bSerie = True
