@@ -15,7 +15,7 @@ logger = Logging.setup_logging()
 
 from PySpice.Spice.Netlist import Circuit
 
-import lcapy as lcpy
+# import lcapy as lcpy
 
 import matplotlib.pyplot as plt
 import numpy as np
