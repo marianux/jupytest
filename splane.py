@@ -1873,6 +1873,333 @@ def str_to_latex( unstr):
     Funciones de conversión de matrices de cuadripolos lineales
 '''
 
+def S2Ts_s(Spar):
+    '''
+    Convierte una matriz de parámetros scattering (S) simbólica 
+    al modelo de parámetros transferencia de scattering (Ts).
+
+    Parameters
+    ----------
+    Spar : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Ts : Symbolic Matrix
+        Matriz de parámetros de transferencia scattering.
+
+    '''
+    
+    Ts = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Ts[0,0] = sp.Rational('1')
+    # B = DZ/Z21
+    Ts[0,1] = -Spar[1,1]
+    # C = 1/Z21
+    Ts[1,0] = Spar[0,0]
+    # D = Z22/Z21
+    Ts[1,1] = -sp.simplify(sp.expand(sp.Determinant(Spar)))
+    
+    return( sp.simplify(sp.expand(1 / Spar[1,0] * Ts) ) ) 
+
+def Ts2S_s(Ts):
+    '''
+    Convierte una matriz de transferencia de scattering (Ts) simbólica 
+    al modelo de parámetros scattering (S).
+
+    Parameters
+    ----------
+    Ts : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Spar : Symbolic Matrix
+        Matriz de parámetros de scattering.
+
+    '''
+    
+    Spar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Spar[0,0] = Ts[1,0]
+    # B = DZ/Z21
+    Spar[0,1] = sp.simplify(sp.expand(sp.Determinant(Ts)))
+    # C = 1/Z21
+    Spar[1,0] = sp.Rational('1') 
+    # D = Z22/Z21
+    Spar[1,1] = -Ts[0,1] 
+    
+    return( sp.simplify(sp.expand( 1 / Ts[0,0] * Spar ) ) ) 
+
+def Tabcd2S_s(Tabcd, Z0 = sp.Rational('1') ):
+    '''
+    Convierte una matriz de parámetros ABCD (Tabcd) simbólica 
+    al modelo de parámetros scattering (S).
+
+    Parameters
+    ----------
+    Ts : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Spar : Symbolic Matrix
+        Matriz de parámetros de scattering.
+
+    '''
+    
+    Spar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Spar[0,0] = Tabcd[0,0] + Tabcd[0,1]/Z0 - Tabcd[1,0]*Z0 - Tabcd[1,1]
+    # B = DZ/Z21
+    Spar[0,1] = 2 * sp.simplify(sp.expand(sp.Determinant(Tabcd)))
+    # C = 1/Z21
+    Spar[1,0] = sp.Rational('2') 
+    # D = Z22/Z21
+    Spar[1,1] = -Tabcd[0,0] + Tabcd[0,1]/Z0 - Tabcd[1,0]*Z0 + Tabcd[1,1]
+    
+    common = Tabcd[0,0] + Tabcd[0,1]/Z0 + Tabcd[1,0]*Z0 + Tabcd[1,1]
+    
+    return( sp.simplify(sp.expand( 1 / common * Spar ) ) ) 
+
+def S2Tabcd_s(Spar, Z0 = sp.Rational('1') ):
+    '''
+    Convierte una matriz de parámetros ABCD (Tabcd) simbólica 
+    al modelo de parámetros scattering (S).
+
+    Parameters
+    ----------
+    Ts : Symbolic Matrix
+        Matriz de parámetros S.
+
+    Returns
+    -------
+    Spar : Symbolic Matrix
+        Matriz de parámetros de scattering.
+
+    '''
+    
+    Tabcd = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tabcd[0,0] = (1 - Spar[0,0]) * (1 + Spar[1,1]) + Spar[1,0] * Spar[0,1]
+    # B = DZ/Z21
+    Tabcd[0,1] = Z0*((1 + Spar[0,0]) * (1 + Spar[1,1]) - Spar[1,0] * Spar[0,1])
+    # C = 1/Z21
+    Tabcd[1,0] = 1/Z0*((1 - Spar[0,0]) * (1 - Spar[1,1]) - Spar[1,0] * Spar[0,1])
+    # D = Z22/Z21
+    Tabcd[1,1] = (1 - Spar[0,0]) * (1 + Spar[1,1]) + Spar[1,0] * Spar[0,1]
+    
+    return( sp.simplify(sp.expand( 1 / 2 / Spar[1,0] * Tabcd ) ) ) 
+
+def SparZ_s(Zexc, Z01=sp.Rational('1'), Z02=sp.Rational('1')):
+    '''
+    Convierte una matriz de transferencia de scattering (Ts) simbólica 
+    al modelo de parámetros scattering (S).
+
+    Parameters
+    ----------
+    Zexc : Symbolic impedance
+           Función de excitación de la impedancia a representar.
+
+    Z01 : Symbolic impedance
+          Impedancia de referencia en el plano 1
+
+    Z02 : Symbolic impedance
+          Impedancia de referencia en el plano 2
+
+    Returns
+    -------
+    Spar : Symbolic Matrix
+           Matriz de parámetros de scattering de Z.
+
+    '''
+    
+    Spar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Spar[0,0] = Zexc
+    # B = DZ/Z21
+    Spar[0,1] = 2*Z01
+    # C = 1/Z21
+    Spar[1,0] = 2*Z01
+    # D = Z22/Z21
+    Spar[1,1] = Zexc 
+    
+    return( sp.simplify(sp.expand( 1 / (Zexc + 2*Z01) * Spar) ) ) 
+
+def SparY_s(Yexc, Y01=sp.Rational('1'), Y02=sp.Rational('1')):
+    '''
+    Convierte una matriz de transferencia de scattering (Ts) simbólica 
+    al modelo de parámetros scattering (S).
+
+    Parameters
+    ----------
+    Yexc : Symbolic impedance
+           Función de excitación de la admitancia a representar.
+
+    Y01 : Symbolic impedance
+          Admitancia de referencia en el plano 1
+
+    Y02 : Symbolic impedance
+          Admitancia de referencia en el plano 2
+
+    Returns
+    -------
+    Spar : Symbolic Matrix
+           Matriz de parámetros de scattering de Y.
+
+    '''
+    
+    Spar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Spar[0,0] = -Yexc
+    # B = DZ/Z21
+    Spar[0,1] = 2*Y01
+    # C = 1/Z21
+    Spar[1,0] = 2*Y01
+    # D = Z22/Z21
+    Spar[1,1] = -Yexc 
+    
+    return( sp.simplify(sp.expand( 1 / (Yexc + 2*Y01) * Spar) ) ) 
+
+def TabcdLYZ_s(Yexc, Zexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido por una Y en derivación seguida  por 
+    una Z en serie.
+
+    Parameters
+    ----------
+    Yexc : Symbolic admitance
+           Función de excitación de la admitancia a representar.
+    
+    Zexc : Symbolic impedance
+           Función de excitación de la impedancia a representar.
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = sp.Rational('1')  
+    # B = DZ/Z21
+    Tpar[0,1] = Zexc
+    # C = 1/Z21
+    Tpar[1,0] = Yexc
+    # D = Z22/Z21
+    Tpar[1,1] = sp.Rational('1') + sp.simplify(sp.expand(Zexc * Yexc))
+    
+    return( Tpar ) 
+
+def TabcdLZY_s(Zexc, Yexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido por una Z en serie seguida una Y en 
+    derivación.
+
+    Parameters
+    ----------
+    Zexc : Symbolic impedance
+           Función de excitación de la impedancia a representar.
+    
+    Yexc : Symbolic admitance
+           Función de excitación de la admitancia a representar.
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = sp.Rational('1') + sp.simplify(sp.expand(Zexc * Yexc))
+    # B = DZ/Z21
+    Tpar[0,1] = Zexc
+    # C = 1/Z21
+    Tpar[1,0] = Yexc
+    # D = Z22/Z21
+    Tpar[1,1] = sp.Rational('1')  
+    
+    return( Tpar ) 
+
+def TabcdZ_s(Zexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido únicamente por una Z en serie.
+
+    Parameters
+    ----------
+    Zexc : Symbolic impedance
+           Función de excitación de la impedancia a representar.
+
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = sp.Rational('1') 
+    # B = DZ/Z21
+    Tpar[0,1] = Zexc
+    # C = 1/Z21
+    Tpar[1,0] = sp.Rational('0') 
+    # D = Z22/Z21
+    Tpar[1,1] = sp.Rational('1')  
+    
+    return( Tpar ) 
+
+
+def TabcdY_s(Yexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido únicamente por una Y en derivación.
+
+    Parameters
+    ----------
+    Yexc : Symbolic admitance
+           Función de excitación de la admitancia a representar.
+
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = sp.Matrix([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = sp.Rational('1') 
+    # B = DZ/Z21
+    Tpar[0,1] = sp.Rational('0')
+    # C = 1/Z21
+    Tpar[1,0] = Yexc
+    # D = Z22/Z21
+    Tpar[1,1] = sp.Rational('1')  
+    
+    return( Tpar ) 
+
+
+
 def Y2T_s(YY):
     
     TT = sp.Matrix([[0, 0], [0, 0]])
@@ -2363,6 +2690,30 @@ def calc_MAI_impedance_ij(Ymai, ii=0, jj=1, verbose=False):
 Otras funciones
 
 '''
+
+def trim_poly_s( this_poly, tol = 10**-6 ):
+
+    all_terms = this_poly.as_poly().all_terms()
+    
+    poly_acc = 0
+    
+    for this_pow, this_coeff in all_terms:
+    
+        if this_coeff > tol:
+            
+            poly_acc = poly_acc + this_coeff * s**this_pow[0]
+
+
+    return(poly_acc)
+
+def trim_func_s( rat_func, tol = 10**-6 ):
+
+    num, den = rat_func.as_numer_denom()
+    
+    num = trim_poly_s(num, tol)
+    den = trim_poly_s(den, tol)
+    
+    return(num/den)
 
 def modsq2mod_s( aa ):
 

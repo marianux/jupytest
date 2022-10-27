@@ -45,18 +45,18 @@ mpl.rcParams['figure.figsize'] = (10,10)
 # Tipo de aproximación.
         
 # aprox_name = 'butter'
-# aprox_name = 'cheby1'
+aprox_name = 'cheby1'
 # aprox_name = 'cheby2'
-aprox_name = 'ellip'
+# aprox_name = 'ellip'
 
 # Por qué no hay bessel ?
 #aprox_name = 'bessel'
 
 # Requerimientos de plantilla
 
-# filter_type = 'lowpass'
+filter_type = 'lowpass'
 # filter_type = 'highpass'
-filter_type = 'bandpass'
+# filter_type = 'bandpass'
 # filter_type = 'bandstop'
 
 
@@ -64,8 +64,8 @@ filter_type = 'bandpass'
 
 if filter_type == 'lowpass':
 
-    fpass = 0.25 # 
-    ripple = 0.5 # dB
+    fpass = 1/2/np.pi # 
+    ripple = 1 # dB
     fstop = 0.6 # Hz
     attenuation = 40 # dB
 

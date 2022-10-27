@@ -50,9 +50,13 @@ Ymai = sp.Matrix([
 
 s = sp.symbols('s ', complex=True)
 
-Ymai = Ymai.subs(Y1, 1/s/sp.Rational('3/2'))
-Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1/2'))
-Ymai = Ymai.subs(Y2, s*sp.Rational('4/3'))
+# Ymai = Ymai.subs(Y1, 1/s/sp.Rational('3/2'))
+# Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1/2'))
+# Ymai = Ymai.subs(Y2, s*sp.Rational('4/3'))
+
+Ymai = Ymai.subs(Y1, 1/s/sp.Rational('1'))
+Ymai = Ymai.subs(Y3, 1/s/sp.Rational('1'))
+Ymai = Ymai.subs(Y2, s*sp.Rational('2'))
 Ymai = Ymai.subs(G, sp.Rational('1'))
 
 # con_detalles = False
