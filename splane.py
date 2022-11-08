@@ -889,7 +889,7 @@ def parametrize_sos(num, den):
 
 def simplify_n_monic(tt):
     
-    num, den = sp.fraction(tt)
+    num, den = sp.fraction(sp.simplify(sp.expand(tt)))
     
     num = sp.poly(num,s)
     den = sp.poly(den,s)
@@ -906,19 +906,19 @@ def simplify_n_monic(tt):
 
 def pp(z1, z2):
     '''
-    Convierte la MAD en MAI luego de levantar de referencia.
+    Asocia en paralelo dos impedancias o en serie dos admitancias.
 
     Parameters
     ----------
-    Ymai : Symbolic Matrix
-        Matriz admitancia indefinida.
-    nodes2del : list or integer
-        Nodos que se van a eliminar.
+    z1 : Symbolic
+        Impedancia 1.
+    z2 : Symbolic
+        Impedancia 2.
 
     Returns
     -------
-    YY : Symbolic Matrix
-        Matriz admitancia 
+    zp : Symbolic
+         Impedancia resultante.
 
     '''
 
