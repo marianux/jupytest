@@ -1188,7 +1188,17 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     d.push()
     d += Gap().down().label('')
     d.push()
-    lbl = d.add(Gap().down().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=22 ).length(0.5*half_width))
+    
+    if isinstance(sym_func, sp.Mul ) or isinstance(sym_func, sp.Number ):
+        sym_func = '$ ' + func_label + ' = $' + sp.latex(sym_func)
+    elif isinstance(sym_func, np.number):
+        sym_func =  '$ ' + func_label + ' = ' + '{:3.3f}'.format(sym_func) + ' $'
+    elif isinstance(sym_func, str):
+        sym_func = '$ ' + func_label + ' = ' +  sym_func + ' $'
+    else:
+        sym_func = '$ ' + func_label + ' = ?? $'
+    
+    lbl = d.add(Gap().down().label( sym_func, fontsize=22 ).length(0.5*half_width))
     d += Gap().down().label('').length(0.5*half_width)
     d.pop()
     d.push()
@@ -1218,7 +1228,18 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
     
     d += Line().right().length(half_width)
     d.push()
-    lbl = d.add(Gap().up().label( '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $', fontsize=22 ).length(3* half_width))
+    
+    if isinstance(sym_func, sp.Mul ) or isinstance(sym_func, sp.Number ):
+        sym_func = '$ ' + func_label + ' = $' + sp.latex(sym_func)
+    elif isinstance(sym_func, np.number):
+        sym_func =  '$ ' + func_label + ' = ' + '{:3.3f}'.format(sym_func) + ' $'
+    elif isinstance(sym_func, str):
+        sym_func = '$ ' + func_label + ' = ' +  sym_func + ' $'
+    else:
+        sym_func = '$ ' + func_label + ' = ?? $'
+
+    
+    lbl = d.add(Gap().up().label( sym_func, fontsize=22 ).length(3* half_width))
     d.pop()
     d.push()
     d += Line().down().at( (d.here.x, d.here.y + .2 * half_width) ).length(half_width).linewidth(1)
