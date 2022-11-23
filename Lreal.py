@@ -21,27 +21,17 @@ R1, R2, C, L = sp.symbols('R1, R2, C, L', complex=False)
 ZLreal = R1 + tc2.pp(s*L, R2 + 1/(s*C))
 ZLreal = sp.simplify(sp.expand( ZLreal ))
 
-s11 = sp.simplify(sp.expand(ZLreal/(ZLreal+2)))
-s21 = sp.simplify(sp.expand((2/(ZLreal+2))))
+num, den = sp.fraction(sp.simplify(sp.expand(ZLreal)))
 
-s11_modelada = s11.subs([(R1, sp.Rational('2')), (R2, sp.Rational('2')), (C, sp.Rational('1/2')), (L, sp.Rational('10'))])
-s21_modelada = s21.subs([(R1, sp.Rational('2')), (R2, sp.Rational('2')), (C, sp.Rational('1/2')), (L, sp.Rational('10'))])
+# Para Ro = 1
+S11 = tc2.simplify_n_monic( ZLreal/(ZLreal+2) )
+S21 = tc2.simplify_n_monic( 2/(ZLreal+2) )
 
-# PP, QQ = s11_modelada.as_numer_denom()
-# RR, QQ = s21_modelada.as_numer_denom()
+ZLmedida = ZLreal.subs([(R1, sp.Rational('1/2')), (R2, sp.Rational('1/2')), (C, sp.Rational('1/10')), (L, sp.Rational('1'))] )
+S11medida = S11.subs([(R1, sp.Rational('1/2')), (R2, sp.Rational('1/2')), (C, sp.Rational('1/10')), (L, sp.Rational('1'))] )
+S21medida = S21.subs([(R1, sp.Rational('1/2')), (R2, sp.Rational('1/2')), (C, sp.Rational('1/10')), (L, sp.Rational('1'))] )
 
-# ZL_s11_calc = sp.simplify(sp.expand((2*s11_modelada/(1-s11_modelada))))
-ZL_s21_calc = sp.simplify(sp.expand((2*(1-s21_modelada)/s21_modelada)))
+S11aprox = (s**2 + 41/4 *s + 5) / (3*s**2 + 11*s + 25)
+S21aprox = (2*s**2 + s + 20) / (3*s**2 + 45/4*s + 25)
 
-
-# Síntesis guiada por topología
-
-z2 = sp.simplify(sp.expand(ZL_s21_calc - 2))
-
-y4, YL4 = tc2.remover_polo_dc(1/z2)
-
-
-
-
-
-
+ZLcalc = tc2.simplify_n_monic( 2 * (1-S21aprox)/S21aprox)
