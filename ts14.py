@@ -58,10 +58,10 @@ T1 = tc2.I2T(atdb/8.686, zi1, zi2)
 Z1 = tc2.T2Z(T1)
 
 # implementar como Tee
-[Za, Zb, Zc] = tc2.Z2tee(Z1)
+[Za, Zb, Zc] = tc2.dibujar_Tee(Z1)
 
 # implementar como Pi
-[Ya, Yb, Yc] = tc2.Y2Pi(Z1**-1)
+[Ya, Yb, Yc] = tc2.dibujar_Pi(Z1**-1)
 
 # Puerto 1
 zin1z(Za, Zb, Zc, Ya, Yb, Yc, zi2, T1)
@@ -96,10 +96,10 @@ T2 = tc2.I2T(atdb/8.686, zi1, zi2)
 Z2 = tc2.T2Z(T2)
 
 # implementar como Tee
-[Za, Zb, Zc] = tc2.Z2tee(Z2)
+[Za, Zb, Zc] = tc2.dibujar_Tee(Z2)
 
 # implementar como Pi
-[Ya, Yb, Yc] = tc2.Y2Pi(Z2**-1)
+[Ya, Yb, Yc] = tc2.dibujar_Pi(Z2**-1)
 
 # Puerto 1
 zin1z(Za, Zb, Zc, Ya, Yb, Yc, zi2, T2)
@@ -128,18 +128,18 @@ Z2d1 = tc2.T2Z(T2d1)
 Z2d234 = tc2.T2Z(T2d234)
 
 # implementar como Tee
-[Za, Zb, Zc] = tc2.Z2tee(Z2d1)
+[Za, Zb, Zc] = tc2.dibujar_Tee(Z2d1)
 # implementar como Pi
-[Ya, Yb, Yc] = tc2.Y2Pi(Z2d1**-1)
+[Ya, Yb, Yc] = tc2.dibujar_Pi(Z2d1**-1)
 
 # Puerto 1
 zin1z(Za, Zb, Zc, Ya, Yb, Yc, zi2, T2d1)
 # Puerto 2
 zin2z(Za, Zb, Zc, Ya, Yb, Yc, zi1, T2d1**-1)
 
-[Za, Zb, Zc] = tc2.Z2tee(Z2d234)
+[Za, Zb, Zc] = tc2.dibujar_Tee(Z2d234)
 # implementar como Pi
-[Ya, Yb, Yc] = tc2.Y2Pi(Z2d234**-1)
+[Ya, Yb, Yc] = tc2.dibujar_Pi(Z2d234**-1)
 
 # Puerto 1
 zin1z(Za, Zb, Zc, Ya, Yb, Yc, zi2, T2d234)

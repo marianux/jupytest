@@ -42,10 +42,10 @@ T1 = tc2.I2T( ( atdb/8.686 + fase * 1j ), zi1, zi2)
 Z1 = tc2.T2Z(T1)
 
 # implementar como Tee
-[Za, Zb, Zc] = tc2.Z2tee(Z1)
+[Za, Zb, Zc] = tc2.dibujar_Tee(Z1)
 
 # implementar como Pi
-[Ya, Yb, Yc] = tc2.Y2Pi(Z1**-1)
+[Ya, Yb, Yc] = tc2.dibujar_Pi(Z1**-1)
 
 # Puerto 1
 zin1z(Za, Zb, Zc, Ya, Yb, Yc, zi2, T1)

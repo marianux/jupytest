@@ -35,7 +35,7 @@ from collections import defaultdict
 from scipy.signal import tf2zpk, TransferFunction, zpk2tf
 from IPython.display import display, Math, Markdown
 import sympy as sp
-from sympy.abc import s
+# Laplace complex variable. s = σ + j.ω
 from sympy.polys.partfrac import apart
 
 from schemdraw import Drawing
@@ -43,7 +43,106 @@ from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line
 
 from fractions import Fraction
 
+# Laplace complex variable. s = σ + j.ω
 s = sp.symbols('s', complex=True)
+# Fourier real variable ω 
+w = sp.symbols('w', complex=False)
+
+
+
+def dibujar_Tee(ZZ):
+    '''
+    Dibuja una red Tee a partir de la matriz Z.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    # Dibujo la red Tee
+    
+    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+    
+    d = dibujar_puerto_entrada(d,
+                                   port_name = 'In' )
+    
+    Za = ZZ[0,0] - ZZ[0,1] 
+    Zb = ZZ[0,1] 
+    Zc = ZZ[1,1] - ZZ[0,1] 
+    
+    d = dibujar_elemento_serie(d, ResistorIEC, Za )
+    d = dibujar_elemento_derivacion(d, ResistorIEC, Zb )
+    d = dibujar_elemento_serie(d, ResistorIEC, Zc )
+    
+    d = dibujar_puerto_salida(d, 
+                                  port_name = 'Out')
+
+    display(d)        
+    
+    return([Za,Zb,Zc])
+
+
+def dibujar_Pi(YY):
+    '''
+    Dibuja una red Pi a partir de la matriz Y.
+
+    Parameters
+    ----------
+    Ymai : Symbolic Matrix
+        Matriz admitancia indefinida.
+    nodes2del : list or integer
+        Nodos que se van a eliminar.
+
+    Returns
+    -------
+    YY : Symbolic Matrix
+        Matriz admitancia 
+
+    '''
+    
+    # Dibujo la red Tee
+    
+    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+    
+    d = dibujar_puerto_entrada(d,
+                                   port_name = 'In')
+    
+    Ya = YY[0,0] + YY[0,1]
+    Yb = -YY[0,1]
+    Yc = YY[1,1] + YY[0,1]
+    
+    if isinstance(YY[0,0], sp.Symbol):
+        
+        Za = sp.simplify(sp.expand(1/Ya))
+        Zb = sp.simplify(sp.expand(1/Yb))
+        Zc = sp.simplify(sp.expand(1/Yc))
+        
+    else:
+
+        Za = 1/(YY[0,0] + YY[0,1])
+        Zb = 1/(-YY[0,1])
+        Zc = 1/(YY[1,1] + YY[0,1])
+    
+    d = dibujar_elemento_derivacion(d, ResistorIEC, Za )
+    d = dibujar_elemento_serie(d, ResistorIEC, Zb )
+    d = dibujar_elemento_derivacion(d, ResistorIEC, Zc )
+    
+    d = dibujar_puerto_salida(d, 
+                                  port_name = 'Out')
+    
+    display(d)        
+    
+    return([Ya, Yb, Yc])
+
 
 
 def dibujar_cauer_RC_RL(ki = None, y_exc = None, z_exc = None):
@@ -404,6 +503,10 @@ def cauer_LC( imm, remover_en_inf = True ):
     rem = imm
     ko = []
 
+    # a veces por problemas numéricos no hay cancelaciones de los términos 
+    # de mayor o menor orden y quedan coeficientes muy bajos.
+    rem = trim_func_s(sp.simplify(sp.expand(rem)))
+
     if remover_en_inf:
         rem, koi = remover_polo_infinito(rem)
     else:
@@ -414,6 +517,10 @@ def cauer_LC( imm, remover_en_inf = True ):
         
         ko += [koi]
         rem = 1/rem
+
+        # a veces por problemas numéricos no hay cancelaciones de los términos 
+        # de mayor o menor orden y quedan coeficientes muy bajos.
+        rem = trim_func_s(sp.simplify(sp.expand(rem)))
 
         if remover_en_inf:
             rem, koi = remover_polo_infinito(rem)
@@ -427,7 +534,7 @@ def cauer_LC( imm, remover_en_inf = True ):
     else:
         ko += [koi]
 
-    imm_as_cauer = koi
+    imm_as_cauer = ko[-1] + rem
 
     for ii in np.flipud(np.arange(len(ko)-1)):
         
@@ -659,11 +766,11 @@ def foster( imm ):
         
         if sp.degree(num) == 1 and sp.degree(den) == 0:
         
-            koo = num.as_poly().LC() / den
+            koo = num.as_poly(s).LC() / den
             
         elif sp.degree(den) == 1 and sp.degree(num) == 0:
             
-            k0 = den.as_poly().LC() / num
+            k0 = den.as_poly(s).LC() / num
     
         elif sp.degree(num) == 1 and sp.degree(den) == 2:
             # tanque
@@ -678,11 +785,11 @@ def foster( imm ):
                 
                 if sp.degree(num) == 1 and sp.degree(den) == 0:
                 
-                    koo_i = num.as_poly().LC() / den
+                    koo_i = num.as_poly(s).LC() / den
     
                 elif sp.degree(den) == 1 and sp.degree(num) == 0:
                     
-                    k0_i = num / den.as_poly().LC() 
+                    k0_i = num / den.as_poly(s).LC() 
                     
             
             ki += [[k0_i, koo_i]]
@@ -2416,106 +2523,6 @@ def T2Y(TT):
     return(YY)
 
 
-def Z2tee(ZZ):
-    '''
-    Convierte la MAD en MAI luego de levantar de referencia.
-
-    Parameters
-    ----------
-    Ymai : Symbolic Matrix
-        Matriz admitancia indefinida.
-    nodes2del : list or integer
-        Nodos que se van a eliminar.
-
-    Returns
-    -------
-    YY : Symbolic Matrix
-        Matriz admitancia 
-
-    '''
-    
-    # Dibujo la red Tee
-    
-    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
-    
-    d = dibujar_puerto_entrada(d,
-                                   port_name = 'In', 
-                                   voltage_lbl = ('+', '$V_1$', '-'), 
-                                   current_lbl = '$I_1$')
-    
-    Za = ZZ[0,0] - ZZ[0,1] 
-    Zb = ZZ[0,1] 
-    Zc = ZZ[1,1] - ZZ[0,1] 
-    
-    d = dibujar_elemento_serie(d, ResistorIEC, Za )
-    d = dibujar_elemento_derivacion(d, ResistorIEC, Zb )
-    d = dibujar_elemento_serie(d, ResistorIEC, Zc )
-    
-    d = dibujar_puerto_salida(d, 
-                                  port_name = 'Out', 
-                                  current_lbl = '$I_2$' )
-
-    display(d)        
-    
-    return([Za,Zb,Zc])
-
-
-def Y2Pi(YY):
-    '''
-    Convierte la MAD en MAI luego de levantar de referencia.
-
-    Parameters
-    ----------
-    Ymai : Symbolic Matrix
-        Matriz admitancia indefinida.
-    nodes2del : list or integer
-        Nodos que se van a eliminar.
-
-    Returns
-    -------
-    YY : Symbolic Matrix
-        Matriz admitancia 
-
-    '''
-    
-    # Dibujo la red Tee
-    
-    d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
-    
-    d = dibujar_puerto_entrada(d,
-                                   port_name = 'In', 
-                                   voltage_lbl = ('+', '$V_1$', '-'), 
-                                   current_lbl = '$I_1$')
-    
-    Ya = YY[0,0] + YY[0,1]
-    Yb = -YY[0,1]
-    Yc = YY[1,1] + YY[0,1]
-    
-    if isinstance(YY[0,0], sp.Symbol):
-        
-        Za = sp.simplify(sp.expand(1/Ya))
-        Zb = sp.simplify(sp.expand(1/Yb))
-        Zc = sp.simplify(sp.expand(1/Yc))
-        
-    else:
-
-        Za = 1/(YY[0,0] + YY[0,1])
-        Zb = 1/(-YY[0,1])
-        Zc = 1/(YY[1,1] + YY[0,1])
-    
-    d = dibujar_elemento_derivacion(d, ResistorIEC, Za )
-    d = dibujar_elemento_serie(d, ResistorIEC, Zb )
-    d = dibujar_elemento_derivacion(d, ResistorIEC, Zc )
-    
-    d = dibujar_puerto_salida(d, 
-                                  port_name = 'Out', 
-                                  current_lbl = '$I_2$' )
-    
-    display(d)        
-    
-    return([Ya, Yb, Yc])
-
-
 
 
 def y2mai(YY):
@@ -2569,6 +2576,139 @@ def may2y(Ymai, nodes2del):
         YY.col_del(ii)
     
     return(YY)
+
+
+def TabcdLYZ(Yexc, Zexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido por una Y en derivación seguida  por 
+    una Z en serie.
+
+    Parameters
+    ----------
+    Yexc : Symbolic admitance
+           Función de excitación de la admitancia a representar.
+    
+    Zexc : Symbolic impedance
+           Función de excitación de la impedancia a representar.
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = np.array([[0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = 1 
+    # B = DZ/Z21
+    Tpar[0,1] = Zexc
+    # C = 1/Z21
+    Tpar[1,0] = Yexc
+    # D = Z22/Z21
+    Tpar[1,1] = 1 + Zexc * Yexc
+    
+    return( Tpar ) 
+
+def TabcdLZY(Zexc, Yexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido por una Z en serie seguida una Y en 
+    derivación.
+
+    Parameters
+    ----------
+    Zexc : Symbolic impedance
+           Función de excitación de la impedancia a representar.
+    
+    Yexc : Symbolic admitance
+           Función de excitación de la admitancia a representar.
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = np.array([[0.0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = 1 + Zexc * Yexc 
+    # B = DZ/Z21
+    Tpar[0,1] = Zexc
+    # C = 1/Z21
+    Tpar[1,0] = Yexc
+    # D = Z22/Z21
+    Tpar[1,1] = 1
+    
+    return( Tpar ) 
+
+def TabcdZ(Zexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido únicamente por una Z en serie.
+
+    Parameters
+    ----------
+    Zexc : Symbolic impedance
+           Función de excitación de la impedancia a representar.
+
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = np.array([[0.0, 0.0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = 1 
+    # B = DZ/Z21
+    Tpar[0,1] = Zexc
+    # C = 1/Z21
+    Tpar[1,0] = 0
+    # D = Z22/Z21
+    Tpar[1,1] = 1
+
+    return( Tpar ) 
+
+def TabcdY(Yexc):
+    '''
+    Implementa una matriz de transferencia ABCD (Tabcd) a partir de 
+    un cuadripolo constituido únicamente por una Y en derivación.
+
+    Parameters
+    ----------
+    Yexc : Symbolic admitance
+           Función de excitación de la admitancia a representar.
+
+
+    Returns
+    -------
+    Tabcd : Symbolic Matrix
+           Matriz de parámetros ABCD.
+
+    '''
+    
+    Tpar = np.array([[0.0, 0], [0, 0]])
+    
+    # A = Z11/Z21
+    Tpar[0,0] = 1 
+    # B = DZ/Z21
+    Tpar[0,1] = 0
+    # C = 1/Z21
+    Tpar[1,0] = Yexc
+    # D = Z22/Z21
+    Tpar[1,1] = 1
+    
+    return( Tpar ) 
+
+
 
 
 def calc_MAI_ztransf_ij_mn(Ymai, ii=2, jj=3, mm=0, nn=1, verbose=False):
@@ -2691,15 +2831,48 @@ Otras funciones
 
 '''
 
+
+def db2nepper(at_en_db):
+    
+    return( at_en_db/(20*np.log10(np.exp(1))) )
+
+def nepper2db(at_en_np):
+    
+    return( at_en_np*(20*np.log10(np.exp(1))) )
+
+
+def Chebyshev_polynomials(nn):
+    
+    Cn_pp = 1
+    Cn_p = w
+    
+    if nn > 1:
+        
+        for ii in range(nn-1):
+            
+            Cn = 2 * w * Cn_p - Cn_pp
+    
+            Cn_pp = Cn_p
+            Cn_p = Cn
+
+    elif nn == 1:
+        Cn = Cn_p
+        
+    else:
+        Cn = 1
+            
+    return(sp.simplify(sp.expand(Cn)))
+
+
 def trim_poly_s( this_poly, tol = 10**-6 ):
 
-    all_terms = this_poly.as_poly().all_terms()
+    all_terms = this_poly.as_poly(s).all_terms()
     
     poly_acc = 0
     
     for this_pow, this_coeff in all_terms:
     
-        if this_coeff > tol:
+        if np.abs(this_coeff) > tol:
             
             poly_acc = poly_acc + this_coeff * s**this_pow[0]
 
@@ -2721,10 +2894,14 @@ def modsq2mod_s( aa ):
 
     k = sp.poly(num,s).LC() / sp.poly(den,s).LC()
     
-    roots_num = sp.roots(num)
-
-    poly_acc = sp.Rational('1')
+    # roots_num = num.as_poly(s).all_roots()
     
+    # poly_acc = sp.Rational('1')
+    
+    roots_num = sp.roots(num)
+    
+    poly_acc = sp.Rational('1')
+
     for this_root in roots_num.keys():
         
         if sp.re(this_root) <= 0:
@@ -2736,11 +2913,21 @@ def modsq2mod_s( aa ):
                 poly_acc *= (s-this_root)**sp.Rational(mult/2)
             else:
                 poly_acc *= (s-this_root)
-                
-            
+
+    assert (len(num.as_poly(s).all_coeffs())-1)/2 == len(poly_acc.as_poly(s).all_coeffs())-1, 'Falló la factorización de modsq2mod_s. ¡Revisar!'
 
     num = sp.simplify(sp.expand(poly_acc))
 
+
+
+    # poly_acc = 0
+    
+    # for each_term in num.as_poly(s).all_terms():
+        
+    #     poly_acc += np.abs(each_term[1]) * s**each_term[0][0]
+
+    # num = poly_acc
+    
     roots_num = sp.roots(den)
     
     poly_acc = sp.Rational('1')
@@ -2757,9 +2944,17 @@ def modsq2mod_s( aa ):
             else:
                 poly_acc *= (s-this_root)
     
-    poly_acc = sp.simplify(sp.expand(poly_acc))
+    den = sp.simplify(sp.expand(poly_acc))
 
-    return(sp.simplify(sp.expand(sp.sqrt(k) * num/poly_acc))) 
+    poly_acc = 0
+    
+    for each_term in den.as_poly(s).all_terms():
+        
+        poly_acc += np.abs(each_term[1]) * s**each_term[0][0]
+
+    den = poly_acc
+
+    return(sp.simplify(sp.expand(sp.sqrt(k) * num/den))) 
 
 
 def modsq2mod( aa ):

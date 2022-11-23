@@ -32,7 +32,7 @@ https://www.youtube.com/watch?v=lYirQkTkq-w&list=PLlD2eDv5CIe-0IZ3VOP0aQPTgAn9NM
 
 import sympy as sp
 import splane as tc2
-
+from splane import s, w
 import PySpice.Logging.Logging as Logging
 logger = Logging.setup_logging()
 
@@ -41,28 +41,98 @@ import numpy as np
 from schemdraw import Drawing
 from schemdraw.elements import SourceSin, Resistor, Capacitor, Inductor
 
+# Tipo de aproximación
+aprox = 'butter'
+# aprox = 'cheby'
 
-w = sp.symbols('w', real=True)
-Ko = sp.symbols('Ko', real=True)
-eps_sq = sp.symbols('eps_sq', real=True)
-s = sp.symbols('s ', complex=True)
-
-
+# Salto de impedancia:
+# Para órdenes impares el salto de impedancia es libre
+# En el caso de los pares, el único que no es posible es que R01 == R02.
 R01 = 1
-R01 = 2
+R02 = 1
+# orden del filtro
+nn = 5
+# ripple
+alfa_max = 3 # dB
 
-K4 = 9/10
-alfa_max = 1 # dB
-eps_sq = 10**(alfa_max/10) - 1
-Gmin = K4/(1+eps_sq)
+bImpar = True
+if nn % 2 == 0:
+    # nn es par
+    bImpar = False
+    
+    if aprox == 'cheby':
+        assert R01 != R02, 'Si nn es par NO es posible R01 == R02. '
 
- 1+np.sqrt(1-Gmin)/(1-np.sqrt(1-Gmin))
 
+# El signo de S11 determina si R02 será mayor o menor a 1 (R01)
+# Recordar que el signo de S11 es arbitrario dada una S21
+if R02 >= 1:
+    s11_sign = 1
+else:
+    s11_sign = -1
+    
+# A veces puede tener sentido forzar el signo para hallar la red
+# dual.
+# s11_sign = -1
+
+# A veces puede tener sentido forzar el eps_sq (ej Butter )
+# eps_sq = 10**(alfa_max/10) - 1
+eps_sq = 1
+
+if aprox == 'cheby':
+
+    if bImpar:
+    
+        Ko = 1 - ((R02-1)/(R02+1))**2
+        
+    else:
+        
+        Gmin = 1 - ((R02-1)/(R02+1))**2
+        # Ko debe ser menor a 1 para redes pasivas.
+        Ko  = (1+eps_sq) * Gmin
+
+else:
+
+    Ko = 1 - ((R02-1)/(R02+1))**2
+    
+if Ko > 1:
+
+    
+    if bImpar:
+        
+        Ko = 1 - 1/100
+        # si lo fuera ajustamos el ripple para cumplir con Gmin.
+        eps_sq_recalc = (Ko - Gmin) / Gmin
+        
+        alfa_max_recalc = 10 * np.log10(eps_sq_recalc + 1)
+        
+        alfa_max = alfa_max_recalc
+        
+        eps_sq = eps_sq_recalc
+        
+        print( 'Se ajustó el ripple a {:3.3f} dB para cumplir con el requerimiento de R02 = {:3.3f} Ω'.format(alfa_max, R02) )
+
+        # Verificación de R02. Siempre verificar que el salto de impedancia es
+        # el impuesto por R02 y el signo de S11
+        R02_recalc = ((1+np.sqrt(1-Gmin))/(1-np.sqrt(1-Gmin)))**(s11_sign)
+        
+    else:
+        
+        Ko = 1
+
+        R02_recalc = ((1+np.sqrt(1-Ko))/(1-np.sqrt(1-Ko)))**(s11_sign)
 
 # Para orden par Ko = 1 + eps**2
 # recordar que eps**2 = 10**(alfa_max/10) - 1
-# alfa_max 1 dB
-Tjw_sq = (9/10) / (1+ (10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)**2 )
+# alfa_max dB
+
+if aprox == 'cheby':
+   
+    Tjw_sq = (Ko) / (1+ (eps_sq) * (tc2.Chebyshev_polynomials(nn))**2 )
+    
+else:
+        
+    Tjw_sq = (Ko) / (1+ (eps_sq) * w**(2*nn))
 
 s11sq = sp.simplify(sp.expand(sp.factor( 1 - Tjw_sq ).subs(w, s/sp.I)))
 
@@ -71,42 +141,26 @@ s11sq = sp.simplify(sp.expand(sp.factor( 1 - Tjw_sq ).subs(w, s/sp.I)))
 # s11sq = tc2.trim_func_s(s11sq)
 
 
-s11_num = sp.simplify(sp.expand(sp.factor(( ((10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)).subs(w, s/sp.I) ))))
-s11_den = tc2.modsq2mod_s(sp.simplify(sp.expand(sp.factor((1 + (10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)**2 )))).subs(w, s/sp.I))
-s11 = s11_num / s11_den
-# s11 = tc2.modsq2mod_s(s11sq)
+# s11_num = sp.simplify(sp.expand(sp.factor(( ((10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)).subs(w, s/sp.I) ))))
+# s11_den = tc2.modsq2mod_s(sp.simplify(sp.expand(sp.factor((1 + (10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)**2 )))).subs(w, s/sp.I))
+# s11 = s11_num / s11_den
+s11 = s11_sign * tc2.modsq2mod_s(s11sq)
 
-# no funca modsq2mod_s
+num, den = s11.as_numer_denom()
+z1 = sp.simplify(sp.expand(den + num) / sp.expand(den - num))
+# z1 = sp.simplify(sp.expand(sp.simplify(sp.expand(1+s11))/sp.simplify(sp.expand((1-s11)))))
+# z1 = sp.simplify(sp.expand(sp.simplify(sp.expand(1+s11.evalf(10)))/sp.simplify(sp.expand((1-s11.evalf(10))))))
 
-z1 = sp.simplify(sp.expand(sp.simplify(sp.expand(1+s11))/sp.simplify(sp.expand((1-s11)))))
+_, koo = tc2.remover_polo_infinito(z1)
 
-
-# remoción parcial en infinito de z1
-z3, l1 = tc2.remover_polo_infinito(z1)
-
-l1 = l1 / s
-
-z3 = tc2.trim_func_s(sp.simplify(sp.expand(z3)))
-
-# remoción parcial en infinito de y3
-y5, c1 = tc2.remover_polo_infinito(1/z3)
-
-c1 = c1 / s
-
-y5 = tc2.trim_func_s(sp.simplify(sp.expand(y5)))
-
-# remoción parcial en infinito de z5
-z7, l2 = tc2.remover_polo_infinito(1/y5)
-
-l2 = l2 / s
-
-z7 = tc2.trim_func_s(sp.simplify(sp.expand(z7)))
-
-y7, c2 = tc2.remover_polo_infinito(1/z7)
-
-c2 = c2 / s
-
-# Dibujo de la red sintetizada
+if koo.is_zero:
+    bImpedancia = False
+    immitance = 1/z1
+else:
+    immitance = z1
+    bImpedancia = True
+    
+koo, imm_as_cauer, remainder = tc2.cauer_LC(immitance, remover_en_inf = True)
 
 # Dibujo de la red sintetizada
 
@@ -115,7 +169,7 @@ d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
 d = tc2.dibujar_elemento_derivacion(d, SourceSin, 'Vg')
 
-d = tc2.dibujar_elemento_serie(d, Resistor, "Rg=1")
+d = tc2.dibujar_elemento_serie(d, Resistor, "Rg=1Ω")
 
 d = tc2.dibujar_puerto_entrada(d,
                         voltage_lbl = ('+', '$V1$', '-'), 
@@ -123,20 +177,30 @@ d = tc2.dibujar_puerto_entrada(d,
 
 d, zz_lbl = tc2.dibujar_funcion_exc_abajo(d, 
                                           'Z',  
-                                          z1, 
+                                          z1.evalf(5), 
                                           hacia_salida = True,
                                           k_gap_width = 0.5)
 
 d = tc2.dibujar_espacio_derivacion(d)
 
+if bImpedancia:
+    bEnSerie = True
+else:
+    bEnSerie = False
 
-d = tc2.dibujar_elemento_serie(d, Inductor, l1.evalf(4))
+for this_inf_pole in koo:
 
-d = tc2.dibujar_elemento_derivacion(d, Capacitor, c1.evalf(4))
+    if bEnSerie:
+        
+        d = tc2.dibujar_elemento_serie(d, Inductor, (this_inf_pole/s).evalf(5))
+        
+    else:
 
-d = tc2.dibujar_elemento_serie(d, Inductor, l2.evalf(4))
-
-d = tc2.dibujar_elemento_derivacion(d, Capacitor, c2.evalf(4))
+        d = tc2.dibujar_elemento_derivacion(d, Capacitor, (this_inf_pole/s).evalf(5))
+        
+    # forma de escalera serie/deriación
+    bEnSerie = not bEnSerie
+    
 
 d = tc2.dibujar_puerto_salida(d,
                         voltage_lbl = ('+', '$V2$', '-'), 
@@ -146,7 +210,12 @@ d = tc2.dibujar_espacio_derivacion(d)
 d = tc2.dibujar_espacio_derivacion(d)
 d = tc2.dibujar_espacio_derivacion(d)
 
-d = tc2.dibujar_elemento_derivacion(d, Resistor, 1/y7.evalf(4) )
+if bEnSerie:
+    # último elemento en derivación, resto de la división en admitancia
+    d = tc2.dibujar_elemento_derivacion(d, Resistor, (1/remainder).evalf(4) )
+else:
+    d = tc2.dibujar_elemento_derivacion(d, Resistor, remainder.evalf(4) )
+        
 
 display(d)
 
