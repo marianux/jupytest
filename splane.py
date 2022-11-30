@@ -43,12 +43,95 @@ from schemdraw.elements import  Resistor, ResistorIEC, Capacitor, Inductor, Line
 
 from fractions import Fraction
 
+from glob import glob
+from os import path
+import shutil
+
+##########################################
+#%% Variables para el análisis simbólico #
+##########################################
+
 # Laplace complex variable. s = σ + j.ω
 s = sp.symbols('s', complex=True)
 # Fourier real variable ω 
 w = sp.symbols('w', complex=False)
 
 
+############################################
+#%% Variables para la interfaz con LTspice #
+############################################
+
+# unidades para dibujar en la hoja de LTspice
+ltux = 12 
+ltuy = 16
+
+# Archivo marco contenedor de las redes sintetizadas como 
+# ecualizadores/filtros
+filename_eq_base = 'ltspice_equalizador_base.asc'
+
+# enumeradores de los elementos pasivos
+cap_num = 1
+res_num = 1
+ind_num = 1
+
+# cursor para la localización de componentes
+cur_x = 0
+cur_y = 0
+
+#####
+# Palabras clave del LTspice para disponer los componentes en el
+# esquemático.
+
+# elementos pasivos en derivacion
+
+res_der_str = [ 'SYMBOL res {:d} {:d} R0', # posición absoluta X-Y en el esquemático
+                'WINDOW 0 48 43 Left 2', # posiciones relativas de etiquetas
+                'WINDOW 3 47 68 Left 2', # posiciones relativas de etiquetas
+                'SYMATTR InstName {:s}', # etiqueta que tendrá
+                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+               ]
+
+ind_der_str = [ 'SYMBOL ind {:d} {:d} R0', # posición absoluta X-Y en el esquemático
+                'WINDOW 0 47 34 Left 2', # posiciones relativas de etiquetas
+                'WINDOW 3 43 65 Left 2', # posiciones relativas de etiquetas
+                'SYMATTR InstName {:s}', # etiqueta que tendrá
+                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+               ]
+
+cap_der_str = [ 'SYMBOL cap {:d} {:d} R0', # posición absoluta X-Y en el esquemático
+                'WINDOW 0 48 18 Left 2', # posiciones relativas de etiquetas
+                'WINDOW 3 45 49 Left 2', # posiciones relativas de etiquetas
+                'SYMATTR InstName {:s}', # etiqueta que tendrá
+                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+               ]
+
+# elementos pasivos en serie
+
+res_ser_str = [ 'SYMBOL res {:d} {:d} R90', # posición absoluta X-Y en el esquemático
+                'WINDOW 0 -7 86 VBottom 2', # posiciones relativas de etiquetas
+                'WINDOW 3 -36 24 VTop 2', # posiciones relativas de etiquetas
+                'SYMATTR InstName {:s}', # etiqueta que tendrá
+                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+               ]
+
+ind_ser_str = [ 'SYMBOL ind {:d} {:d} R270', # posición absoluta X-Y en el esquemático
+                'WINDOW 0 39 34 VTop 2', # posiciones relativas de etiquetas
+                'WINDOW 3 68 88 VBottom 2', # posiciones relativas de etiquetas
+                'SYMATTR InstName {:s}', # etiqueta que tendrá
+                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+               ]
+
+cap_ser_str = [ 'SYMBOL cap {:d} {:d} R90', # posición absoluta X-Y en el esquemático
+                'WINDOW 0 -8 55 VBottom 2', # posiciones relativas de etiquetas
+                'WINDOW 3 -37 0 VTop 2', # posiciones relativas de etiquetas
+                'SYMATTR InstName {:s}', # etiqueta que tendrá
+                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+               ]  
+
+
+############################################
+#%% Funciones para ... #
+############################################
 
 def dibujar_Tee(ZZ):
     '''
@@ -1001,8 +1084,8 @@ def simplify_n_monic(tt):
     num = sp.poly(num,s)
     den = sp.poly(den,s)
     
-    lcnum = sp.LC(num)
-    lcden = sp.LC(den)
+    # lcnum = sp.LC(num)
+    # lcden = sp.LC(den)
     
     k = num.LC() / den.LC()
     
@@ -1098,9 +1181,70 @@ def I2T_s(gamma, z01, z02 = None):
     return(TT)
 
 
-'''
-    Bloque de funciones para dibujar redes de forma bonita
-'''
+##################################################
+#%% Funciones para dibujar redes de forma bonita #
+##################################################
+
+def ltsp_nuevo_circuito(circ_name=None):
+
+    if circ_name is None:
+
+    circ_hdl = None
+    
+    src_fname = path.join('.', filename_eq_base )
+    
+    if path.isfile(src_fname):
+        
+        dst_fname = 'pyltspice_{:s}.asc'.format(circ_name)
+        
+        shutil.copy(src_fname, dst_fname)
+        
+        circ_hdl = open(dst_fname, 'a')
+        
+        cap_num = 1
+        res_num = 1
+        ind_num = 1
+
+        cur_x = 0
+        cur_y = 0
+        
+    else:
+        print("No se encontró el archivo {}".format(src_fname))
+    
+    return(circ_hdl)
+
+
+
+def ltsp_capa_derivacion(circ_hdl, cap_label=None, cap_value=None):
+    
+    if cap_label is None:
+        cap_label = 'C{:d}'.format(cap_num)
+
+    if cap_value is None:
+        cap_value = 'C{:d}'.format(cap_num)
+
+    this_cap_str = cap_der_str.copy()
+
+cap_der_str = [ 'SYMBOL cap {:d} {:d} R90', # posición absoluta X-Y en el esquemático
+                'WINDOW 0 -8 55 VBottom 2', # posiciones relativas de etiquetas
+                'WINDOW 3 -37 0 VTop 2', # posiciones relativas de etiquetas
+                'SYMATTR InstName {:s}', # etiqueta que tendrá
+                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+               ]  
+    this_cap_str[0] = this_cap_str[0].format(cur_x, cur_y - )
+    circ_hdl.writelines()
+    cap_der_str
+
+
+
+    cap_num += 1
+    
+    return()
+
+##################################################
+#%% Funciones para dibujar redes de forma bonita #
+##################################################
+
 
 def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl = None):
     
@@ -1414,22 +1558,22 @@ def dibujar_tanque_RL_derivacion(d, sym_R_label='', sym_ind_label=''):
 
 def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
     
-    if isinstance(sym_R_label, sp.Number ):
-        sym_R_label = to_latex(sym_R_label)
+    if isinstance(sym_cap_label, sp.Number ):
+        sym_cap_label = to_latex(sym_cap_label)
     else:
-        sym_R_label = str_to_latex(sym_R_label)
+        sym_cap_label = str_to_latex(sym_cap_label)
     
-    if isinstance(inductor_lbl, sp.Number ):
-        inductor_lbl = to_latex(inductor_lbl)
+    if isinstance(sym_ind_label, sp.Number ):
+        sym_ind_label = to_latex(sym_ind_label)
     else:
-        inductor_lbl = str_to_latex(inductor_lbl)
+        sym_ind_label = str_to_latex(sym_ind_label)
     
     d.push()
     d += Dot()
-    d += Inductor().right().label(inductor_lbl, fontsize=16)
+    d += Inductor().right().label(sym_ind_label, fontsize=16)
     d.pop()
     d += Line().up().length(d.unit*.5)
-    d += Resistor().right().label(sym_R_label, fontsize=16)
+    d += Resistor().right().label(sym_cap_label, fontsize=16)
     d += Line().down().length(d.unit*.5)
     d += Dot()
     d.push()
@@ -1439,53 +1583,53 @@ def dibujar_tanque_serie(d, sym_ind_label='', sym_cap_label=''):
 
     return(d)
 
-def dibujar_tanque_RL_derivacion(d, sym_R_label='', inductor_lbl=''):
+# def dibujar_tanque_RL_derivacion(d, sym_R_label='', inductor_lbl=''):
     
-    if isinstance(sym_R_label, sp.Number ):
-        sym_R_label = to_latex(sym_R_label)
-    else:
-        sym_R_label = str_to_latex(sym_R_label)
+#     if isinstance(sym_R_label, sp.Number ):
+#         sym_R_label = to_latex(sym_R_label)
+#     else:
+#         sym_R_label = str_to_latex(sym_R_label)
     
-    if isinstance(inductor_lbl, sp.Number ):
-        inductor_lbl = to_latex(inductor_lbl)
-    else:
-        inductor_lbl = str_to_latex(inductor_lbl)
+#     if isinstance(inductor_lbl, sp.Number ):
+#         inductor_lbl = to_latex(inductor_lbl)
+#     else:
+#         inductor_lbl = str_to_latex(inductor_lbl)
     
-    d.push()
-    d += Dot()
-    d += Inductor().down().label(inductor_lbl, fontsize=16).length(d.unit*.5)
-    d += Resistor().down().label(sym_R_label, fontsize=16).length(d.unit*.5)
-    d += Dot()
-    d.pop()
+#     d.push()
+#     d += Dot()
+#     d += Inductor().down().label(inductor_lbl, fontsize=16).length(d.unit*.5)
+#     d += Resistor().down().label(sym_R_label, fontsize=16).length(d.unit*.5)
+#     d += Dot()
+#     d.pop()
 
-    return(d)
+#     return(d)
 
-def dibujar_tanque_serie(d, inductor_lbl='', capacitor_lbl=''):
+# def dibujar_tanque_serie(d, inductor_lbl='', capacitor_lbl=''):
     
-    if isinstance(inductor_lbl, sp.Number ):
-        inductor_lbl = to_latex(inductor_lbl)
-    else:
-        inductor_lbl = str_to_latex(inductor_lbl)
+#     if isinstance(inductor_lbl, sp.Number ):
+#         inductor_lbl = to_latex(inductor_lbl)
+#     else:
+#         inductor_lbl = str_to_latex(inductor_lbl)
     
-    if isinstance(capacitor_lbl, sp.Number ):
-        capacitor_lbl = to_latex(capacitor_lbl)
-    else:
-        capacitor_lbl = str_to_latex(capacitor_lbl)
+#     if isinstance(capacitor_lbl, sp.Number ):
+#         capacitor_lbl = to_latex(capacitor_lbl)
+#     else:
+#         capacitor_lbl = str_to_latex(capacitor_lbl)
     
-    d.push()
-    d += Dot()
-    d += Capacitor().right().label(capacitor_lbl, fontsize=16)
-    d.pop()
-    d += Line().up().length(d.unit*.5)
-    d += Inductor().right().label(inductor_lbl, fontsize=16)
-    d += Line().down().length(d.unit*.5)
-    d += Dot()
-    d.push()
-    d += Gap().down().label( '' )
-    d += Line().left()
-    d.pop()
+#     d.push()
+#     d += Dot()
+#     d += Capacitor().right().label(capacitor_lbl, fontsize=16)
+#     d.pop()
+#     d += Line().up().length(d.unit*.5)
+#     d += Inductor().right().label(inductor_lbl, fontsize=16)
+#     d += Line().down().length(d.unit*.5)
+#     d += Dot()
+#     d.push()
+#     d += Gap().down().label( '' )
+#     d += Line().left()
+#     d.pop()
 
-    return(d)
+#     return(d)
 
 def dibujar_tanque_derivacion(d, inductor_lbl='', capacitor_lbl=''):
     

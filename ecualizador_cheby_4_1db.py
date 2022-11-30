@@ -162,7 +162,8 @@ else:
     
 koo, imm_as_cauer, remainder = tc2.cauer_LC(immitance, remover_en_inf = True)
 
-# Dibujo de la red sintetizada
+
+# Dibujo de la red sintetizada Imagen + LTspice
 
 d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
