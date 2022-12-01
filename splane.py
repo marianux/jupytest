@@ -47,6 +47,8 @@ from glob import glob
 from os import path
 import shutil
 
+import time
+
 ##########################################
 #%% Variables para el análisis simbólico #
 ##########################################
@@ -72,11 +74,14 @@ filename_eq_base = 'ltspice_equalizador_base.asc'
 # enumeradores de los elementos pasivos
 cap_num = 1
 res_num = 1
-ind_num = 1
+inwritelinesd_num = 1
 
 # cursor para la localización de componentes
 cur_x = 0
 cur_y = 0
+
+# tamaño estandard del cable
+lt_wire_length = 4 # ltux/ltuy unidades normalizadas
 
 #####
 # Palabras clave del LTspice para disponer los componentes en el
@@ -88,21 +93,21 @@ res_der_str = [ 'SYMBOL res {:d} {:d} R0', # posición absoluta X-Y en el esquem
                 'WINDOW 0 48 43 Left 2', # posiciones relativas de etiquetas
                 'WINDOW 3 47 68 Left 2', # posiciones relativas de etiquetas
                 'SYMATTR InstName {:s}', # etiqueta que tendrá
-                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+                'SYMATTR Value {:3.5f}' # valor que tendrá
                ]
 
 ind_der_str = [ 'SYMBOL ind {:d} {:d} R0', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 47 34 Left 2', # posiciones relativas de etiquetas
                 'WINDOW 3 43 65 Left 2', # posiciones relativas de etiquetas
                 'SYMATTR InstName {:s}', # etiqueta que tendrá
-                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+                'SYMATTR Value {:3.5f}' # valor que tendrá
                ]
 
 cap_der_str = [ 'SYMBOL cap {:d} {:d} R0', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 48 18 Left 2', # posiciones relativas de etiquetas
                 'WINDOW 3 45 49 Left 2', # posiciones relativas de etiquetas
                 'SYMATTR InstName {:s}', # etiqueta que tendrá
-                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+                'SYMATTR Value {:3.5f}' # valor que tendrá
                ]
 
 # elementos pasivos en serie
@@ -111,21 +116,21 @@ res_ser_str = [ 'SYMBOL res {:d} {:d} R90', # posición absoluta X-Y en el esque
                 'WINDOW 0 -7 86 VBottom 2', # posiciones relativas de etiquetas
                 'WINDOW 3 -36 24 VTop 2', # posiciones relativas de etiquetas
                 'SYMATTR InstName {:s}', # etiqueta que tendrá
-                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+                'SYMATTR Value {:3.5f}' # valor que tendrá
                ]
 
 ind_ser_str = [ 'SYMBOL ind {:d} {:d} R270', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 39 34 VTop 2', # posiciones relativas de etiquetas
                 'WINDOW 3 68 88 VBottom 2', # posiciones relativas de etiquetas
                 'SYMATTR InstName {:s}', # etiqueta que tendrá
-                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+                'SYMATTR Value {:3.5f}' # valor que tendrá
                ]
 
 cap_ser_str = [ 'SYMBOL cap {:d} {:d} R90', # posición absoluta X-Y en el esquemático
                 'WINDOW 0 -8 55 VBottom 2', # posiciones relativas de etiquetas
                 'WINDOW 3 -37 0 VTop 2', # posiciones relativas de etiquetas
                 'SYMATTR InstName {:s}', # etiqueta que tendrá
-                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
+                'SYMATTR Value {:3.5f}' # valor que tendrá
                ]  
 
 
@@ -1187,7 +1192,12 @@ def I2T_s(gamma, z01, z02 = None):
 
 def ltsp_nuevo_circuito(circ_name=None):
 
+    global cap_der_str, cap_num, res_num, ind_num, cur_x, cur_y
+
     if circ_name is None:
+
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        circ_name = 'NN-' + timestr
 
     circ_hdl = None
     
@@ -1215,31 +1225,70 @@ def ltsp_nuevo_circuito(circ_name=None):
 
 
 
-def ltsp_capa_derivacion(circ_hdl, cap_label=None, cap_value=None):
+def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
+    
+    global cap_der_str, cap_num
     
     if cap_label is None:
+        
         cap_label = 'C{:d}'.format(cap_num)
+        cap_num += 1
 
-    if cap_value is None:
-        cap_value = 'C{:d}'.format(cap_num)
+    assert not isinstance(cap_value, np.number), 'Se espera un valor numérico para el componente.'
+
+    assert cap_value <= 0, 'Se necesita un valor positivo de componente.' 
 
     this_cap_str = cap_der_str.copy()
+    
+    element_xy = [cur_x - ltux, cur_y + lt_wire_length]
+    
+    this_cap_str[0] = this_cap_str[0].format(element_xy)
+    this_cap_str[3] = this_cap_str[3].format(cap_label)
+    this_cap_str[4] = this_cap_str[4].format(cap_value)
 
-cap_der_str = [ 'SYMBOL cap {:d} {:d} R90', # posición absoluta X-Y en el esquemático
-                'WINDOW 0 -8 55 VBottom 2', # posiciones relativas de etiquetas
-                'WINDOW 3 -37 0 VTop 2', # posiciones relativas de etiquetas
-                'SYMATTR InstName {:s}', # etiqueta que tendrá
-                'SYMATTR Value {{{:3.5f}}}' # valor que tendrá
-               ]  
-    this_cap_str[0] = this_cap_str[0].format(cur_x, cur_y - )
-    circ_hdl.writelines()
-    cap_der_str
+    # conectamos el elemento en derivación con el cursor actual.
+    wire_str = 'WIRE {:d} {:d} {:d} {:d}'.format(cur_x, cur_y, element_xy[0] + ltux, element_xy[1] )
+    # y el otro extremo a referencia GND
+    gnd_str = 'FLAG {:d} {:d} 0'.format(element_xy[0] + ltux, element_xy[1] + 4*ltuy )
 
-
-
-    cap_num += 1
+    circ_hdl.writeline(wire_str)
+    circ_hdl.writelines(this_cap_str)
+    circ_hdl.writeline(gnd_str)
     
     return()
+
+def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
+    
+    global cap_der_str, cap_num
+    
+    if ind_label is None:
+        
+        ind_label = 'C{:d}'.format(cap_num)
+        cap_num += 1
+
+    assert not isinstance(ind_value, np.number), 'Se espera un valor numérico para el componente.'
+
+    assert ind_value <= 0, 'Se necesita un valor positivo de componente.' 
+
+    this_cap_str = ind_ser_str.copy()
+    
+    element_xy = [cur_x - ltux, cur_y + lt_wire_length]
+    
+    this_cap_str[0] = this_cap_str[0].format(element_xy)
+    this_cap_str[3] = this_cap_str[3].format(ind_label)
+    this_cap_str[4] = this_cap_str[4].format(ind_value)
+
+    # conectamos el elemento en derivación con el cursor actual.
+    wire_str = 'WIRE {:d} {:d} {:d} {:d}'.format(cur_x, cur_y, element_xy[0] + ltux, element_xy[1] )
+    # y el otro extremo a referencia GND
+    gnd_str = 'FLAG {:d} {:d} 0'.format(element_xy[0] + ltux, element_xy[1] + 4*ltuy )
+
+    circ_hdl.writeline(wire_str)
+    circ_hdl.writelines(this_cap_str)
+    circ_hdl.writeline(gnd_str)
+    
+    return()
+
 
 ##################################################
 #%% Funciones para dibujar redes de forma bonita #

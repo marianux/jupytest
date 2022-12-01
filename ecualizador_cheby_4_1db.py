@@ -165,6 +165,8 @@ koo, imm_as_cauer, remainder = tc2.cauer_LC(immitance, remover_en_inf = True)
 
 # Dibujo de la red sintetizada Imagen + LTspice
 
+circ_hdl = tc2.ltsp_nuevo_circuito()
+
 d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
 
@@ -192,12 +194,19 @@ else:
 for this_inf_pole in koo:
 
     if bEnSerie:
+
+        ind_value = (this_inf_pole/s).evalf(5)
         
-        d = tc2.dibujar_elemento_serie(d, Inductor, (this_inf_pole/s).evalf(5))
+        d = tc2.dibujar_elemento_serie(d, Inductor, ind_value)
+        
+        tc2.ltsp_ind_serie(circ_hdl, ind_value) 
         
     else:
 
-        d = tc2.dibujar_elemento_derivacion(d, Capacitor, (this_inf_pole/s).evalf(5))
+        cap_value = (this_inf_pole/s).evalf(5)
+        d = tc2.dibujar_elemento_derivacion(d, Capacitor, cap_value)
+        
+        tc2.ltsp_capa_derivacion(circ_hdl, cap_value) 
         
     # forma de escalera serie/deriación
     bEnSerie = not bEnSerie
