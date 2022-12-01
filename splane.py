@@ -1186,9 +1186,9 @@ def I2T_s(gamma, z01, z02 = None):
     return(TT)
 
 
-##################################################
-#%% Funciones para dibujar redes de forma bonita #
-##################################################
+#############################################
+#%% Funciones para dibujar redes en LTspice #
+#############################################
 
 def ltsp_nuevo_circuito(circ_name=None):
 
@@ -1234,9 +1234,9 @@ def ltsp_capa_derivacion(circ_hdl, cap_value, cap_label=None):
         cap_label = 'C{:d}'.format(cap_num)
         cap_num += 1
 
-    assert not isinstance(cap_value, np.number), 'Se espera un valor numérico para el componente.'
+    assert isinstance(cap_value, np.number) or isinstance(cap_value, sp.Number ) , 'Se espera un valor numérico para el componente.'
 
-    assert cap_value <= 0, 'Se necesita un valor positivo de componente.' 
+    assert cap_value > 0, 'Se necesita un valor positivo de componente.' 
 
     this_cap_str = cap_der_str.copy()
     
@@ -1266,9 +1266,9 @@ def ltsp_ind_serie(circ_hdl, ind_value, ind_label=None):
         ind_label = 'C{:d}'.format(cap_num)
         cap_num += 1
 
-    assert not isinstance(ind_value, np.number), 'Se espera un valor numérico para el componente.'
+    assert isinstance(ind_value, np.number) or isinstance(ind_value, sp.Number ) , 'Se espera un valor numérico para el componente.'
 
-    assert ind_value <= 0, 'Se necesita un valor positivo de componente.' 
+    assert ind_value > 0, 'Se necesita un valor positivo de componente.' 
 
     this_cap_str = ind_ser_str.copy()
     

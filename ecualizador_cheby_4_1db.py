@@ -204,6 +204,7 @@ for this_inf_pole in koo:
     else:
 
         cap_value = (this_inf_pole/s).evalf(5)
+        
         d = tc2.dibujar_elemento_derivacion(d, Capacitor, cap_value)
         
         tc2.ltsp_capa_derivacion(circ_hdl, cap_value) 
