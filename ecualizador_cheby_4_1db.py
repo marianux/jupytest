@@ -42,8 +42,8 @@ from schemdraw import Drawing
 from schemdraw.elements import SourceSin, Resistor, Capacitor, Inductor
 
 # Tipo de aproximación
-aprox = 'butter'
-# aprox = 'cheby'
+# aprox = 'butter'
+aprox = 'cheby'
 
 # Salto de impedancia:
 # Para órdenes impares el salto de impedancia es libre
@@ -51,7 +51,7 @@ aprox = 'butter'
 R01 = 1
 R02 = 1
 # orden del filtro
-nn = 5
+nn = 3
 # ripple
 alfa_max = 3 # dB
 
@@ -165,7 +165,11 @@ koo, imm_as_cauer, remainder = tc2.cauer_LC(immitance, remover_en_inf = True)
 
 # Dibujo de la red sintetizada Imagen + LTspice
 
-circ_hdl = tc2.ltsp_nuevo_circuito()
+circ_name = 'ecualizador_{:s}_orden_{:d}_ripple_{:d}dB_r01_{:d}_r02_{:d}'.format(aprox, nn, alfa_max, R01, R02)
+
+circ_hdl = tc2.ltsp_nuevo_circuito(circ_name)
+
+tc2.ltsp_etiquetar_nodo(circ_hdl, node_label='vi')
 
 d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
@@ -227,10 +231,13 @@ if bEnSerie:
 else:
     d = tc2.dibujar_elemento_derivacion(d, Resistor, remainder.evalf(4) )
         
-
 display(d)
 
+tc2.ltsp_etiquetar_nodo(circ_hdl, node_label='vo')
 
+circ_hdl.writelines('TEXT -48 304 Left 2 !.param RG={:d} RL={:d}'.format(R01, R02))
+
+circ_hdl.close()
 
 # pCircuit1 = Circuit('Filtro pasabajo Bessel 3er orden')
 
