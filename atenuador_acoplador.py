@@ -23,10 +23,10 @@ import splane as tc2
 
 '''
 
-r01 = 1 # Ω
-r02 = 1/5 # Ω
+r01 = 150 # Ω
+r02 = 75 # Ω
 
-atdb = 8.324 # dB
+atdb = 20 # dB
 
 min_atdb = tc2.nepper2db( np.arccosh(np.sqrt(np.amax([ r02/r01,  r01/r02]) )))
 

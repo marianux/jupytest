@@ -1415,7 +1415,7 @@ def dibujar_funcion_exc_abajo(d, func_label, sym_func, k_gap_width=0.5, hacia_sa
     d.push()
     
     if isinstance(sym_func, sp.Mul ) or isinstance(sym_func, sp.Number ):
-        sym_func = '$ ' + func_label + ' = $' + sp.latex(sym_func)
+        sym_func = '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $'
     elif isinstance(sym_func, np.number):
         sym_func =  '$ ' + func_label + ' = ' + '{:3.3f}'.format(sym_func) + ' $'
     elif isinstance(sym_func, str):
@@ -1455,7 +1455,7 @@ def dibujar_funcion_exc_arriba(d, func_label, sym_func, k_gap_width=0.5, hacia_s
     d.push()
     
     if isinstance(sym_func, sp.Mul ) or isinstance(sym_func, sp.Number ):
-        sym_func = '$ ' + func_label + ' = $' + sp.latex(sym_func)
+        sym_func = '$ ' + func_label + ' = ' + sp.latex(sym_func) + ' $'
     elif isinstance(sym_func, np.number):
         sym_func =  '$ ' + func_label + ' = ' + '{:3.3f}'.format(sym_func) + ' $'
     elif isinstance(sym_func, str):
@@ -3190,7 +3190,8 @@ def modsq2mod_s( aa ):
             else:
                 poly_acc *= (s-this_root)
     
-    den = sp.simplify(sp.expand(poly_acc))
+    # den = sp.simplify(sp.expand(poly_acc))
+    den = sp.expand(poly_acc)
 
     poly_acc = 0
     

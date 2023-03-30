@@ -29,7 +29,7 @@ r01 = 1 # Ω
 r02 = 1/5 # Ω
 
 # plantearemos varios saltos de impedancia.
-cant_saltos = 4
+cant_saltos = 2
 
 # tipo_espaciado = 'lineal'
 # saltos = np.linspace( r01, r02, num = (cant_saltos+1))

@@ -12,7 +12,10 @@ Este script ejemplifica el uso de las funciones de diseño de filtros analógico
 
 import scipy.signal as sig
 # import matplotlib as mpl
-from splane import analyze_sys, pretty_print_lti, zpk2sos_analog, tf2sos_analog, pretty_print_SOS, print_console_subtitle, print_console_alert, print_latex
+# from splane import analyze_sys, pretty_print_lti, zpk2sos_analog, tf2sos_analog, pretty_print_SOS, print_console_subtitle, print_console_alert, print_latex
+from pytc2.sistemas_lineales import analyze_sys, tf2sos_analog, pretty_print_SOS, pretty_print_lti, zpk2sos_analog
+from pytc2.general import print_latex, print_console_alert, print_console_subtitle
+
 import numpy as np
 
 #mpl.rcParams['figure.figsize'] = (15,15)
@@ -74,21 +77,21 @@ max_pc_delay = 0.1 # error relativo de demora, en omega_d, respecto al centro de
 # Aproximación
         
 # aprox_name = 'Butterworth'
-aprox_name = 'Chebyshev1' # equiripple banda de paso
-# aprox_name = 'Chebyshev2' # equiripple banda de rechazo
+# aprox_name = 'Chebyshev1' # equiripple banda de paso
+aprox_name = 'Chebyshev2' # equiripple banda de rechazo
 # aprox_name = 'Bessel'
 # aprox_name = 'Cauer' # o elíptico
 
 # Forzar orden
 ##############
-force_order = -1
-# force_order = 3
+# force_order = -1
+force_order = 4
 
 # Freq. transformation
 #######################
 
-# aprox_type = 'LP'
-aprox_type = 'HP'
+aprox_type = 'LP'
+# aprox_type = 'HP'
 # aprox_type = 'BP'
 Qbp = 5
 

@@ -49,9 +49,9 @@ aprox = 'cheby'
 # Para órdenes impares el salto de impedancia es libre
 # En el caso de los pares, el único que no es posible es que R01 == R02.
 R01 = 1
-R02 = 1
+R02 = 2
 # orden del filtro
-nn = 3
+nn = 4
 # ripple
 alfa_max = 3 # dB
 

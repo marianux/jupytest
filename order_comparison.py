@@ -11,9 +11,11 @@ de aproximación implementadas en scipy.signal
 """
 import numpy as np
 import scipy.signal as sig
-from splane import analyze_sys
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+
+from pytc2.sistemas_lineales import analyze_sys, tf2sos_analog, pretty_print_SOS
+from pytc2.general import print_subtitle
 
 #####################
 ## Start of script ##
@@ -78,7 +80,16 @@ for (this_order, this_ripple, this_att) in zip(orders2analyze, ripple, attenuati
     num, den = sig.zpk2tf(z,p,k)
     
     all_sys.append(sig.TransferFunction(num,den))
-    filter_names.append(aprox_name + '_ord_' + str(this_order) + '_rip_' + str(this_ripple)+ '_att_' + str(this_att))
+    
+    this_label = aprox_name + '_ord_' + str(this_order) + '_rip_' + str(this_ripple)+ '_att_' + str(this_att)
+    
+    print_subtitle(this_label)
+    # factorizamos en SOS's
+    this_sos = tf2sos_analog(num, den)
+    
+    pretty_print_SOS(this_sos, mode='omegayq')
+    
+    filter_names.append(this_label)
 
 plt.close('all')
 

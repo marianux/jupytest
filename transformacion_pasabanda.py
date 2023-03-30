@@ -11,8 +11,9 @@ aplicada a un sistema de primer y segundo orden.
 
 import sympy as sp
 from sympy.abc import s
-import splane as tc2
-from IPython.display import display, Math
+from pytc2.sistemas_lineales import parametrize_sos
+from pytc2.general import print_latex
+
 
 ww, qq, Q_bp, B_bp, W_o_bp, w_o1, w_o2, qq1, qq2 = sp.symbols("w_o, q_o, Q_bp, B_bp, W_o_bp, w_1, w_2, q_1, q_2")
 a, b, c, d, e, f = sp.symbols("a, b, c, d, e, f")
@@ -44,15 +45,15 @@ H1bp = sp.simplify(sp.expand(H1.subs(s, Kbp)))
 num, den = sp.fraction(H1bp)
 num = sp.Poly(num,s)
 den = sp.Poly(den,s)
-num1_bp, den1_bp, w1_on, Q1_n, w1_od, Q1_d, K1_bp  = tc2.parametrize_sos(num, den)
+num1_bp, den1_bp, w1_on, Q1_n, w1_od, Q1_d, K1_bp  = parametrize_sos(num, den)
 
 print('\n\n')
 print('----------------')
 print('* Primer orden *')
 print('----------------')
 
-tc2.print_latex('$ T(s) = ' + sp.latex(H1) + '$')
-tc2.print_latex('$ T(s) |_{s = ' + sp.latex(Kbp) +  ' } = ' + sp.latex(K1_bp) + ' \\frac{ ' + sp.latex(num1_bp.as_expr()) + '}{' + sp.latex(den1_bp.as_expr()) + '} $')
+print_latex('$ T(s) = ' + sp.latex(H1) + '$')
+print_latex('$ T(s) |_{s = ' + sp.latex(Kbp) +  ' } = ' + sp.latex(K1_bp) + ' \\frac{ ' + sp.latex(num1_bp.as_expr()) + '}{' + sp.latex(den1_bp.as_expr()) + '} $')
 
 # Análisis de la transformación pasabanda para una SOS.
 H2bp = sp.simplify(sp.expand(H2.subs(s, Kbp)))
@@ -68,8 +69,8 @@ den2_bp = sp.Poly(den2_bp,s)
 den1 = s**2 + s*w_o1/qq1 + w_o1**2
 den2 = s**2 + s*w_o2/qq2 + w_o2**2
 
-den2 = den2.subs(w_o2, 1/w_o1)
-den2 = den2.subs(qq2, qq1)
+# den2 = den2.subs(w_o2, 1/w_o1)
+# den2 = den2.subs(qq2, qq1)
 
 den4 = den1 * den2
 
@@ -83,18 +84,18 @@ den4_coeffs = den4.all_coeffs()
 
 ff = [ aa - bb for aa, bb in zip(den4_coeffs, den_bp_coeffs)]
 
-aa = sp.solve(ff[1:-2], [ qq1, w_o1 ], dict=True)
+aa = sp.solve(ff[1:], [ qq1, w_o1 , qq2], dict=True)
 
-# print('\n\n')
-# print('-----------------')
-# print('* Segundo orden *')
-# print('-----------------')
+print('\n\n')
+print('-----------------')
+print('* Segundo orden *')
+print('-----------------')
 
-# tc2.print_latex('$ T(s) = ' + sp.latex(H2) + '$')
+print_latex('$ T(s) = ' + sp.latex(H2) + '$')
 
-# tc2.print_latex('$ T(s) |_{s = ' + sp.latex(Kbp) +  ' } = ' + sp.latex(sp.expand(H2bp)) + '$')
-# tc2.print_latex('$ T(s) |_{s = ' + sp.latex(Kbp) +  ' } =  \\frac{ \\frac{s w_o}{Q_{bp}} }{' + sp.latex(den1) + '}     \\frac{ \\frac{s w_o}{Q_{bp}} }{' + sp.latex(den2) + '} $')
+print_latex('$ T(s) |_{s = ' + sp.latex(Kbp) +  ' } = ' + sp.latex(sp.expand(H2bp)) + '$')
+print_latex('$ T(s) |_{s = ' + sp.latex(Kbp) +  ' } =  \\frac{ \\frac{s w_o}{Q_{bp}} }{' + sp.latex(den1) + '}     \\frac{ \\frac{s w_o}{Q_{bp}} }{' + sp.latex(den2) + '} $')
 
-# tc2.print_latex('$ q_1 = ' + sp.latex(aa[0][qq]) + '$')
+print_latex('$ q_1 = ' + sp.latex(aa[0][qq]) + '$')
 
 

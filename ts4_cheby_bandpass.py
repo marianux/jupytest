@@ -6,8 +6,9 @@
 
 import numpy as np
 import scipy.signal as sig
-import splane as tc2
 import matplotlib.pyplot as plt
+
+from pytc2.sistemas_lineales import analyze_sys, pretty_print_lti, tf2sos_analog, pretty_print_SOS
 
 
 # de la plantilla pasaaltos llegamos a la plantilla pasabajo
@@ -57,13 +58,13 @@ print('\n\n')
 print('--------------------------------')
 print('Transferencia pasabajo prototipo')
 print('--------------------------------')
-tc2.pretty_print_lti(num_pb, den_pb)
+pretty_print_lti(num_pb, den_pb)
 
 # particiono en 2 SOS's para la implementación
-sos_pb = tc2.tf2sos_analog(num_pb, den_pb)
+sos_pb = tf2sos_analog(num_pb, den_pb)
 
 # parametrizada
-tc2.pretty_print_SOS(sos_pb, mode='omegayq')
+pretty_print_SOS(sos_pb, mode='omegayq')
 
 # 
 num_pbanda, den_pbanda = sig.lp2bp(num_pb, den_pb, bw = 1/Q_bp)
@@ -72,10 +73,10 @@ print('\n\n')
 print('--------------------------------')
 print('Transferencia pasabanda prototipo')
 print('--------------------------------')
-tc2.pretty_print_lti(num_pbanda, den_pbanda)
+pretty_print_lti(num_pbanda, den_pbanda)
 
 # particiono en 2 SOS's para la implementación
-sos_pbanda = tc2.tf2sos_analog(num_pbanda, den_pbanda)
+sos_pbanda = tf2sos_analog(num_pbanda, den_pbanda)
 
 print('\n\n')
 print('------------------')
@@ -83,7 +84,7 @@ print('Particiono en SOSs')
 print('------------------')
 
 # la visualizamos de algunas formas, la tradicional
-tc2.pretty_print_SOS(sos_pbanda)
+pretty_print_SOS(sos_pbanda)
 
 print('\n\n')
 print('------------------------------------------------')
@@ -91,8 +92,8 @@ print('Particiono en SOSs parametrizados como nos gusta')
 print('------------------------------------------------')
 
 # o parametrizada
-tc2.pretty_print_SOS(sos_pbanda, mode='omegayq')
+pretty_print_SOS(sos_pbanda, mode='omegayq')
 
 plt.close('all')
 
-tc2.analyze_sys( sos_pbanda )
+analyze_sys( sos_pbanda )
