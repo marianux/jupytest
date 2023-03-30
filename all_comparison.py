@@ -7,9 +7,11 @@ Created on Thu May  2 07:53:40 2019
 """
 
 import scipy.signal as sig
-import matplotlib as mpl
-from splane import analyze_sys, pzmap, grpDelay, bodePlot
 import numpy as np
+
+# Ahora importamos las funciones de PyTC2
+from pytc2.sistemas_lineales import analyze_sys, pretty_print_bicuad_omegayq, tf2sos_analog, pretty_print_SOS
+
 
 #mpl.rcParams['figure.figsize'] = (15,15)
     
@@ -18,8 +20,8 @@ import numpy as np
 #####################
         
         
-#aprox_name = 'Butterworth'
-aprox_name = 'Chebyshev1'
+aprox_name = 'Butterworth'
+# aprox_name = 'Chebyshev1'
 #aprox_name = 'Chebyshev2'
 # aprox_name = 'Bessel'
 #aprox_name = 'Cauer'
