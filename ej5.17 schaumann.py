@@ -20,7 +20,7 @@ pretty_print_lti(num, den)
 # find maximum in transfer function
 thisFilter = sig.TransferFunction(num, den)
 
-# analyze_sys( thisFilter, 'Ej 5.13' )
+# analyze_sys( thisFilter, 'Ej 5.17' )
 
 _, mag, _ = thisFilter.bode(np.logspace(-1,1,1000))
 
