@@ -9,7 +9,7 @@ Created on Wed May  8 23:14:49 2019
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.signal as sig
-from splane import analyze_sys, pretty_print_bicuad_omegayq
+from pytc2.sistemas_lineales import analyze_sys, pretty_print_bicuad_omegayq
 
 
 # ejemplo simple
