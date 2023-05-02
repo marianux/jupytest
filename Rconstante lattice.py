@@ -9,7 +9,9 @@ Red de resistencia constante implementada con lattice
 """
 
 import sympy as sp
-import splane as tc2
+
+from pytc2.cuadripolos import Z2T_s
+from pytc2.sistemas_lineales import simplify_n_monic
 
 
 # T puenteado
@@ -21,11 +23,11 @@ Zlatt= sp.Matrix([[(Za+Zb)/2, (Zb-Za)/2], [(Zb-Za)/2, (Za+Zb)/2]])
 Tgen = sp.Matrix([[1, R], [0, 1]])
 Tcarga = sp.Matrix([[1, 0], [1/R, 1]])
 
-Tlatt = tc2.Z2T_s(Zlatt)
+Tlatt = Z2T_s(Zlatt)
 
 Trcons =   Tgen * Tlatt * Tcarga
 Trcons = Trcons.subs(Za*Zb, R**2)
 # Trcons = Trcons.subs(Za, R**2/Zb)
 Trcons = Trcons.subs(Zb, R**2/Za)
 
-Vtransf = 1/(tc2.simplify_n_monic(Trcons[0,0]))
+Vtransf = 1/(simplify_n_monic(Trcons[0,0]))

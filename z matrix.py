@@ -8,18 +8,8 @@ Created on Wed Jul  7 20:38:55 2021
 
 import sympy as sp
 
+from pytc2.sistemas_lineales import simplify_n_monic
 
-def simplify_n_monic(tt):
-    
-    num, den = sp.fraction(sp.simplify(tt))
-    
-    num = sp.poly(num,s)
-    den = sp.poly(den,s)
-    
-    lcnum = sp.LC(num)
-    lcden = sp.LC(den)
-    
-    return( sp.simplify(lcnum/lcden) * (sp.monic(num) / sp.monic(den)) )
 
 # T puenteado
 z1, z2, z3 = sp.symbols('z1 z2 z3', complex=True)

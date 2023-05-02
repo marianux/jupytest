@@ -15,7 +15,9 @@ Cap. 9. Avendaño L. Sistemas electrónicos Analógicos: Un enfoque matricial.
 """
 
 import sympy as sp
-from splane import print_latex, calc_MAI_impedance_ij, calc_MAI_vtransf_ij_mn, calc_MAI_ztransf_ij_mn
+
+from pytc2.cuadripolos import calc_MAI_impedance_ij, calc_MAI_vtransf_ij_mn, calc_MAI_ztransf_ij_mn
+from pytc2.general import print_latex
 
 
 # T puenteado cargado: red de R constante
