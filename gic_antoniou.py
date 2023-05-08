@@ -10,8 +10,11 @@ import sympy as sp
 from sympy.abc import s
 from IPython.display import display, Math
 
+from pytc2.sintesis_dipolo import foster
+from pytc2.remociones import remover_polo_dc, remover_polo_infinito
+
 I1, V1, V2, V3, V4, V5 = sp.symbols("I1, V1, V2, V3, V4, V5")
-Y1, Y2, Y3, Y4, Y5, As, wt = sp.symbols("Y1, Y2, Y3, Y4, Y5, As, wt")
+Y1, Y2, Y3, Y4, Y5, As, wt, w0 = sp.symbols("Y1, Y2, Y3, Y4, Y5, As, wt, w0")
 G, C = sp.symbols("G, C") 
 
 # modelo ideal negativamente realimentado
@@ -78,3 +81,22 @@ print('#################################################')
 display(Math( r' Z_1^r = ' + sp.latex(Z1_opamp_real) ))
 
 print('¿Qué tipo de Z1 será?')
+
+# Si G/C = w0 = 1; wt = 1000 y G = 1
+z1_real = (s**3 + s**2 * 1001 + s * (10**6/2+10**3) ) / (s**3 + s**2 * 1001 + s * 10**3 + 10**6/2 )
+
+Ginf = sp.limit(1/z1_real, s, sp.oo)
+G0 = sp.limit(1/z1_real, s, 0)
+
+R1 = 1/Ginf
+
+# remuevo la menor admitancia
+Y2 = sp.factor(sp.simplify(sp.expand(1/z1_real - Ginf)))
+
+Y4, Yl1 = remover_polo_dc(Y2)
+
+# Zl1  es la impedancia removida
+# extraigo L1
+L1 = Yl1/s
+
+

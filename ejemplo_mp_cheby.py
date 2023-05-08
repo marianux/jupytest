@@ -6,7 +6,7 @@
 
 import numpy as np
 import scipy.signal as sig
-from splane import analyze_sys
+from pytc2.sistemas_lineales import analyze_sys, tf2sos_analog
 import matplotlib.pyplot as plt
 
 
@@ -27,7 +27,7 @@ for nn in range(2,9):
 
 
 # elijo un orden luego de iterar ...
-nn = 2
+nn = 3
 
 # verificación MP
 z,p,k = sig.buttap(nn)
@@ -35,6 +35,8 @@ z,p,k = sig.buttap(nn)
 num, den = sig.zpk2tf(z,p,k)
 # aplico la renormalización a \omega_butter
 num_mp, den_mp = sig.lp2lp(num, den, ee**(-1/2/nn))
+
+# sos_mp = tf2sos_analog(num_mp, den_mp)
 
 # verificación Cheby
 z,p,k = sig.cheb1ap(nn, alfa_max)
@@ -51,5 +53,6 @@ plt.close('all')
 
 analyze_sys( all_sys, filter_names)
 
+# analyze_sys( sos_mp)
 
 
