@@ -21,6 +21,6 @@ print_subtitle('Impedancia en serie')
 display(Yz)
 dibujar_Pi(Yz)
 
-display(Yz[0,0] + Yz[0,1])
+# display(Yz[0,0] + Yz[0,1])
 
 
