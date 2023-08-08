@@ -8,7 +8,7 @@ Created on Wed May  8 23:14:49 2019
 
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.signal as sig
+from pytc2.sistemas_lineales import tf2sos_analog, analyze_sys, pretty_print_SOS
 
 from pytc2.sistemas_lineales import tf2sos_analog, analyze_sys, pretty_print_SOS
 
