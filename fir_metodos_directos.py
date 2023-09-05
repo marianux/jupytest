@@ -8,6 +8,9 @@ from scipy import signal as sig
 import matplotlib.pyplot as plt
 import numpy as np
 
+from pytc2.sistemas_lineales import plot_plantilla, group_delay
+
+
 '''
 #################
 # recordar que: #
@@ -26,39 +29,37 @@ type IV – zero at zero frequency
 
 '''
 
-def group_delay(ww, phase):
-    
-    groupDelay = -np.diff(phase)/np.diff(ww)
-    
-    return(np.append(groupDelay, groupDelay[-1]))
-
-
-cant_coef = 51
+cant_coef = 21
 
 #####################
 ## tipos de filtro ##
 #####################
 
-tipo_filtro = 'lp' # pasa bajo
-#tipo_filtro = 'hp' # pasa alto
-#tipo_filtro = 'bp' # pasa banda
-#tipo_filtro = 'bs'  # elimina banda
+filter_type = 'lowpass'
+# filter_type = 'highpass'
+# filter_type = 'bandpass'
+# filter_type = 'bandstop'
+
 
 # plantilla
 ripple = 0.5 # dB
-atenuacion = 40 # dB
+attenuation = 40 # dB
 
-if tipo_filtro == 'lp':
+if filter_type == 'lowpass':
+    
+    fpass = 0.25 # 
+    fstop = 0.6 # Hz
+    
     # pasa bajo
-    frecs = [0.0,  0.5,     0.8,          1.0]
-    gains = [0,   -ripple, -atenuacion,   -atenuacion] # dB
+    frecs = [0.0,  fpass,     fstop,          1.0]
+    gains = [0,   -ripple, -attenuation,   -attenuation] # dB
 
-elif tipo_filtro == 'hp':
+elif filter_type == 'highpass':
     # pasa alto
-    frecs = [0.0,         0.5,     1.0]
-    gains = [-atenuacion, -ripple, 0.0] # dB
+    frecs = [0.0,          fstop,        fpass,     1.0]
+    gains = [-attenuation, -attenuation, -ripple,    0.0] # dB
 
-elif tipo_filtro == 'bp':
+elif filter_type == 'bandpass':
     # pasa banda
     frecs = [0.0,         0.4,     0.5, 0.6,     1.0]
     gains = [-atenuacion, -ripple, 0.0, -ripple, -atenuacion]
@@ -92,13 +93,15 @@ _,  hh_firls = sig.freqz(num_firls, den)
 _,  hh_remez = sig.freqz(num_remez, den)
 ww = ww_rad / np.pi
 
-plt.figure()
+plt.close('all')
+
+plt.figure(1)
 
 plt.plot(ww, 20 * np.log10(abs(hh_win)), label='win')
 plt.plot(ww, 20 * np.log10(abs(hh_firls)), label='ls')
 plt.plot(ww, 20 * np.log10(abs(hh_remez)), label='remez')
 
-plt.plot(frecs, 20*np.log10(gains), 'rx', label='plantilla' )
+plot_plantilla(filter_type = filter_type , fpass = fpass, ripple = ripple , fstop = fstop, attenuation = attenuation, fs = fs)
 
 plt.title('FIR diseñado por métodos directos')
 plt.xlabel('Frequencia normalizada')
@@ -110,7 +113,7 @@ axes_hdl.legend()
 
 plt.show()
 
-plt.figure()
+plt.figure(2)
 
 phase_win = np.unwrap(np.angle(hh_win))
 phase_firls = np.unwrap(np.angle(hh_firls))
@@ -133,16 +136,18 @@ gd_win = group_delay(ww_rad, phase_win)
 gd_firls = group_delay(ww_rad, phase_firls)
 gd_remez = group_delay(ww_rad, phase_remez)
 
-plt.figure()
+plt.figure(3)
 
-plt.plot(ww, gd_win , label='win')
-plt.plot(ww, gd_firls , label='ls')
-plt.plot(ww, gd_remez, label='remez')
+plt.plot(ww, gd_win, ':o', label='win')
+plt.plot(ww, gd_firls, ':o', label='ls')
+plt.plot(ww, gd_remez, ':o', label='remez')
 
+plt.ylim((np.min((gd_win,gd_firls,gd_remez))-1, np.max((gd_win,gd_firls,gd_remez))+1))
 plt.title('FIR diseñado por métodos directos')
 plt.xlabel('Frequencia normalizada')
 plt.ylabel('Retardo [# muestras]')
 plt.grid(which='both', axis='both')
+
 
 axes_hdl = plt.gca()
 axes_hdl.legend()

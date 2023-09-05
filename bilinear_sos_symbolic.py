@@ -14,6 +14,52 @@ import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 
+from pytc2.sistemas_lineales import group_delay, analyze_sys
+
+
+def plot_response(my_df, this_q, this_fs):
+
+    pzmap(my_df, annotations = False,  fig_id=1)
+
+    plt.figure(2)
+
+    w_rad, mag, phase = my_df.bode(npoints)
+    
+    ww = w_rad*2/this_fs/2/np.pi
+    
+    plt.plot(ww, mag, label='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs))
+    
+    plt.title('Bilenear demo')
+    plt.xlabel('Frecuencia normalizada a Nyq [#]')
+    plt.ylabel('Amplitud [dB]')
+    plt.grid(which='both', axis='both')
+    
+    plt.figure(3)
+    
+    plt.plot(ww, phase, label='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs) )
+    
+    plt.title('Bilenear demo')
+    plt.xlabel('Frequencia normalizada')
+    plt.ylabel('Fase [grados]')
+    plt.grid(which='both', axis='both')
+    plt.show()
+            
+    plt.figure(4)
+    
+    # ojo al escalar Omega y luego calcular la derivada.
+    gd = group_delay(w_rad, phase)
+    
+    plt.plot(ww, gd, label='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs))
+    
+    plt.title('Bilenear demo')
+    plt.xlabel('Frequencia normalizada')
+    plt.ylabel('Retardo [# muestras]')
+    plt.grid(which='both', axis='both')
+    
+    axes_hdl = plt.gca()
+    axes_hdl.legend()
+    plt.show()
+    
 
 #%% Resolución simbólica
 
@@ -28,6 +74,8 @@ Tz = sp.collect(sp.simplify(sp.expand(Ts.subs(s, fz))), z)
 display(Ts)
 display(Tz)
 
+display(Tz.subs(k, 2*fs))
+
 
 #%% Parte numérica 
 
@@ -37,57 +85,56 @@ fs = 2 # Hz (Normalizamos a fs/2 = f_nyq)
 # fpw = w0*np.pi*fs/np.tan(np.pi/2*w0); 
 
 
-allQ = np.array([0.5, np.sqrt(2)/2, 5])
-allfs = np.array([ 1, 2, 4])
+# allQ = np.array([0.5, np.sqrt(2)/2, 5])
+# allfs = np.array([ 2, 4, 100])
+allfs = np.array([ 0.5, 10, 100 ])
+allQ = np.array([np.sqrt(2)/2])
 
-this_q = np.sqrt(2)/2 # Butter
-this_fs = allfs[0] # fs
+all_sys = []
+all_sys_desc = []
 
 plt.close('all')
 
 for this_fs in allfs:
     
-    for this_q in allQ[:-1]:
+    for this_q in allQ:
 
     
         k = 2 * this_fs
             
-        kz2 = this_q * k**2  + this_q + k
-        kz1 = -2 * this_q * k**2 + 2 * this_q
-        kz0 = this_q * k**2  + this_q - k
+        a2 = this_q * k**2  + this_q + k
+        a1 = -2 * this_q * k**2 + 2 * this_q
+        a0 = this_q * k**2  + this_q - k
         
         numz =  this_q * np.array([1, 2, 1])
-        denz =  np.array([kz2, kz1, kz0])
+        denz =  np.array([a2, a1, a0])
         
-        my_df = sig.TransferFunction(numz, denz, dt=1/fs)
+        my_df = sig.TransferFunction(numz, denz, dt=1/this_fs)
         
-        #filter_description='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs)
-        pzmap(my_df, annotations = False,  fig_id=1)
-        
-        bodePlot(my_df, fig_id=2, digital = True, fs = this_fs)
-        
+        all_sys += [my_df]
+        all_sys_desc += ['Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs)]
+       
+        # plot_response(my_df, this_q, this_fs)
     
-    # el último le ponemos anotación para que quede lindo el gráfico
-    this_q = allQ[-1]
-    k = 2 * this_fs
+    # # el último le ponemos anotación para que quede lindo el gráfico
+    # this_q = allQ[-1]
+    # k = 2 * this_fs
         
-    kz2 = this_q * k**2  + this_q + k
-    kz1 = -2 * this_q * k**2 + 2 * this_q
-    kz0 = this_q * k**2  + this_q - k
+    # kz2 = this_q * k**2  + this_q + k
+    # kz1 = -2 * this_q * k**2 + 2 * this_q
+    # kz0 = this_q * k**2  + this_q - k
     
-    numz =  this_q * np.array([1, 2, 1])
-    denz =  np.array([kz2, kz1, kz0])
+    # numz =  this_q * np.array([1, 2, 1])
+    # denz =  np.array([kz2, kz1, kz0])
     
-    my_df = sig.TransferFunction(numz, denz, dt=1/fs)
+    # my_df = sig.TransferFunction(numz, denz, dt=1/this_fs)
     
-    pzmap(my_df, annotations = False, filter_description='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs), fig_id=1)
-
-    bodePlot(my_df, fig_id=2, digital = True, fs = this_fs, filter_description ='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs))
+    # plot_response(my_df, this_q, this_fs)
 
     # bodePlot(my_df, fig_id=2, digital = True)
     # bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', npoints = 1000, digital = False, fs = 2*np.pi ):
    
-
+analyze_sys(all_sys, all_sys_desc)
 
     
     

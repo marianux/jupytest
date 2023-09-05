@@ -13,9 +13,8 @@ import numpy as np
 import scipy.signal as sig
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import sys
 
-from splane import analyze_sys, plot_plantilla
+from pytc2.sistemas_lineales import plot_plantilla, analyze_sys
 
 #####################
 ## Start of script ##
@@ -52,9 +51,10 @@ filter_type = 'lowpass'
 f0 = 0.25 # normalizado respecto a nyq (fs/2)
 w0 =  2*np.pi*f0  # 
 # fc = w0/2/np.pi # Hz
+
 ripple = 0.5
 attenuation = 40
-order2analyze = 3
+order2analyze = 5
 
 fpass = f0 # 
 fstop = 0.6 # 

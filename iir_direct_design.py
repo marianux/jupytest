@@ -18,7 +18,7 @@ import sys
 
 sys.path.append('/home/mariano/scripts/analog filters/python') 
 
-from splane import analyze_sys, plot_plantilla
+from pytc2.sistemas_lineales import plot_plantilla
 
 #####################
 ## Start of script ##
@@ -44,8 +44,8 @@ mpl.rcParams['figure.figsize'] = (10,10)
 
 # Tipo de aproximación.
         
-# aprox_name = 'butter'
-aprox_name = 'cheby1'
+aprox_name = 'butter'
+# aprox_name = 'cheby1'
 # aprox_name = 'cheby2'
 # aprox_name = 'ellip'
 
@@ -64,8 +64,9 @@ filter_type = 'lowpass'
 
 if filter_type == 'lowpass':
 
-    fpass = 1/2/np.pi # 
-    ripple = 1 # dB
+    # fpass = 1/2/np.pi # 
+    fpass = 0.25 # 
+    ripple = 0.5 # dB
     fstop = 0.6 # Hz
     attenuation = 40 # dB
 

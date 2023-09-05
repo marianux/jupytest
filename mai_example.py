@@ -48,8 +48,8 @@ Ymai = sp.Matrix([
                     [ -Ya,   -G,     -G,      2*G+Ya ]
                  ])
 
-# con_detalles = False
-con_detalles = True
+con_detalles = False
+# con_detalles = True
 
 # Calculo la Z en el puerto de entrada a partir de la MAI
 Zmai = calc_MAI_impedance_ij(Ymai, 0, 1, verbose=con_detalles)
