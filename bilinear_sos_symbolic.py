@@ -74,7 +74,7 @@ Tz = sp.collect(sp.simplify(sp.expand(Ts.subs(s, fz))), z)
 display(Ts)
 display(Tz)
 
-display(Tz.subs(k, 2*fs))
+# display(Tz.subs(k, 2*fs))
 
 
 #%% Parte numérica 
@@ -87,7 +87,7 @@ fs = 2 # Hz (Normalizamos a fs/2 = f_nyq)
 
 # allQ = np.array([0.5, np.sqrt(2)/2, 5])
 # allfs = np.array([ 2, 4, 100])
-allfs = np.array([ 0.5, 10, 100 ])
+allfs = np.array([ 2, 10, 100 ])
 allQ = np.array([np.sqrt(2)/2])
 
 all_sys = []
@@ -114,27 +114,23 @@ for this_fs in allfs:
         all_sys += [my_df]
         all_sys_desc += ['Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs)]
        
-        # plot_response(my_df, this_q, this_fs)
-    
-    # # el último le ponemos anotación para que quede lindo el gráfico
-    # this_q = allQ[-1]
-    # k = 2 * this_fs
-        
-    # kz2 = this_q * k**2  + this_q + k
-    # kz1 = -2 * this_q * k**2 + 2 * this_q
-    # kz0 = this_q * k**2  + this_q - k
-    
-    # numz =  this_q * np.array([1, 2, 1])
-    # denz =  np.array([kz2, kz1, kz0])
-    
-    # my_df = sig.TransferFunction(numz, denz, dt=1/this_fs)
-    
-    # plot_response(my_df, this_q, this_fs)
 
-    # bodePlot(my_df, fig_id=2, digital = True)
-    # bodePlot(myFilter, fig_id='none', axes_hdl='none', filter_description = '', npoints = 1000, digital = False, fs = 2*np.pi ):
-   
-analyze_sys(all_sys, all_sys_desc)
+#%% probar diferentes perspectivas:
+    
+plt.close("all")
+# Desnormalizado en radianes (default)
+# analyze_sys(all_sys, all_sys_desc)
+
+# Desnormalizado en Hz
+# analyze_sys(all_sys, all_sys_desc, xaxis="freq")
+
+# Normalizado individual de cada sistema
+# analyze_sys(all_sys, all_sys_desc, xaxis="norm")
+
+# Normalizado respecto a fs (Hz)
+analyze_sys(all_sys, all_sys_desc, xaxis="norm", fs=allfs[-1]/2)
+
+
 
     
     

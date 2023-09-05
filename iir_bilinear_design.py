@@ -119,7 +119,7 @@ filter_names.append(my_analog_filter_desc)
 analog_filters.append(my_analog_filter)
 analog_filters_names.append(my_analog_filter_desc)
 
-# Transformamos el filtro analógico mediante la transformada bilineal
+# Transformamos el filtroorder2analyze analógico mediante la transformada bilineal
 
 
 numz, denz = sig.bilinear(num, den, fpw/2)
@@ -152,4 +152,7 @@ plt.gca().set_xlim([0, 2])
 
 plot_plantilla(filter_type = filter_type , fpass = fpass, ripple = ripple , fstop = fstop, attenuation = attenuation, fs = fs)
 
+
+# otra alternativa para visualizar
+# analyze_sys(all_sys, filter_names, xaxis = "norm", fs = fs/2)
 
