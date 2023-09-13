@@ -17,50 +17,6 @@ import matplotlib.pyplot as plt
 from pytc2.sistemas_lineales import group_delay, analyze_sys
 
 
-def plot_response(my_df, this_q, this_fs):
-
-    pzmap(my_df, annotations = False,  fig_id=1)
-
-    plt.figure(2)
-
-    w_rad, mag, phase = my_df.bode(npoints)
-    
-    ww = w_rad*2/this_fs/2/np.pi
-    
-    plt.plot(ww, mag, label='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs))
-    
-    plt.title('Bilenear demo')
-    plt.xlabel('Frecuencia normalizada a Nyq [#]')
-    plt.ylabel('Amplitud [dB]')
-    plt.grid(which='both', axis='both')
-    
-    plt.figure(3)
-    
-    plt.plot(ww, phase, label='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs) )
-    
-    plt.title('Bilenear demo')
-    plt.xlabel('Frequencia normalizada')
-    plt.ylabel('Fase [grados]')
-    plt.grid(which='both', axis='both')
-    plt.show()
-            
-    plt.figure(4)
-    
-    # ojo al escalar Omega y luego calcular la derivada.
-    gd = group_delay(w_rad, phase)
-    
-    plt.plot(ww, gd, label='Q={:3.3f} - fs={:3.3f}'.format(this_q, this_fs))
-    
-    plt.title('Bilenear demo')
-    plt.xlabel('Frequencia normalizada')
-    plt.ylabel('Retardo [# muestras]')
-    plt.grid(which='both', axis='both')
-    
-    axes_hdl = plt.gca()
-    axes_hdl.legend()
-    plt.show()
-    
-
 #%% Resolución simbólica
 
 s, z = sp.symbols('s z', complex=True)
@@ -128,7 +84,7 @@ plt.close("all")
 # analyze_sys(all_sys, all_sys_desc, xaxis="norm")
 
 # Normalizado respecto a fs (Hz)
-analyze_sys(all_sys, all_sys_desc, xaxis="norm", fs=allfs[-1]/2)
+# analyze_sys(all_sys, all_sys_desc, xaxis="norm", fs=allfs[-1]/2)
 
 
 

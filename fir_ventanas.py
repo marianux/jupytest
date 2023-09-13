@@ -28,14 +28,14 @@ odd cant_coef, antisymmetric is True, type III filter is produced
 even cant_coef, antisymmetric is True, type IV filter is produced
 Magnitude response of all but type I filters are subjects to following constraints:
 
-type II – Sin restricciones.
+type I – Sin restricciones.
 type II – zero at the Nyquist frequency (pasabajos)
 type III – zero at zero and Nyquist frequencies (pasabandas, Hilbert)
 type IV – zero at zero frequency (pasaaltos, diferenciadores)
 
 '''
 
-cant_coef = 51
+cant_coef = 501
 antisymmetric = False
 
 # Por si quiero forzar un tipo de FIR
@@ -67,10 +67,10 @@ if( (tipo_fir == 3 or tipo_fir == 4) and (not antisymmetric) ):
 ## tipos de filtro ##
 #####################
 
-# filter_type = 'arbitrary'
+filter_type = 'arbitrary'
 # filter_type = 'lowpass'
 # filter_type = 'highpass'
-filter_type = 'bandpass'
+# filter_type = 'bandpass'
 # filter_type = 'bandstop'
 
 
@@ -87,7 +87,7 @@ if filter_type == 'arbitrary':
 elif filter_type == 'lowpass':
     
     fpass = 0.25 # 
-    fstop = 0.6 # Hz
+    fstop = 0.6 # 
     
     # pasa bajo
     frecs = [0.0,  fpass,     fstop,          1.0]
