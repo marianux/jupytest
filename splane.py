@@ -1329,6 +1329,9 @@ def ltsp_etiquetar_nodo(circ_hdl, node_label=None):
 
 def dibujar_puerto_entrada(d, port_name = None, voltage_lbl = None, current_lbl = None):
     
+    if not isinstance(d, Drawing):
+        d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
+    
     d += Dot(open=True)
     
     if voltage_lbl is None:

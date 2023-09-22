@@ -75,7 +75,7 @@ for this_fs in allfs:
     
 plt.close("all")
 # Desnormalizado en radianes (default)
-# analyze_sys(all_sys, all_sys_desc)
+analyze_sys(all_sys, all_sys_desc)
 
 # Desnormalizado en Hz
 # analyze_sys(all_sys, all_sys_desc, xaxis="freq")

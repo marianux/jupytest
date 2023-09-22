@@ -72,11 +72,6 @@ Zmai = calc_MAI_impedance_ij(Ymai, input_port[0], input_port[1], verbose=con_det
 
 print_latex( r'Z_{{ {:d}{:d} }} = '.format(0,1) +  sp.latex(Zmai) )
 
-print('si consideramos simétrica la red:')
-print_latex( r'Y1 = Y3' )
-
-Zmai_sym = Zmai.subs(Y3, Y1)
-print_latex( r'Z_{{ {:d}{:d} }} = '.format(0,1) +  sp.latex(Zmai_sym) )
 
 print('Transferencia de tensión:')
 Vmai = calc_MAI_vtransf_ij_mn(Ymai, output_port[0], output_port[1], input_port[0], input_port[1], verbose=con_detalles)
@@ -84,8 +79,4 @@ Vmai_sym = sp.simplify(Vmai.subs(Y3, Y1))
 
 print_latex( r'T^{{ {:d}{:d} }}_{{ {:d}{:d} }} = '.format(output_port[0], output_port[1], input_port[0], input_port[1]) +  sp.latex(Vmai) )
 
-print('si consideramos simétrica la red:')
-print_latex( r'Y1 = Y3' )
-
-print_latex( r'T^{{ {:d}{:d} }}_{{ {:d}{:d} }} = '.format(output_port[0], output_port[1], input_port[0], input_port[1]) +  sp.latex(Vmai_sym) )
 
