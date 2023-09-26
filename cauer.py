@@ -9,7 +9,11 @@ métodos de Cauer.
 """
 
 import sympy as sp
-import splane as tc2
+from IPython.display import display
+
+from pytc2.sintesis_dipolo import cauer_LC
+from pytc2.dibujar import dibujar_cauer_LC
+from pytc2.general import print_latex, print_console_subtitle, a_equal_b_latex_s
 
 
 # Resolución simbólica
@@ -19,19 +23,22 @@ s = sp.symbols('s ', complex=True)
 # Sea la siguiente función de excitación
 Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
 
+print_console_subtitle('Cauer 1: se remueve en oo')
+
 # Implementaremos Imm mediante Cauer 1 o remociones continuas en infinito
-koo, imm_cauer_oo, rem = tc2.cauer_LC(Imm, remover_en_inf=True)
+koo, imm_cauer_oo, rem = cauer_LC(Imm, remover_en_inf=True)
 
 if rem.is_zero:
-    
-    print('Cauer 1: síntesis exitosa:')
-    tc2.print_latex( r'$' + sp.latex(Imm) + r'=' + sp.latex(imm_cauer_oo) + r'$' )
+
+    print('Síntesis exitosa!')
+
+    print_latex(a_equal_b_latex_s('Imm(s)', imm_cauer_oo ))
 
     # Tratamos a nuestra función inmitancia como una Z
-    tc2.dibujar_cauer_LC(koo, z_exc = imm_cauer_oo)
+    dibujar_cauer_LC(koo, z_exc = imm_cauer_oo)
     
     # Tratamos a nuestra función inmitancia como una Y
-    tc2.dibujar_cauer_LC(koo, y_exc = imm_cauer_oo)
+    dibujar_cauer_LC(koo, y_exc = imm_cauer_oo)
 
 else:
     
@@ -44,19 +51,22 @@ else:
     display(rem)
     
         
+print_console_subtitle('Cauer 2: se remueve en 0')
+
 # Implementaremos Imm mediante Cauer 2 o remociones continuas en cero
-k0, imm_cauer_0, rem = tc2.cauer_LC(Imm, remover_en_inf=False)
+k0, imm_cauer_0, rem = cauer_LC(Imm, remover_en_inf=False)
 
 if rem.is_zero:
     
-    print('Cauer 2: síntesis exitosa:')
-    tc2.print_latex( r'$' + sp.latex(Imm) + r'=' + sp.latex(imm_cauer_0) + r'$' )
+    print('Síntesis exitosa!')
+
+    print_latex(a_equal_b_latex_s('Imm(s)', imm_cauer_0 ))
 
     # Tratamos a nuestra función inmitancia como una Z
-    tc2.dibujar_cauer_LC(k0, z_exc = imm_cauer_0)
+    dibujar_cauer_LC(k0, z_exc = imm_cauer_0)
     
     # Tratamos a nuestra función inmitancia como una Y
-    tc2.dibujar_cauer_LC(k0, y_exc = imm_cauer_0)
+    dibujar_cauer_LC(k0, y_exc = imm_cauer_0)
 
 else:
     print('Hubo algún problema con la síntesis. Se pudo sintetizar:')
