@@ -19,23 +19,24 @@ from pytc2.general import print_latex, print_console_subtitle, a_equal_b_latex_s
 s = sp.symbols('s ', complex=True)
 
 # Sea la siguiente función de excitación
-Imm = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
+FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
 
-# Implementaremos Imm mediante Foster
-k0, koo, ki = foster(Imm)
+# Implementaremos FF mediante Foster
+k0, koo, ki, FF_foster = foster(FF)
 
 print_console_subtitle('Foster serie')
 
-print_latex(a_equal_b_latex_s('Z(s)', Imm ))
+print_latex(a_equal_b_latex_s(a_equal_b_latex_s('Z(s)=F(s)', FF)[1:-1], FF_foster ))
 
 # Tratamos a nuestra función imitancia como una Z
-dibujar_foster_serie(k0, koo, ki, z_exc = Imm)
+dibujar_foster_serie(k0, koo, ki, z_exc = FF)
 
 print_console_subtitle('Foster derivación')
 
-print_latex(a_equal_b_latex_s('Y(s)', Imm ))
+print_latex(a_equal_b_latex_s(a_equal_b_latex_s('Y(s)=F(s)', FF)[1:-1], FF_foster ))
+
 
 # Tratamos a nuestra función imitancia como una Y
-dibujar_foster_derivacion(k0, koo, ki, y_exc = Imm)
+dibujar_foster_derivacion(k0, koo, ki, y_exc = FF)
 
 
