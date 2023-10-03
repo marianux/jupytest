@@ -8,7 +8,11 @@ de Cauer.
 """
 
 import sympy as sp
-import splane as tc2
+
+from pytc2.sintesis_dipolo import cauer_RC, foster, foster_zRC2yRC
+from pytc2.dibujar import dibujar_cauer_RC_RL, dibujar_foster_derivacion, dibujar_foster_serie
+from pytc2.general import print_latex
+from IPython.display import display
 
 
 # Resolución simbólica
@@ -16,21 +20,31 @@ import splane as tc2
 s = sp.symbols('s ', complex=True)
 
 # Sea la siguiente función de excitación
-Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)
+# ZRC - YRL
+# Imm = (s**2 + 4*s + 3)/(s**2 + 2*s)
+# k0, koo, ki_wi, kk, FF_foster = foster(Imm)
+
+# YRC - ZRL
+Imm = 2*(s**2 + 4*s + 3)/(s**2 + 8*s + 12)
+k0, koo, ki_wi, kk, YRC_foster = foster(Imm/s)
+k0, koo, ki_wi, kk, YRC_foster = foster_zRC2yRC(k0, koo, ki_wi, kk, YRC_foster)
+
+dibujar_foster_serie(k0, koo, ki_wi, z_exc = FF)
+
 
 # Implementaremos Imm mediante Cauer 1 o remociones continuas en infinito
-koo, imm_cauer_oo, rem = tc2.cauer_RC(Imm, remover_en_inf=True)
+koo, imm_cauer_oo, rem = cauer_RC(Imm, remover_en_inf=True)
 
 if rem.is_zero:
     
     print('Cauer 1: síntesis exitosa:')
-    tc2.print_latex( r'$' + sp.latex(Imm) + r'=' + sp.latex(imm_cauer_oo) + r'$' )
+    print_latex( r'$' + sp.latex(Imm) + r'=' + sp.latex(imm_cauer_oo) + r'$' )
 
     # Tratamos a nuestra función inmitancia como una Z
-    tc2.dibujar_cauer_RC_RL(koo, z_exc = imm_cauer_oo)
+    dibujar_cauer_RC_RL(koo, z_exc = imm_cauer_oo)
     
     # Tratamos a nuestra función inmitancia como una Y
-    tc2.dibujar_cauer_RC_RL(koo, y_exc = imm_cauer_oo)
+    dibujar_cauer_RC_RL(koo, y_exc = imm_cauer_oo)
 
 else:
     
@@ -44,18 +58,18 @@ else:
 
 
 # Implementaremos Imm mediante Cauer 2 o remociones continuas en cero
-k0, imm_cauer_0, rem = tc2.cauer_RC(Imm, remover_en_inf=False)
+k0, imm_cauer_0, rem = cauer_RC(Imm, remover_en_inf=False)
 
 if rem.is_zero:
     
     print('Cauer 2: síntesis exitosa:')
-    tc2.print_latex( r'$' + sp.latex(Imm) + r'=' + sp.latex(imm_cauer_0) + r'$' )
+    print_latex( r'$' + sp.latex(Imm) + r'=' + sp.latex(imm_cauer_0) + r'$' )
 
     # Tratamos a nuestra función inmitancia como una Z
-    tc2.dibujar_cauer_RC_RL(k0, z_exc = imm_cauer_0)
+    dibujar_cauer_RC_RL(k0, z_exc = imm_cauer_0)
     
     # Tratamos a nuestra función inmitancia como una Y
-    tc2.dibujar_cauer_RC_RL(k0, y_exc = imm_cauer_0)
+    dibujar_cauer_RC_RL(k0, y_exc = imm_cauer_0)
 
 else:
     
