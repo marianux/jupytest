@@ -26,12 +26,12 @@ ZZ = (s**2+3)*(s**2+1)/(s*(s**2+2))
 # a) ZZ según Foster derivación
 
 # Implementaremos Imm mediante Foster
-k0, koo, ki = foster(ZZ)
+k0, koo, ki, _, foster_form_zz = foster(ZZ)
 
 dibujar_foster_serie(k0, koo, ki, z_exc = ZZ)
 
 # Implementaremos Imm mediante Foster
-k0, koo, ki = foster(1/ZZ)
+k0, koo, ki, _, foster_form_yy = foster(1/ZZ)
 
 dibujar_foster_derivacion(k0, koo, ki, y_exc = 1/ZZ)
 

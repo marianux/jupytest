@@ -22,7 +22,7 @@ s = sp.symbols('s ', complex=True)
 FF = (2*s**4 + 20*s**2 + 18)/(s**3 + 4*s)
 
 # Implementaremos FF mediante Foster
-k0, koo, ki, FF_foster = foster(FF)
+k0, koo, ki, kk, FF_foster = foster(FF)
 
 print_console_subtitle('Foster serie')
 

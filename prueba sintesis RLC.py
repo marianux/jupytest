@@ -13,7 +13,7 @@ import sympy as sp
 
 from pytc2.sintesis_dipolo import cauer_RC, foster, foster_zRC2yRC
 from pytc2.dibujar import dibujar_cauer_RC_RL, dibujar_foster_derivacion, dibujar_foster_serie
-from pytc2.general import print_latex, print_subtitle, a_equal_b_latex_s
+from pytc2.general import print_latex, print_subtitle, expr_simb_expr, a_equal_b_latex_s
 from IPython.display import display,  Markdown
 from pytc2.sintesis_dipolo import cauer_RC
 from pytc2.dibujar import dibujar_cauer_RC_RL
