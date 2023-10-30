@@ -11,12 +11,11 @@ import sympy as sp
 
 # Ahora importamos las funciones de PyTC2
 
+from pytc2.remociones import isFRP, remover_valor_en_infinito, remover_polo_infinito
 from pytc2.sintesis_dipolo import cauer_RC, foster, foster_zRC2yRC
-from pytc2.dibujar import dibujar_cauer_RC_RL, dibujar_foster_derivacion, dibujar_foster_serie
+from pytc2.dibujar import display, dibujar_cierre, dibujar_puerto_entrada, dibujar_funcion_exc_abajo,  dibujar_elemento_serie, dibujar_elemento_derivacion,  dibujar_tanque_derivacion, dibujar_tanque_RC_serie,  dibujar_espacio_derivacion, Capacitor, Resistor, Inductor
 from pytc2.general import print_latex, print_subtitle, expr_simb_expr, a_equal_b_latex_s
-from IPython.display import display,  Markdown
-from pytc2.sintesis_dipolo import cauer_RC
-from pytc2.dibujar import dibujar_cauer_RC_RL
+from IPython.display import display, Markdown
 
 # Resolución simbólica
 s = sp.symbols('s ', complex=True)
@@ -28,19 +27,39 @@ print_subtitle('Impedancia $Z_{RLC}$ ')
 
 print_latex(a_equal_b_latex_s('Z_{RLC}(s)', ZZ))
 
+Z2, R1 = remover_valor_en_infinito(ZZ)
 
-# Implementaremos FF mediante Cauer 1 o remociones continuas en infinito
-koo, ZZ_cauer_oo, rem = cauer_RC(ZZ, remover_en_inf=True)
+Y4, Y3 = remover_polo_infinito(1/Z2)
 
-print_subtitle('Implementación escalera de $Z_{RLC}$ e $Y_{RLC}$')
+C1 = Y3/s
 
-print_latex(a_equal_b_latex_s(a_equal_b_latex_s('$ Z_{RLC}(s)', ZZ)[1:-1], ZZ_cauer_oo ))
+Z6, Z5 = remover_polo_infinito(1/Y4)
 
-# Tratamos a nuestra función inmitancia como una Z
-dibujar_cauer_RC_RL(koo, z_exc = ZZ_cauer_oo)
+L1 = Z5/s
 
-print_latex(a_equal_b_latex_s(a_equal_b_latex_s('$ Y_{RLC}(s)', ZZ)[1:-1], ZZ_cauer_oo ))
+R2 = Z6
 
-# Tratamos a nuestra función inmitancia como una Y
-dibujar_cauer_RC_RL(koo, y_exc = ZZ_cauer_oo)
+d = dibujar_puerto_entrada('',
+                        voltage_lbl = ('+', '$V1$', '-'), 
+                        current_lbl = '$I1$')
+
+d, zz_lbl = dibujar_funcion_exc_abajo(d, 
+                                          'Z',  
+                                          ZZ, 
+                                          hacia_salida = True,
+                                          k_gap_width = 0.5)
+
+d = dibujar_elemento_serie(d, Resistor, R1)
+
+d = dibujar_elemento_derivacion(d, Capacitor, C1)
+
+d = dibujar_elemento_serie(d, Inductor, L1)
+
+d = dibujar_elemento_serie(d, Resistor, R2)
+
+d = dibujar_cierre(d)
+
+display(d)
+
+
 
