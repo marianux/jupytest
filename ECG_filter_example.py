@@ -103,8 +103,9 @@ num_win =   sig.firwin2(num_remez.shape[0], frecs, gains , window='blackmanharri
 # den_rl = np.array([1, -2, 1])
 
 ## Rick Lyons ECG filter
-dd = 32
-uu = 20
+dd = 16
+uu = 4
+# num_rl = np.hstack([-1/dd, np.zeros(uu*(dd-1)-1), 1, np.zeros(uu-1), (2/dd**2-2), np.zeros(uu-1), 1, np.zeros(uu*(dd-1)-1), -1/dd**2])
 num_rl = np.hstack([-1/dd, np.zeros(uu*(dd-1)-1), 1, np.zeros(uu-1), (2/dd**2-2), np.zeros(uu-1), 1, np.zeros(uu*(dd-1)-1), -1/dd**2])
 den_rl = np.hstack([1, np.zeros(uu-1), -2, np.zeros(uu-1), 1])
 
