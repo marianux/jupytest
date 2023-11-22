@@ -6,3 +6,7 @@ __pycache__/
 desafio_filtro_ECG-Solución propuesta\.ipynb
 
 *.log
+
+*.so
+
+*.o

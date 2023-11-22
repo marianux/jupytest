@@ -37,14 +37,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import scipy.io as sio
-from splane import plot_plantilla
-
-def group_delay(ww, phase):
-    
-    groupDelay = -np.diff(phase)/np.diff(ww)
-    
-    return(np.append(groupDelay, groupDelay[-1]))
-
+from pytc2.sistemas_lineales import  plot_plantilla, group_delay
 
 # Setup inline graphics
 mpl.rcParams['figure.figsize'] = (10,10)

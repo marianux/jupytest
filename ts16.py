@@ -7,13 +7,13 @@ TS16 ej 2
 """
 
 import sympy as sp
-import splane as tc2
+from pytc2.remociones import modsq2mod_s, remover_polo_infinito
 
 import PySpice.Logging.Logging as Logging
 logger = Logging.setup_logging()
 
 
-from PySpice.Spice.Netlist import Circuit
+# from PySpice.Spice.Netlist import Circuit
 
 import lcapy as lcpy
 
@@ -29,18 +29,18 @@ Ts = sp.Rational('15')/(s**3 + sp.Rational('6')*s**2 + sp.Rational('15')*s + sp.
 
 s11sq = sp.factor( 1- (Ts * Ts.subs(s, -s)) )
 
-s11 = tc2.modsq2mod_s(s11sq)
+s11 = modsq2mod_s(s11sq)
 
 z1 = sp.simplify(sp.expand(sp.simplify(sp.expand(1+s11))/sp.simplify(sp.expand((1-s11)))))
 
 # remoción parcial en infinito de z1
-z3, l1 = tc2.remover_polo_infinito(z1)
+z3, l1 = remover_polo_infinito(z1)
 
 # remoción parcial en infinito de y3
-y5, c1 = tc2.remover_polo_infinito(1/z3)
+y5, c1 = remover_polo_infinito(1/z3)
 
 # remoción parcial en infinito de z5
-z7, l2 = tc2.remover_polo_infinito(1/y5)
+z7, l2 = remover_polo_infinito(1/y5)
 
 
 # Dibujo de la red sintetizada

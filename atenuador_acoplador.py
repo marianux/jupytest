@@ -23,8 +23,8 @@ import splane as tc2
 
 '''
 
-r01 = 150 # Ω
-r02 = 75 # Ω
+r01 = 5 # Ω
+r02 = 2 # Ω
 
 atdb = 20 # dB
 
