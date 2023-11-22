@@ -12,18 +12,15 @@ cimport cython
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def filter_sequence(int N, int U, double[:] buffer, int[:] index, double x):
-    # Agregar el nuevo valor al buffer
-    buffer[index[0]] = x
+def filter_sequence(int D, int U, double[:] x):
+    
+    cdef int N = x.shape[0]
+    cdef int buffer_size = D * U
+    cdef double[:] y = cython.view.array(shape=(N,), itemsize=sizeof(double), format="d")
 
-    # Calcular la media cada U valores
-    if index[0] % U == 0:
-        average = sum(buffer) / (N * U)
-    else:
-        average = None
+    for k in range(N):
 
-    # Actualizar el índice del buffer para el próximo valor
-    index[0] = (index[0] + 1) % (N * U)
+        # Calcula la salida según la ecuación recursiva
+        y[k] = 1.0 / (D * U) * (x[k] - x[ (k - D * U) % buffer_size] + y[(k - U)% buffer_size])
 
-    return average
-
+    return y
