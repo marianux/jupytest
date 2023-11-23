@@ -33,11 +33,11 @@ den = (sp.expand(den/(D*z**(D+1)))).powsimp()
 
 Tdc_removal = num/den
 
-display(Tdc_removal)
+# display(Tdc_removal)
 
 # Según Rick Lyons, este sistema sería muy bueno para implementarse
-# con D múltiplo de 2**N, dado que el escalado por D sería simplemente 
-# una rotación a nivel de bits de N veces a la derecha, y su implementación
+# con D múltiplo de 2**NN, dado que el escalado por D sería simplemente 
+# una rotación a nivel de bits de NN veces a la derecha, y su implementación
 # no necesitaría de multiplicaciones. Sin embargo esta elección impone un 
 # retardo no entero. Por esta razón se opta por poner dos (incluso cuatro) 
 # sistemas idénticos en cascada.
@@ -81,12 +81,12 @@ Tdc_removal_4 = num/den
 
 #%% Parte numérica 
 
-fs = 1000 # Hz (Normalizamos a fs/2 = f_nyq)
+fs = 1000 # Hz (NNormalizamos a fs/2 = f_nyq)
 nyq_frec = fs / 2
 
-N = 4000
-w_rad  = np.append(np.logspace(-2, 0.8, N//4), np.logspace(0.9, 1.6, N//4) )
-w_rad  = np.append(w_rad, np.linspace(40, nyq_frec, N//2, endpoint=True) ) / nyq_frec * np.pi
+NN = 2**15
+w_rad  = np.append(np.logspace(-2, 0.8, NN//4), np.logspace(0.9, 1.6, NN//4) )
+w_rad  = np.append(w_rad, np.linspace(40, nyq_frec, NN//2, endpoint=True) ) / nyq_frec * np.pi
 
 
 def group_delay( freq, phase):
@@ -149,57 +149,60 @@ def plt_freq_resp(title, magnitude_response, phase_response, w_rad, fs = 2):
     
 
 ## Del análisis simbólico
-DD = [16, 32, 64]
-UU = 20
+# DD = [16, 32, 64]
+# UU = 20
   
 
-# Grafica la respuesta en frecuencia de módulo
-plt.figure(1)
+# # Grafica la respuesta en frecuencia de módulo
+# plt.figure(1)
 
-ww = w_rad / np.pi * fs / 2
+# ww = w_rad / np.pi * fs / 2
 
-for ddd in DD:
+# for ddd in DD:
     
-    # Cálculo de demoras para 2 mov. avg
-    demora_rl2 = int(UU*(ddd-1))
+#     # Cálculo de demoras para 2 mov. avg
+#     demora_rl2 = int(UU*(ddd-1))
 
-    Tdcr_2 = Tdc_removal_2.subs({z:z**UU, D:ddd})
+#     Tdcr_2 = Tdc_removal_2.subs({z:z**UU, D:ddd})
 
-    mod_Tdcr_2, pha_Tdcr_2 = Sym_freq_response(Tdcr_2, z, w_rad )
+#     mod_Tdcr_2, pha_Tdcr_2 = Sym_freq_response(Tdcr_2, z, w_rad )
 
-    # plt_freq_resp('FIR-RL-2MA-D{:d}-OverS:{:d}'.format(DD, UU), mod_Tdcr_2, pha_Tdcr_2, w_rad, fs = fs)
-    plt.plot(ww, 20 * np.log10(mod_Tdcr_2), label = 'D:{:d} (#) - GD:{:3.1f} (#)'.format(ddd, demora_rl2) )
+#     # plt_freq_resp('FIR-RL-2MA-D{:d}-OverS:{:d}'.format(DD, UU), mod_Tdcr_2, pha_Tdcr_2, w_rad, fs = fs)
+#     plt.plot(ww, 20 * np.log10(mod_Tdcr_2), label = 'D:{:d} (#) - GD:{:3.1f} (#)'.format(ddd, demora_rl2) )
 
-plt.title('Respuesta en Frecuencia de Módulo: RL-2MA-OverS:{:d}'.format(UU))
-plt.xlabel('Frecuencia Angular (w)')
-plt.ylabel('|H(jw)| (dB)')
-plt.legend()
-plt.axis([0, 100, -1, 1 ]);
+# plt.title('Respuesta en Frecuencia de Módulo: RL-2MA-OverS:{:d}'.format(UU))
+# plt.xlabel('Frecuencia Angular (w)')
+# plt.ylabel('|H(jw)| (dB)')
+# plt.legend()
+# plt.axis([0, 100, -1, 1 ]);
 
-plt.figure(2)
+# plt.figure(2)
 
-for ddd in DD:
+# for ddd in DD:
 
-    # Cálculo de demoras para 4 mov. avg
-    demora_rl4 = int(2*UU*(ddd-1))
+#     # Cálculo de demoras para 4 mov. avg
+#     demora_rl4 = int(2*UU*(ddd-1))
     
-    Tdcr_4 = Tdc_removal_4.subs({z:z**UU, D:ddd})
+#     Tdcr_4 = Tdc_removal_4.subs({z:z**UU, D:ddd})
     
-    mod_Tdcr_4, pha_Tdcr_4 = Sym_freq_response(Tdcr_4, z, w_rad )
+#     mod_Tdcr_4, pha_Tdcr_4 = Sym_freq_response(Tdcr_4, z, w_rad )
     
-    # plt_freq_resp('FIR-RL-4MA-D{:d}-OverS:{:d}'.format(DD, UU), mod_Tdcr_4, pha_Tdcr_4, w_rad, fs = fs)
+#     # plt_freq_resp('FIR-RL-4MA-D{:d}-OverS:{:d}'.format(DD, UU), mod_Tdcr_4, pha_Tdcr_4, w_rad, fs = fs)
     
-    # plt.subplot(2, 1, 1)
-    plt.plot(ww, 20 * np.log10(mod_Tdcr_4), label = 'D:{:d} (#) - GD:{:3.1f} (#)'.format(ddd, demora_rl4) )
+#     # plt.subplot(2, 1, 1)
+#     plt.plot(ww, 20 * np.log10(mod_Tdcr_4), label = 'D:{:d} (#) - GD:{:3.1f} (#)'.format(ddd, demora_rl4) )
 
-plt.title('Respuesta en Frecuencia de Módulo: RL-4MA-OverS:{:d}'.format(UU))
-plt.xlabel('Frecuencia Angular (w)')
-plt.ylabel('|H(jw)| (dB)')
-plt.legend()
-plt.axis([0, 100, -1, 1 ]);
+# plt.title('Respuesta en Frecuencia de Módulo: RL-4MA-OverS:{:d}'.format(UU))
+# plt.xlabel('Frecuencia Angular (w)')
+# plt.ylabel('|H(jw)| (dB)')
+# plt.legend()
+# plt.axis([0, 100, -1, 1 ]);
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
+
+
+
 
 
 # La respuesta de fase es tan grande que se dificulta calcular y visualizar.
@@ -230,36 +233,71 @@ plt.show()
 
 # bb4, aa4 = transf_s_2ba( Tdcr_4)
 
+#%% Implementación via Cython
 
-# ##  Implementación via Cython
 # from recursive_fir_filter import filter_sequence
 
 
-# ## Implementación Python
-# def one_MA_stage( xx, DD, UU):
+## Implementación Python
+def one_MA_stage( xx, DD, UU):
     
-#     NN = xx.shape[0]
-#     buffer_size = DD * UU
-#     yy = np.zeros_like(xx)
+    NN = xx.shape[0]
+    # buffer_size = DD * UU
+    yy = np.zeros_like(xx)
 
-#     for kk in range(NN):
+    for kk in range(NN):
 
-#         # Calcula la salida según la ecuación recursiva
-#         yy[kk] = 1.0 / (DD * UU) * (xx[kk] - xx[ (kk - DD * UU) % buffer_size] + yy[(kk - UU)% buffer_size])
+        # Calcula la salida según la ecuación recursiva
+        yy[kk] = xx[kk]  \
+                 - xx[ (kk - DD * UU) % NN] \
+                 + yy[(kk - UU) % NN]
 
-#     return(yy)
+    # escalo y devuelvo
+    return( yy )
 
 
-# def Tdc_removal( xx, DD = 16, UU = 20, MA_stages = 2 ):
+def Tdc_seq_removal( xx, DD = 16, UU = 2, MA_stages = 2 ):
     
-#     yy = one_MA_stage( xx, DD, UU)
+    yy = one_MA_stage( xx, DD, UU)
 
-#     # cascadeamos MA_stages-1 más
-#     for ii in range(1, MA_stages):
-#         yy = one_MA_stage( yy, DD, UU)
+    # cascadeamos MA_stages-1 más
+    for ii in range(1, MA_stages):
+        yy = one_MA_stage( yy, DD, UU)
     
-#     return(yy - np.roll(xx, (DD-1)/2*MA_stages*UU))
+    return( np.roll(xx, int((DD-1)/2*MA_stages*UU) ) - yy / DD**MA_stages  )
 
+
+
+# xx = np.zeros(NN)
+# xx[0] = 1.0
+xx = np.random.randn(NN)+10
+# xx -=  np.mean(xx)
+# xx /=  np.std(xx)
+# xx = np.arange(NN)
+
+dd = 32
+uu = 20
+
+yy = Tdc_seq_removal( xx, DD = dd, UU = uu, MA_stages = 2 )
+
+nps = 2**10
+# ff, psd_xx = sig.welch(xx, fs=2, nperseg=nps, detrend=False)
+# ff, psd_yy = sig.welch(yy, fs=2, nperseg=nps, detrend=False)
+
+psd_yy = 1/NN*np.abs(np.fft.fft(yy, axis=0))
+ff = np.arange(start=0, stop=fs/2, step = fs/NN)
+psd_yy = psd_yy[:ff.shape[0]]
+
+plt.figure(1)
+plt.clf()
+# plt.plot(ff, 20*np.log10(psd_xx))
+plt.plot(ff, 20*np.log10(psd_yy))
+# plt.plot(ff, 20*np.log10(psd_yy/psd_xx))
+
+
+Tdcr_2 = Tdc_removal_2.subs({z:z**uu, D:dd})
+# coeficientes
+bb2, aa2 = transf_s_2ba( Tdcr_2 )
 
 
 # # fpw = w0*np.pi*fs/np.tan(np.pi/2*w0); 
