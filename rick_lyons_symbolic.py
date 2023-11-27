@@ -33,11 +33,11 @@ den = (sp.expand(den/(D*z**(D+1)))).powsimp()
 
 Tdc_removal = num/den
 
-display(Tdc_removal)
+# display(Tdc_removal)
 
 # Según Rick Lyons, este sistema sería muy bueno para implementarse
-# con D múltiplo de 2**N, dado que el escalado por D sería simplemente 
-# una rotación a nivel de bits de N veces a la derecha, y su implementación
+# con D múltiplo de 2**NN, dado que el escalado por D sería simplemente 
+# una rotación a nivel de bits de NN veces a la derecha, y su implementación
 # no necesitaría de multiplicaciones. Sin embargo esta elección impone un 
 # retardo no entero. Por esta razón se opta por poner dos (incluso cuatro) 
 # sistemas idénticos en cascada.
@@ -81,12 +81,12 @@ Tdc_removal_4 = num/den
 
 #%% Parte numérica 
 
-fs = 1000 # Hz (Normalizamos a fs/2 = f_nyq)
+fs = 1000 # Hz (NNormalizamos a fs/2 = f_nyq)
 nyq_frec = fs / 2
 
-N = 4000
-w_rad  = np.append(np.logspace(-2, 0.8, N//4), np.logspace(0.9, 1.6, N//4) )
-w_rad  = np.append(w_rad, np.linspace(40, nyq_frec, N//2, endpoint=True) ) / nyq_frec * np.pi
+NN = 2**15
+w_rad  = np.append(np.logspace(-2, 0.8, NN//4), np.logspace(0.9, 1.6, NN//4) )
+w_rad  = np.append(w_rad, np.linspace(40, nyq_frec, NN//2, endpoint=True) ) / nyq_frec * np.pi
 
 
 def group_delay( freq, phase):
@@ -149,8 +149,8 @@ def plt_freq_resp(title, magnitude_response, phase_response, w_rad, fs = 2):
     
 
 ## Del análisis simbólico
-DD = [16, 32, 64]
-UU = 20
+# DD = [16, 32, 64]
+# UU = 20
   
 
 # # Grafica la respuesta en frecuencia de módulo
@@ -248,12 +248,15 @@ def one_MA_stage( xx, DD, UU):
     for kk in range(NN):
 
         # Calcula la salida según la ecuación recursiva
-        yy[kk] = 1.0 / (DD * UU) * (xx[kk] - xx[ (kk - DD * UU) % NN] + yy[(kk - UU) % NN])
+        yy[kk] = xx[kk]  \
+                 - xx[ (kk - DD * UU) % NN] \
+                 + yy[(kk - UU) % NN]
 
-    return(yy)
+    # escalo y devuelvo
+    return( yy )
 
 
-def Tdc_removal( xx, DD = 16, UU = 20, MA_stages = 2 ):
+def Tdc_seq_removal( xx, DD = 16, UU = 2, MA_stages = 2 ):
     
     yy = one_MA_stage( xx, DD, UU)
 
@@ -261,14 +264,41 @@ def Tdc_removal( xx, DD = 16, UU = 20, MA_stages = 2 ):
     for ii in range(1, MA_stages):
         yy = one_MA_stage( yy, DD, UU)
     
-    return(yy - np.roll(xx, int((DD-1)/2*MA_stages*UU)))
+    return( np.roll(xx, int((DD-1)/2*MA_stages*UU) ) - yy / DD**MA_stages  )
 
-NN = 10000
-xx = np.random.randn(NN)+1
 
-yy = Tdc_removal( xx, DD = 16, UU = 20, MA_stages = 2 )
 
-plt.plot(yy)
+# xx = np.zeros(NN)
+# xx[0] = 1.0
+xx = np.random.randn(NN)+10
+# xx -=  np.mean(xx)
+# xx /=  np.std(xx)
+# xx = np.arange(NN)
+
+dd = 32
+uu = 20
+
+yy = Tdc_seq_removal( xx, DD = dd, UU = uu, MA_stages = 2 )
+
+nps = 2**10
+# ff, psd_xx = sig.welch(xx, fs=2, nperseg=nps, detrend=False)
+# ff, psd_yy = sig.welch(yy, fs=2, nperseg=nps, detrend=False)
+
+psd_yy = 1/NN*np.abs(np.fft.fft(yy, axis=0))
+ff = np.arange(start=0, stop=fs/2, step = fs/NN)
+psd_yy = psd_yy[:ff.shape[0]]
+
+plt.figure(1)
+plt.clf()
+# plt.plot(ff, 20*np.log10(psd_xx))
+plt.plot(ff, 20*np.log10(psd_yy))
+# plt.plot(ff, 20*np.log10(psd_yy/psd_xx))
+
+
+Tdcr_2 = Tdc_removal_2.subs({z:z**uu, D:dd})
+# coeficientes
+bb2, aa2 = transf_s_2ba( Tdcr_2 )
+
 
 # # fpw = w0*np.pi*fs/np.tan(np.pi/2*w0); 
 
