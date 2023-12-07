@@ -287,44 +287,72 @@ def one_MA_stage( xx, DD, UU):
     
     NN = xx.shape[0]
     # buffer_size = DD * UU
+
+    # resultaron ser importante las condiciones iniciales
     yy = np.zeros_like(xx)
+    # yy = np.ones_like(xx) * 2*dc_val
 
     for kk in range(NN):
 
         # Calcula la salida según la ecuación recursiva
-        yy[kk] = (xx[kk]  \
+        yy[kk] = xx[kk]  \
                  - xx[ (kk - DD * UU) % NN] \
-                 + yy[(kk - UU) % NN]) 
-                 # / DD
+                 + yy[(kk - UU) % NN]
             
+        print('(kk = {:d}) yy[kk] : {:3.3f} = xx[kk] : {:3.3f}  - xx[kk-DD*UU] : {:3.3f} + yy[kk-UU] : {:3.3f}'.format( kk, yy[kk], xx[kk], xx[ (kk - DD * UU) % NN], yy[(kk - UU) % NN]))
+    
     # escalo y devuelvo
     return( yy )
 
 
 def Tdc_seq_removal( xx, DD = 16, UU = 2, MA_stages = 2 ):
     
-    yy = one_MA_stage( xx, DD, UU)
+    # crucial escalar luego de calcular la salida de un MA
+    yy = one_MA_stage( xx, DD, UU)/DD
 
+    yyy = [yy]
+    
     # cascadeamos MA_stages-1 más
     for ii in range(1, MA_stages):
-        yy = one_MA_stage( yy, DD, UU)
+        
+        # crucial escalar luego de calcular la salida de un MA
+        yy = one_MA_stage( yy, DD, UU)/DD
+        yyy += [yy]
     
-    return( np.roll(xx, int((DD-1)/2*MA_stages*UU) ) - yy/DD**MA_stages  )
+    return( ( np.roll(xx, int((DD-1)/2*MA_stages*UU) ) - yy, yyy  ) )
 
 
-dc_val = 0
+dc_val = 10
 
+# respuesta al impulso: mala idea, solo tendremos soporte para DD**UU muestras.
 # xx = np.zeros(NN)
-# xx[0] = 1.0
-xx = np.random.randn(NN) + dc_val
+# xx[0] = 1
+
+xx = np.random.randn(NN) 
 # xx -=  np.mean(xx)
 # xx /=  np.std(xx)
+xx +=  dc_val
+
 # xx = np.arange(NN)
 
 dd = 2
 uu = 1
+ma_st = 2
 
-yy = Tdc_seq_removal( xx, DD = dd, UU = uu, MA_stages = 2 )
+yy, yyy = Tdc_seq_removal( xx, DD = dd, UU = uu, MA_stages = ma_st )
+
+
+# señales intermedias de los MA
+yyy = np.vstack(yyy).transpose()
+
+## pruebitas
+# yyy1 = sig.lfilter(np.array([1, 1])*1/2, 1, xx)
+
+print(' xx = {:3.3f} +/- {:3.3f}  --  yy = {:3.3f} +/- {:3.3f} '.format( np.mean(xx), np.std(xx),  np.mean(yy), np.std(yy)))
+
+# np.mean(yyy, axis = 0)
+
+[ print(' yyy = {:3.3f} +/- {:3.3f}'.format( np.mean(yyy[:,ii]), np.std(yyy[:,ii]))) for ii in range(ma_st)]
 
 # nps = NN//2**5
 # ff, psd_xx = sig.welch(xx, fs=2, nperseg=nps, detrend=False)
@@ -336,17 +364,30 @@ yy = Tdc_seq_removal( xx, DD = dd, UU = uu, MA_stages = 2 )
 psd_xx = 1/NN*np.abs(np.fft.fft(xx, axis=0))
 psd_yy = (1/NN*np.abs(np.fft.fft(yy, axis=0)))
 
+psd_yyy = (1/NN*np.abs(np.fft.fft(yyy, axis=0)))
+
 ff = np.arange(start=0, stop=fs/2, step = fs/NN)
 psd_xx = psd_xx[:ff.shape[0]]
 psd_yy = psd_yy[:ff.shape[0]]
+psd_yyy = psd_yyy[:ff.shape[0],:]
 
 plt.figure(1)
 plt.clf()
-plt.plot(ff, 20*np.log10(psd_xx))
-plt.plot(ff, 20*np.log10(psd_yy))
+plt.plot(ff, 20*np.log10(psd_xx), label= 'xx')
+plt.plot(ff, 20*np.log10(psd_yyy))
+plt.plot(ff, 20*np.log10(psd_yy), label= 'yy')
 # plt.plot(ff, 20*np.log10(psd_yy/psd_xx))
-plt.axis([-10, 500, -100, 0 ])
+plt.legend()
+plt.axis([-10, 510, -100, 0 ])
 
+plt.figure(2)
+plt.clf()
+plt.plot(xx, label= 'xx')
+plt.plot(yyy)
+plt.plot(yy, label= 'yy')
+# plt.plot(ff, 20*np.log10(psd_yy/psd_xx))
+# plt.axis([-10, 500, -100, 0 ])
+plt.legend()
 
 # Tdcr_2 = Tdc_removal_2.subs({z:z**uu, D:dd})
 # # coeficientes
