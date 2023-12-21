@@ -175,7 +175,7 @@ def blackman_tukey(x,  M = None):
 
 # Del análisis simbólico
 DD = [3, 5, 11]
-UU = 2
+UU = 20
   
 
 # Grafica la respuesta en frecuencia de módulo
@@ -248,7 +248,7 @@ plt.title('Respuesta en Frecuencia de Módulo: RL-2MA-OverS:{:d}'.format(UU))
 plt.xlabel('Frecuencia Angular (w)')
 plt.ylabel('|H(jw)| (dB)')
 plt.legend()
-plt.axis([0, 100, -1, 1 ]);
+plt.axis([0, 100, -1, 0.5 ]);
 
 plt.figure(4)
 plt.clf()
@@ -271,7 +271,7 @@ plt.title('Respuesta en Frecuencia de Módulo: RL-4MA-OverS:{:d}'.format(UU))
 plt.xlabel('Frecuencia Angular (w)')
 plt.ylabel('|H(jw)| (dB)')
 plt.legend()
-plt.axis([0, 100, -1, 1 ]);
+plt.axis([0, 100, -1, 0.5 ]);
 
 plt.tight_layout()
 plt.show()
@@ -321,23 +321,34 @@ def one_MA_stage_clasica( xx, DD, UU):
 
     hh_u = np.zeros(DD * UU)
     hh_u[::UU] = 1
+    hh_u = np.flip(hh_u)
 
     # resultaron ser importante las condiciones iniciales
     yy = np.zeros_like(xx)
     # yy = np.ones_like(xx) * xx[0] * DD * UU
 
     yy[0:(DD * UU)] = np.sum(xx[0:(DD * UU)] * hh_u)
+
+
+    # debug muestra a muestra
+    # kk = DD * UU
+    # print(' yy[{:d}] = np.sum(xx[{:d}:{:d}])'.format( kk-1, kk-(DD * UU), kk-1 ))
+    # xx_aux = xx[kk-(DD * UU):kk] * hh_u
+    # strAux = ['{:3.3f}'.format(xx_aux[ii]) for ii in range(xx_aux.shape[0]) ]
+    # strAux = ' + '.join(strAux)
+    # strAux = ' {:3.3f} = '.format(yy[kk-1]) + strAux
+    # print( strAux )
     
     for kk in range(DD * UU,NN):
 
         # Calcula la salida según la ecuación recursiva
         yy[kk-1] = np.sum(xx[kk-(DD * UU):kk] * hh_u)
 
-        # debug muestra a muestra
-        # if kk <= 40:
+        # # debug muestra a muestra
+        # if kk <= (3*DD * UU):
         #     print(' yy[{:d}] = np.sum(xx[{:d}:{:d}])'.format( kk-1, kk-(DD * UU), kk-1 ))
-        #     xx_aux = xx[kk-(DD * UU):kk] *  * hh_u
-        #     strAux = ['{:3.3f}'.format(xx[kk - (DD * UU) + ii]) for ii in range(xx_aux.shape[0]) ]
+        #     xx_aux = xx[kk-(DD * UU):kk] * hh_u
+        #     strAux = ['{:3.3f}'.format(xx_aux[ii]) for ii in range(xx_aux.shape[0]) ]
         #     strAux = ' + '.join(strAux)
         #     strAux = ' {:3.3f} = '.format(yy[kk-1]) + strAux
         #     print( strAux )
@@ -353,6 +364,7 @@ def one_MA_stage( xx, DD, UU):
 
     hh_u = np.zeros(DD * UU)
     hh_u[::UU] = 1
+    hh_u = np.flip(hh_u)
 
     # resultaron ser importante las condiciones iniciales
     yy = np.zeros_like(xx)
@@ -361,11 +373,19 @@ def one_MA_stage( xx, DD, UU):
     # condiciones iniciales
     yy[0:(DD * UU)] = np.sum(xx[0:(DD * UU)] * hh_u)
 
+    kk = DD * UU - 1 
+    # # debug muestra a muestra
+    # print('... yy[{:d}] = {:3.3f} '.format( kk, yy[kk] ))
+
     # inicio de la recursión
     for kk in range(DD * UU, (DD * UU) + UU ):
 
+        ii = kk-1
         # Calcula la salida según la ecuación recursiva
-        yy[kk-1] = np.sum(xx[kk-(DD * UU):kk] * hh_u)
+        yy[ii] = np.sum(xx[kk-(DD * UU):kk] * hh_u)
+
+        # # debug muestra a muestra
+        # print(' yy[{:d}] = {:3.3f} '.format( ii, yy[ii]))
 
     # for kk in range(NN):
     for kk in range(kk, NN):
@@ -375,8 +395,8 @@ def one_MA_stage( xx, DD, UU):
                   - xx[ (kk - DD * UU) % NN] \
                   + yy[(kk - UU) % NN]
 
-        # debug muestra a muestra
-        # if kk <= 40:
+        # # debug muestra a muestra
+        # if kk <= (3*DD * UU):
         #     print(' yy[{:d}] = {:3.3f} = xx[{:d}] ({:3.3f})  - xx[{:d}] ({:3.3f}) + yy[{:d}] ({:3.3f})'.format( kk, yy[kk], kk, xx[kk], (kk - DD * UU) % NN, xx[ (kk - DD * UU) % NN], (kk - UU) % NN, yy[(kk - UU) % NN]))
         #     # print('    kk = {:d}         = {:d}    kk-UU = {:d}  '.format( , (kk - DD * UU) % NN, (kk - UU) % NN) )
             
@@ -419,8 +439,8 @@ dc_val = 1
 # xx = np.zeros(NN)
 # xx[0] = 1
 
-dd = 7
-uu = 8
+dd = 16
+uu = 4
 ma_st = 2
 
 xx = np.random.randn(NN) * dc_val/dd
