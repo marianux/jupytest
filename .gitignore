@@ -10,3 +10,9 @@ desafio_filtro_ECG-Solución propuesta\.ipynb
 *.so
 
 *.o
+
+ma_clasico.txt
+
+ma_rec_rt.txt
+
+ma_recursivo.txt
