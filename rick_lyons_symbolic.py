@@ -310,8 +310,7 @@ plt.show()
 
 # bb4, aa4 = transf_s_2ba( Tdcr_4)
 
-#%% Implementación via Cython
-
+#%% Implementación en Python simil RT
 
 ## Implementación Python
 def one_MA_stage_clasica( xx, DD, UU):
@@ -347,7 +346,7 @@ def one_MA_stage_clasica( xx, DD, UU):
 
         # debug muestra a muestra
         if bDebugsbs:
-            if (kk % block_s) <= (3*DD * UU):
+            if (kk % NN) <= (3*DD * UU):
                 print(' yy[{:d}] = np.sum(xx[{:d}:{:d}])'.format( kk-1, kk-(DD * UU), kk-1 ))
                 xx_aux = xx[kk-(DD * UU):kk] * hh_u
                 strAux = ['{:3.3f}'.format(xx_aux[ii]) for ii in range(xx_aux.shape[0]) ]
@@ -368,17 +367,13 @@ def MA_st_rt_calc_ci( xx, DD, UU ):
     hh_u = np.flip(hh_u)
     
     yy_ci = np.zeros(UU)
-    
-    # condiciones iniciales
-    # yy_ci[0:UU] = np.sum( xx[0:(DD * UU)] * hh_u)
 
     for kk in range( UU ):
         yy_ci[kk] = np.sum( xx[kk:(DD * UU)+kk] * hh_u)
 
-
-    yy_ci = np.flip(yy_ci)
+    yy_ci = np.roll(yy_ci, -1)
         
-    xx_ci = xx[:((DD * UU)+UU)]
+    xx_ci = xx[:((DD * UU) + UU )]
 
     return( (xx_ci, yy_ci) )
     
@@ -411,11 +406,13 @@ def MA_st_rt( xx, DD, UU, xx_ci, yy_ci, kk_offset = 0):
             if kk <= (3*DD * UU):
                 print(' yy[{:d}] = {:3.3f} = xx[{:d}] ({:3.3f})  - xx_ci[{:d}] ({:3.3f}) + yy_ci[{:d}] ({:3.3f})'.format( dd, yy[kk], dd, xx[kk], kk, xx_ci[kk], kk, yy_ci[kk] ))
 
-    if(kk_offset == 0):
-        end_val = (DD * UU) + 1
-    else:
-        end_val = (DD * UU)
-        
+    # if(kk_offset == 0):
+    #     end_val = (DD * UU) + 1 + UU
+    # else:
+    #     end_val = (DD * UU) + UU
+
+    end_val = (DD * UU) + UU - 1
+       
     for kk in range(kk+1, end_val):
 
         # Calcula la salida según la ecuación recursiva
@@ -442,7 +439,7 @@ def MA_st_rt( xx, DD, UU, xx_ci, yy_ci, kk_offset = 0):
                 print(' yy[{:d}] = {:3.3f} = xx[{:d}] ({:3.3f})  - xx[{:d}] ({:3.3f}) + yy[{:d}] ({:3.3f})'.format( dd, yy[kk], dd, xx[kk], dd - DD * UU, xx[ (kk - DD * UU)], dd - UU, yy[(kk - UU)]))
     
     # calculo las condiciones iniciales del siguiente bloque
-    xx_ci = xx[(NN - ((DD * UU))):]
+    xx_ci = xx[(NN - ((DD * UU)+UU)):]
     yy_ci = yy[(NN - UU):]
 
     # escalo y devuelvo
@@ -504,7 +501,7 @@ def one_MA_stage( xx, DD, UU):
 
         # # debug muestra a muestra
         if bDebugsbs:
-            if (kk % block_s) <= (3*DD * UU):
+            if (kk % NN) <= (3*DD * UU):
                 print(' yy[{:d}] = {:3.3f} = xx[{:d}] ({:3.3f})  - xx[{:d}] ({:3.3f}) + yy[{:d}] ({:3.3f})'.format( kk, yy[kk], kk, xx[kk], (kk - DD * UU) % NN, xx[ (kk - DD * UU) % NN], (kk - UU) % NN, yy[(kk - UU) % NN]))
                 # print('    kk = {:d}         = {:d}    kk-UU = {:d}  '.format( , (kk - DD * UU) % NN, (kk - UU) % NN) )
             
@@ -533,9 +530,10 @@ def Tdc_seq_removal( xx, DD = 16, UU = 2, MA_stages = 2 ):
     else:
 
         
-        sys.stdout = archivos['ma_cl']
-    
         if bDebugsbs:
+            
+            sys.stdout = archivos['ma_cl']
+    
             print('MA clasico')
             print('----------')
         
@@ -566,9 +564,10 @@ def Tdc_seq_removal( xx, DD = 16, UU = 2, MA_stages = 2 ):
     else:
             
 
-        sys.stdout = archivos['ma_rec']
     
         if bDebugsbs:
+            sys.stdout = archivos['ma_rec']
+            
             print('MA recursivo')
             print('------------')
         
@@ -592,9 +591,11 @@ def Tdc_seq_removal( xx, DD = 16, UU = 2, MA_stages = 2 ):
     ## MA rec RT
     #################
 
-    sys.stdout = archivos['ma_rt']
     
     if bDebugsbs:
+
+        sys.stdout = archivos['ma_rt']
+
         print('MA rec RT')
         print('---------')
 
@@ -649,7 +650,8 @@ def Tdc_seq_removal( xx, DD = 16, UU = 2, MA_stages = 2 ):
     # return( ( yy, yyy) )x
 
 
-# TODO: probar la implementación en tiempo real con ECG verdadero.
+
+#%% Prueba de las funciones con señales sintéticas
 
 # Habilitar debug muestra a muestra
 # bDebugsbs = True
@@ -671,7 +673,7 @@ dc_val = 1
 # xx[0] = 1
 
 dd = 16
-uu = 8
+uu = 20
 ma_st = 2
 
 # bloque de memoria para la implementación RT
@@ -679,10 +681,21 @@ block_s = NN//4
 # block_s = NN
 
 
-xx = np.random.randn(NN) * dc_val/dd
+
+import scipy.io as sio
+
+mat_struct = sio.loadmat('ecg.mat')
+
+ecg_one_lead = mat_struct['ecg_lead']
+ecg_one_lead = ecg_one_lead.flatten().astype(np.float64)
+cant_muestras = len(ecg_one_lead)
+
+xx = ecg_one_lead
+
+# xx = np.random.randn(NN) * dc_val/dd
 # xx -=  np.mean(xx)
 # xx /=  np.std(xx)
-xx +=  dc_val
+# xx +=  dc_val
 
 
 # xx_u = np.zeros(NN*uu)
@@ -692,16 +705,18 @@ xx +=  dc_val
 # xxx = xx_u
 
 
-# Guarda la salida estándar actual
-stdout_original = sys.stdout
 
-# Especifica los nombres de los archivos de texto en los que deseas redirigir la salida
-nombres_archivos = [ ('ma_cl',"ma_clasico.txt"), \
-                     ('ma_rec',"ma_recursivo.txt"), \
-                     ('ma_rt',"ma_rec_rt.txt")]
-
-# Abre los archivos en modo de escritura
-archivos = {identificacion: open(nombre, 'w') for identificacion, nombre in nombres_archivos}    
+if bDebugsbs:
+    # Guarda la salida estándar actual
+    stdout_original = sys.stdout
+    
+    # Especifica los nombres de los archivos de texto en los que deseas redirigir la salida
+    nombres_archivos = [ ('ma_cl',"ma_clasico.txt"), \
+                         ('ma_rec',"ma_recursivo.txt"), \
+                         ('ma_rt',"ma_rec_rt.txt")]
+    
+    # Abre los archivos en modo de escritura
+    archivos = {identificacion: open(nombre, 'w') for identificacion, nombre in nombres_archivos}    
 
 try:
 
@@ -714,12 +729,12 @@ try:
 finally:
     
     # Cierra todos los archivos y restaura la salida estándar original
-    for archivo in archivos.values():
-        archivo.close()
-
-    sys.stdout = stdout_original
-    
     if bDebugsbs:
+        
+        for archivo in archivos.values():
+            archivo.close()
+        
+        sys.stdout = stdout_original
         print('Archivos cerrados ...')
 
 # señales intermedias de los MA
@@ -836,45 +851,134 @@ plt.plot(yy_c, label= 'yy_cl', alpha=0.5)
 # plt.axis([-10, 500, -100, 0 ])
 plt.legend()
 
-# Tdcr_2 = Tdc_removal_2.subs({z:z**uu, D:dd})
-# # coeficientes
-# bb2, aa2 = transf_s_2ba( Tdcr_2 )
+#%% Pruebas con ECG real
+
+# Habilitar debug muestra a muestra
+# bDebugsbs = True
+bDebugsbs = False
+
+# Habilitar debug comparación contra promedio clásico
+# bDbgMAcl = True
+bDbgMAcl = False
+
+# Habilitar debug comparación contra promedio recursivo
+# bDbgMArec = True
+bDbgMArec = False
 
 
-# # fpw = w0*np.pi*fs/np.tan(np.pi/2*w0); 
+import scipy.io as sio
 
-# ## Rick Lyons ECG filter
+mat_struct = sio.loadmat('ecg.mat')
 
-# # demora_rl = int(uu*(dd-1))
-# demora2_rl = (len(bb2)-1)/2
-# demora2_rl = (len(bb4)-1)/2
+ecg_one_lead = mat_struct['ecg_lead']
+ecg_one_lead = ecg_one_lead.flatten().astype(np.float64)
+cant_muestras = len(ecg_one_lead)
+
+# bloque de memoria para la implementación RT
+block_s = cant_muestras//4
+# block_s = cant_muestras
+
+dd = 32
+uu = 20
+ma_st = 2
+
+# demora teórica del filtro de Rick
+demora_rl = int((dd-1)/2*ma_st*uu)
+
+if bDebugsbs:
+    # Guarda la salida estándar actual
+    stdout_original = sys.stdout
+    
+    # Especifica los nombres de los archivos de texto en los que deseas redirigir la salida
+    nombres_archivos = [ ('ma_cl',"ma_clasico.txt"), \
+                         ('ma_rec',"ma_recursivo.txt"), \
+                         ('ma_rt',"ma_rec_rt.txt")]
+    
+    # Abre los archivos en modo de escritura
+    archivos = {identificacion: open(nombre, 'w') for identificacion, nombre in nombres_archivos}    
+
+try:
+
+    ECG_f_rl, ECG_f_rl_c, ECG_f_rl_rt, yyy, yyy_rt, yyy_c  = Tdc_seq_removal( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
+
+finally:
+    
+    # Cierra todos los archivos y restaura la salida estándar original
+    if bDebugsbs:
+        
+        for archivo in archivos.values():
+            archivo.close()
+        
+        sys.stdout = stdout_original
+        print('Archivos cerrados ...')
 
 
 
-# z,p,k = sig.tf2zpk(bb2, aa2)
+if bDebugsbs:
 
-# sos_rl2 = sig.tf2sos(bb2, aa2, pairing='nearest')
-# sos_rl4 = sig.tf2sos(bb4, aa4, pairing='nearest')
+    # señales intermedias de los MA
+    yyy = np.vstack(yyy).transpose()
+    yyy_c = np.vstack(yyy_c).transpose()
+    yyy_rt = np.vstack(yyy_rt).transpose()
+    
+    # debug_length = 4*dd * uu
+    debug_length = 10000
+    
+    # secuencia temporal para validar respecto al promedio clásico
+    plt.figure()
+    plt.plot(ecg_one_lead[:debug_length], label= 'xx')
+    
+    if bDbgMArec:
+        plt.plot(yyy[:debug_length,:], ':^', label='MA rec', alpha=0.2, markersize=10)
+        
+    plt.plot(yyy_rt[:debug_length,:], ':o', label='MA rt', alpha=0.5, markersize=5)
+    
+    if bDbgMAcl:
+        plt.plot(yyy_c[:debug_length,:], ':v', label='MA cl', alpha=0.2, markersize=15)
 
-# _, hh2_rl = sig.sosfreqz(sos_rl2, w_rad)
-# _, hh4_rl = sig.sosfreqz(sos_rl4, w_rad)
+       
+    plt.plot(ECG_f_rl[:debug_length], label= 'yy', alpha=0.5)
+    plt.plot(ECG_f_rl_rt[:debug_length], label= 'yy_rt', alpha=0.5)
+    plt.plot(ECG_f_rl_c[:debug_length], label= 'yy_cl', alpha=0.5)
+    # plt.plot(ff, 20*np.log10(psd_yy/psd_xx))
+    # plt.axis([-10, 500, -100, 0 ])
+    plt.legend()
+    
+else:
 
-# w = w_rad / np.pi * nyq_frec
+    regs_interes = ( 
+            np.array([2, 2.2]) *60*fs, # minutos a muestras
+            np.array([5, 5.2]) *60*fs, # minutos a muestras
+            np.array([10, 10.2]) *60*fs, # minutos a muestras
+            np.array([12, 12.4]) *60*fs, # minutos a muestras
+            np.array([15, 15.2]) *60*fs, # minutos a muestras
+            np.array([18, 18.2]) *60*fs, # minutos a muestras
+            [4000, 5500], # muestras
+            [10e3, 11e3], # muestras
+            )
+    
+    for ii in regs_interes:
+        
+        # intervalo limitado de 0 a cant_muestras
+        zoom_region = np.arange(np.max([0, ii[0]]), np.min([cant_muestras, ii[1]]), dtype='uint')
+        
+        
+        plt.figure()
+        plt.plot(zoom_region, ecg_one_lead[zoom_region], label='ECG', linewidth=2)
+        
+        # FIR con corrección de demora
+        plt.plot(zoom_region, ECG_f_rl[zoom_region+demora_rl], ':^', alpha=0.5, label='rec')
+        plt.plot(zoom_region, ECG_f_rl_c[zoom_region+demora_rl], ':v', alpha=0.5, label='CL')
+        plt.plot(zoom_region, ECG_f_rl_rt[zoom_region+demora_rl], ':o', alpha=0.5, label='RT')
+        
+        plt.title('ECG filtering example from ' + str(ii[0]) + ' to ' + str(ii[1]) )
+        plt.ylabel('Adimensional')
+        plt.xlabel('Muestras (#)')
+        
+        axes_hdl = plt.gca()
+        axes_hdl.legend()
+                
+        plt.show()
+    
 
-# plt.close('all')
-
-# plt.figure(1)
-# plt.clf()
-
-# plt.plot(w, 20 * np.log10(abs(hh2_rl)), label='FIR-RL-2-D{:d} orden:{:d}'.format(2, DD))
-# plt.plot(w, 20 * np.log10(abs(hh4_rl)), label='FIR-RL-2-D{:d} orden:{:d}'.format(4, DD))
-# # plot_plantilla(filter_type = 'bandpass', fpass = frecs[[2, 3]]* nyq_frec, ripple = ripple , fstop = frecs[ [1, 4] ]* nyq_frec, attenuation = atenuacion, fs = fs)
-
-# plt.title('FIR diseñado por métodos directos')
-# plt.xlabel('Frequencia [Hz]')
-# plt.ylabel('Modulo [dB]')
-# plt.axis([0, 100, -60, 5 ]);
-# plt.legend()
-
-# plt.grid()
-
+    
