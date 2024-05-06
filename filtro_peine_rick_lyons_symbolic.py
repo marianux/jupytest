@@ -9,10 +9,10 @@ Created on Wed Aug 18 17:56:57 2021
 """
 
 import sympy as sp
-# from pytc2.sistemas_lineales import plot_plantilla, simplify_n_monic
 import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
+from IPython.display import display
 
 
 #%% Resolución simbólica
@@ -37,7 +37,7 @@ den = (sp.expand(den/(D*z**(D+1)))).powsimp()
 
 Tdc_removal = num/den
 
-# display(Tdc_removal)
+display(Tdc_removal)
 
 # Según Rick Lyons, este sistema sería muy bueno para implementarse
 # con D múltiplo de 2**NN, dado que el escalado por D sería simplemente 
@@ -58,17 +58,7 @@ den = (sp.expand(den/(D**2*z**(2*D+2))).powsimp())
 
 Tdc_removal_2 = num/den
 
-def transf_s_2ba( T_s ):
-    
-    num, den = sp.fraction(T_s)
-    
-    bb = np.array(num.as_poly(z**-1).all_coeffs(), dtype=float)
-    aa = np.array(den.as_poly(z**-1).all_coeffs(), dtype=float)
-    
-    return( (bb,aa) )
-
-
-# display(Tdc_removal_2)
+display(Tdc_removal_2)
 
 # Ahora con 4 moving average
 
@@ -81,7 +71,7 @@ den = (sp.expand(den/(D**4*z**(4*D+4)))).powsimp()
 
 Tdc_removal_4 = num/den
 
-# display(Tdc_removal_4)
+display(Tdc_removal_4)
 
 #%% Parte numérica 
 
@@ -91,6 +81,15 @@ nyq_frec = fs / 2
 NN = 2**13
 w_rad  = np.append(np.logspace(-2, 0.8, NN//4), np.logspace(0.9, 1.6, NN//4) )
 w_rad  = np.append(w_rad, np.linspace(40, nyq_frec, NN//2, endpoint=True) ) / nyq_frec * np.pi
+
+def transf_s_2ba( T_s ):
+    
+    num, den = sp.fraction(T_s)
+    
+    bb = np.array(num.as_poly(z**-1).all_coeffs(), dtype=float)
+    aa = np.array(den.as_poly(z**-1).all_coeffs(), dtype=float)
+    
+    return( bb,aa )
 
 
 def group_delay( freq, phase):
@@ -219,6 +218,10 @@ for ddd in DD:
     mod_Tma_c_ddd, pha_Tma_c_ddd = Sym_freq_response(Tma_c_ddd, z, w_rad )
 
     plt.plot(ww, 20 * np.log10(mod_Tma_c_ddd), label = 'D:{:d} (#) - GD:{:3.1f} (#)'.format(ddd, demora_ma) )
+
+    # como num-den TF
+    num, den = transf_s_2ba(Tma_c_ddd)
+
 
 plt.title('Respuesta en Frecuencia de Módulo: RL-MovAvgClasico-OverS:{:d}'.format(UU))
 plt.xlabel('Frecuencia Angular (w)')

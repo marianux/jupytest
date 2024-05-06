@@ -11,14 +11,14 @@ Created on Mon Apr 11 10:52:56 2022
 ########
 
 import sympy as sp
-import numpy as np
-from scipy.signal import TransferFunction
+# import numpy as np
+# from scipy.signal import TransferFunction
 
 
-from pytc2.sintesis_dipolo import foster
-from pytc2.remociones import remover_polo_dc, remover_polo_infinito, remover_polo_sigma, remover_valor_en_infinito, isFRP
-from pytc2.general import a_equal_b_latex_s, print_latex, s, symbfunc2tf, small_val
-from pytc2.sistemas_lineales import bodePlot, analyze_sys, parametrize_sos
+# from pytc2.sintesis_dipolo import foster
+from pytc2.remociones import remover_polo_dc
+from pytc2.general import a_equal_b_latex_s, print_latex, s, symbfunc2tf
+from pytc2.sistemas_lineales import bodePlot
 
 
 I1, V1, V2, V3, V4, V5 = sp.symbols("I1, V1, V2, V3, V4, V5")
@@ -104,7 +104,7 @@ print('¿Qué tipo de Z1 será?')
 ww = sp.symbols("\omega", real = True)
 
 # Si G/C = w0 = 1; wt = 1000 y G = 1
-z1_realopamp = sp.simplify(sp.expand(Z1_opamp_real.subs({wt:100, G:2, C:2})))
+z1_realopamp = sp.simplify(sp.expand(Z1_opamp_real.subs({wt:100, G:1, C:1})))
 # z1_realopamp = sp.simplify(sp.expand(Z1_opamp_real.subs({G:1, C:1})))
      
 # analyze_sys( symbfunc2tf(z1_realopamp) )
@@ -205,7 +205,6 @@ for wti in wt_all:
 #%% síntesis #
 ##############
 Z1 = z1_realopamp
-
 
 Y2, YLeq = remover_polo_dc(1/Z1)
 
