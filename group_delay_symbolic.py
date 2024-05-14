@@ -8,7 +8,7 @@ Created on Fri May 10 13:17:08 2024
 
 import sympy as sp
 from IPython.display import display
-from pytc2.general import print_subtitle, print_latex, a_equal_b_latex_s
+from pytc2.general import print_console_subtitle, print_latex, a_equal_b_latex_s
 from pytc2.sistemas_lineales import pretty_print_bicuad_omegayq, s, tf2sos_analog, pretty_print_SOS, analyze_sys
 
 w0z, w0p, sigz, sigp, Qz, Qp, w = sp.symbols('\omega_{0z},\omega_{0p}, \sigma_z, \sigma_p, Q_z, Q_p, \omega', real = True)
@@ -31,7 +31,8 @@ phaT1jw = sp.atan( sp.simplify(sp.expand(sp.im(T1jw))) / sp.simplify(sp.expand(s
 
 DT1 = sp.simplify(sp.expand(-sp.diff(phaT1jw, w))) 
 
-print_subtitle('Demora para un pasabajo de primer orden')
+# print_subtitle('Demora para un pasabajo de primer orden')
+print_console_subtitle('Demora para un pasabajo de primer orden')
 
 print_latex(a_equal_b_latex_s('D_{T1}(\omega=0)', sp.simplify(sp.expand(DT1.subs( {w:0} ))) ))
 
@@ -54,12 +55,13 @@ phaT2jw = sp.atan( sp.simplify(sp.expand(sp.im(T2jw))) / sp.simplify(sp.expand(s
 
 DT2 = sp.simplify(sp.expand(-sp.diff(phaT2jw, w)))
 
-print_subtitle('Demora para un SOS pasabajo')
+# print_subtitle('Demora para un SOS pasabajo')
+print_console_subtitle('Demora para un SOS pasabajo')
 
 print_latex(a_equal_b_latex_s('D_{T2}(\omega=0)', sp.simplify(sp.expand(DT2.subs( {w:0} ))) ))
 
 print_latex(a_equal_b_latex_s('D_{T2}(\omega=\omega_{0p})', sp.simplify(sp.expand(DT2.subs( {w:w0p} ))) ))
-print_latex(a_equal_b_latex_s('D_{T2}(\omega=\omega_{0p};\omega_{0p}=1)', sp.simplify(sp.expand(DT2.subs( {w:1, w0p:1} ))) ))
+# print_latex(a_equal_b_latex_s('D_{T2}(\omega=\omega_{0p};\omega_{0p}=1)', sp.simplify(sp.expand(DT2.subs( {w:1, w0p:1} ))) ))
 
 
 # display(DT2.subs( {w:0, Qp:2.02, w0p:0.997} ))
@@ -67,8 +69,11 @@ print_latex(a_equal_b_latex_s('D_{T2}(\omega=\omega_{0p};\omega_{0p}=1)', sp.sim
 #%% bessel
 
 import scipy.signal as sig
+import matplotlib.pyplot as plt
 
-nn = 6
+nn = 3
+
+print_console_subtitle('Bessel pasabajo de orden {:d}'.format(nn))
 
 z,p,k = sig.besselap(nn, norm='delay')
 
@@ -79,3 +84,5 @@ sos = tf2sos_analog(num, den)
 pretty_print_SOS(sos, mode='omegayq')
 
 analyze_sys(sos)
+# analyze_sys(sig.TransferFunction(num, den)) 
+
