@@ -108,13 +108,21 @@ print_latex(a_equal_b_latex_s('D_{T2}(\omega=\omega_{0p})', sp.simplify(sp.expan
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 
-nn = 3
+nn = 2
 
 print_console_subtitle('Bessel pasabajo de orden {:d}'.format(nn))
 
-z,p,k = sig.besselap(nn, norm='phase')
+# omega_norm ='mag'
+# omega_norm ='phase'
+omega_norm ='delay'
 
+z,p,k = sig.besselap(nn, norm=omega_norm)
+
+# for ii in np.arange(start=0.8, stop= 1.35, step= 0.05 ):
+ii = 1.
+    
 num_lp, den_lp = sig.zpk2tf( z,p,k)
+num_lp, den_lp = sig.lp2lp(num_lp, den_lp, ii)
 
 sos_lp = tf2sos_analog(num_lp, den_lp)
 
@@ -122,6 +130,11 @@ tf_lp = sig.TransferFunction(num_lp, den_lp)
 
 pretty_print_SOS(sos_lp, mode='omegayq')
 
+# plt.close('all')
+_,_,_,_, = analyze_sys(tf_lp, sys_name=omega_norm)
+
+
+#%% diseño del crossover
 
 num_hp, den_hp = sig.lp2hp(num_lp, den_lp)
 
@@ -134,7 +147,8 @@ pretty_print_SOS(sos_hp, mode='omegayq')
 tfXover = tfadd(tf_lp, tf_hp)
 sos_xover = tf2sos_analog(tfXover.num, tfXover.den )
 
-analyze_sys([tf_lp, tf_hp, sos_xover])
+# plt.close('all')
+_,_,_,_, = analyze_sys([tf_lp, tf_hp, tfXover])
+# _,_,_,_, = analyze_sys(tfXover, sys_name = '{:3.3g}'.format(ii))
 
-# analyze_sys(sig.TransferFunction(num, den)) 
 
