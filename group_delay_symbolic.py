@@ -113,8 +113,8 @@ nn = 2
 print_console_subtitle('Bessel pasabajo de orden {:d}'.format(nn))
 
 # omega_norm ='mag'
-# omega_norm ='phase'
-omega_norm ='delay'
+omega_norm ='phase'
+# omega_norm ='delay'
 
 z,p,k = sig.besselap(nn, norm=omega_norm)
 
@@ -136,7 +136,7 @@ _,_,_,_, = analyze_sys(tf_lp, sys_name=omega_norm)
 
 #%% diseño del crossover
 
-num_hp, den_hp = sig.lp2hp(num_lp, den_lp)
+num_hp, den_hp = sig.lp2hp(-num_lp, den_lp)
 
 sos_hp = tf2sos_analog(num_hp, den_hp )
 
@@ -145,10 +145,16 @@ tf_hp = sig.TransferFunction(num_hp, den_hp)
 pretty_print_SOS(sos_hp, mode='omegayq')
 
 tfXover = tfadd(tf_lp, tf_hp)
+
 sos_xover = tf2sos_analog(tfXover.num, tfXover.den )
 
+pretty_print_SOS(sos_xover, mode='omegayq')
+
 # plt.close('all')
-_,_,_,_, = analyze_sys([tf_lp, tf_hp, tfXover])
+# _,_,_,_, = analyze_sys(tfXover2)
+_,_,_,_, = analyze_sys(tfXover)
+# _,_,_,_, = analyze_sys(sos_xover)
+# _,_,_,_, = analyze_sys([tf_lp, tf_hp, tfXover])
 # _,_,_,_, = analyze_sys(tfXover, sys_name = '{:3.3g}'.format(ii))
 
 
