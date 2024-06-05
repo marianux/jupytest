@@ -108,13 +108,13 @@ print_latex(a_equal_b_latex_s('D_{T2}(\omega=\omega_{0p})', sp.simplify(sp.expan
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 
-nn = 2
+nn = 3
 
 print_console_subtitle('Bessel pasabajo de orden {:d}'.format(nn))
 
 # omega_norm ='mag'
-omega_norm ='phase'
-# omega_norm ='delay'
+# omega_norm ='phase'
+omega_norm ='delay'
 
 z,p,k = sig.besselap(nn, norm=omega_norm)
 
@@ -132,6 +132,7 @@ pretty_print_SOS(sos_lp, mode='omegayq')
 
 # plt.close('all')
 _,_,_,_, = analyze_sys(tf_lp, sys_name=omega_norm)
+# _,_,_,_, = analyze_sys(sos_lp, sys_name=omega_norm)
 
 
 #%% diseño del crossover

@@ -23,14 +23,15 @@ def fir3(N, f, m):
     The multiband filter is constructed from lowpass filters
     designed by fir3lp.m
     """
-    L = len(f)
+    L = len(f)-1
     if m[-1] == 0:
         h = np.zeros(N)  # Frequency response is zero at pi
     else:
         h = np.concatenate([np.zeros((N - 1) // 2), [m[-1]], np.zeros((N - 1) // 2)])
 
     while L > 2:
-        h += (m[L - 2] - m[L - 1]) * fir3lp(N, f[L - 2], f[L - 1])  # Construct
+        b = fir3lp(N, f[L - 2], f[L - 1])
+        h += (m[L - 2] - m[L - 1]) * b # Construct
         L -= 2
 
     return h
@@ -78,14 +79,15 @@ Be = np.array([0, 0.1, 0.25, 0.5, 0.6, 0.7, 0.75, 0.85, 0.9, 1])*np.pi
 D = np.array([0, 0, 0.7, 0.7, 0.5, 0.5, 0, 0, 1, 1,])
 
 # Must be even
-Norder = 100;
+Norder = 1000;
 
 h = LSE_FIR(Norder, Be, D);
 
-H = sig.freqz(h, 1, wT);
+wT, H = sig.freqz(h, 1, wT);
 
 
 plt.plot(wT, 20*np.log10(np.abs(H)+1e-12), label='FIR-LS {:d}'.format(H.shape[0]) )
+plt.plot(Be, 20*np.log10(D+1e-12), label='Desired' )
 
 # plot_plantilla(filter_type = 'bandpass', fpass = frecs[[2, 3]]* nyq_frec, ripple = ripple , fstop = frecs[ [1, 4] ]* nyq_frec, attenuation = atenuacion, fs = fs)
 
@@ -96,8 +98,8 @@ plt.ylabel('Modulo [dB]')
 
 # plt.grid()
 
-# axes_hdl = plt.gca()
-# axes_hdl.legend()
+axes_hdl = plt.gca()
+axes_hdl.legend()
             
 plt.figure(2)
 
