@@ -45,26 +45,26 @@ print_latex(a_equal_b_latex_s('D_{T1}(\omega=0)', sp.simplify(sp.expand(DT1.subs
 
 #%% bicuad
 
-# T2s = w0p**2/(s**2+ s*w0p/Qp + w0p**2)
+T2s = w0p**2/(s**2+ s*w0p/Qp + w0p**2)
 # T2s = (s**2+ s*w0z/Qz + w0z**2)/(s**2+ s*w0p/Qp + w0p**2)
 # T2s = sp.factor((s**2+ s*w0z/Qz + w0z**2))
 
-# factorizando polinomios no funcionó
-num_roots = sp.roots( (s**2+ s*w0z/Qz + w0z**2).as_poly(s) )
-den_roots = sp.roots( (s**2+ s*w0p/Qp + w0p**2).as_poly(s) )
+# # factorizando polinomios no funcionó
+# num_roots = sp.roots( (s**2+ s*w0z/Qz + w0z**2).as_poly(s) )
+# den_roots = sp.roots( (s**2+ s*w0p/Qp + w0p**2).as_poly(s) )
 
-T2sz = sp.Rational(1.)
-for root, multiplicity in num_roots.items():
-    for ii in range(multiplicity):
-        T2sz = T2sz * (s - root)
+# T2sz = sp.Rational(1.)
+# for root, multiplicity in num_roots.items():
+#     for ii in range(multiplicity):
+#         T2sz = T2sz * (s - root)
 
-T2sp = sp.Rational(1.)    
-for root, multiplicity in den_roots.items():
-    for ii in range(multiplicity):
-        T2sp = T2sp / (s - root)
+# T2sp = sp.Rational(1.)    
+# for root, multiplicity in den_roots.items():
+#     for ii in range(multiplicity):
+#         T2sp = T2sp / (s - root)
         
-# Analizo la demora del num y den por separado, ya que num resta demora y den suma
-T2s = T2sz/T2sp 
+# # Analizo la demora del num y den por separado, ya que num resta demora y den suma
+# T2s = T2sz/T2sp 
 
 print_latex(a_equal_b_latex_s('T_2(s)', T2s  ))
 
@@ -72,21 +72,21 @@ T2jw = T2s.subs( {s:j*w} )
 # T2jw = w0p**2/(-w**2+ j*w*w0p/Qp + w0p**2)
 # T2jw = (-w**2+ j*w*w0z/Qz + w0z**2)/(-w**2+ j*w*w0p/Qp + w0p**2)
 
-T2zjw = T2sz.subs( {s:j*w} )
-T2pjw = T2sp.subs( {s:j*w} )
+# T2zjw = T2sz.subs( {s:j*w} )
+# T2pjw = T2sp.subs( {s:j*w} )
 
 print_latex(a_equal_b_latex_s('T_2(j\omega)', T2jw  ))
 
-# phaT2jw = sp.atan( sp.simplify(sp.expand(sp.im(T2jw))) / sp.simplify(sp.expand(sp.re(T2jw))) )
-phaT2zjw = sp.atan( sp.simplify(sp.expand(  sp.simplify(sp.expand(sp.im(T2zjw))) / sp.simplify(sp.expand(sp.re(T2zjw))) )) )
-phaT2pjw = sp.atan( sp.simplify(sp.expand( sp.simplify(sp.expand(sp.im(T2pjw))) / sp.simplify(sp.expand(sp.re(T2pjw))) )) )
-phaT2jw = phaT2zjw + phaT2pjw 
+phaT2jw = sp.atan( sp.simplify(sp.expand(sp.im(T2jw))) / sp.simplify(sp.expand(sp.re(T2jw))) )
+# phaT2zjw = sp.atan( sp.simplify(sp.expand(  sp.simplify(sp.expand(sp.im(T2zjw))) / sp.simplify(sp.expand(sp.re(T2zjw))) )) )
+# phaT2pjw = sp.atan( sp.simplify(sp.expand( sp.simplify(sp.expand(sp.im(T2pjw))) / sp.simplify(sp.expand(sp.re(T2pjw))) )) )
+# phaT2jw = phaT2zjw + phaT2pjw 
 
-# DT2 = sp.simplify(sp.expand(-sp.diff(phaT2jw, w)))
-DT2z = sp.simplify(sp.expand(-sp.diff(phaT2zjw, w)))
-DT2p = sp.simplify(sp.expand(-sp.diff(phaT2pjw, w)))
+DT2 = sp.simplify(sp.expand(-sp.diff(phaT2jw, w)))
+# DT2z = sp.simplify(sp.expand(-sp.diff(phaT2zjw, w)))
+# DT2p = sp.simplify(sp.expand(-sp.diff(phaT2pjw, w)))
 
-DT2 = DT2z + DT2p
+# DT2 = DT2z + DT2p
 
 # print_subtitle('Demora para un SOS pasabajo')
 print_console_subtitle('Demora para un SOS pasabajo')
@@ -108,7 +108,7 @@ print_latex(a_equal_b_latex_s('D_{T2}(\omega=\omega_{0p})', sp.simplify(sp.expan
 import scipy.signal as sig
 import matplotlib.pyplot as plt
 
-nn = 3
+nn = 6
 
 print_console_subtitle('Bessel pasabajo de orden {:d}'.format(nn))
 
@@ -131,8 +131,8 @@ tf_lp = sig.TransferFunction(num_lp, den_lp)
 pretty_print_SOS(sos_lp, mode='omegayq')
 
 # plt.close('all')
-_,_,_,_, = analyze_sys(tf_lp, sys_name=omega_norm)
-# _,_,_,_, = analyze_sys(sos_lp, sys_name=omega_norm)
+# _,_,_,_, = analyze_sys(tf_lp, sys_name=omega_norm)
+_,_,_,_, = analyze_sys(sos_lp, sys_name=omega_norm)
 
 
 #%% diseño del crossover
