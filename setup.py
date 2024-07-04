@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Tue Nov 21 19:08:33 2023
+Created on Mon Jun 10 09:29:10 2024
 
 @author: mariano
 """
@@ -10,7 +10,9 @@ Created on Tue Nov 21 19:08:33 2023
 
 from setuptools import setup
 from Cython.Build import cythonize
+import numpy as np
 
 setup(
-    ext_modules=cythonize("recursive_fir_filter.pyx"),
+    ext_modules = cythonize(["promediador_rt_init.pyx", "promediador_rt.pyx", "filtro_peine_DCyArmonicas.pyx"]),
+    include_dirs=[np.get_include()]
 )

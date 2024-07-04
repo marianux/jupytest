@@ -143,6 +143,9 @@ def filtro_peine_DCyArmonicas( xx, DD = 16, UU = 2, MA_stages = 2 ):
        
 #%% Pruebas con ECG real
 
+from filtro_peine_DCyArmonicas import filtro_peine_DCyArmonicas as filtro_Lyons_opt
+
+
 fs = 1000 # Hz (NNormalizamos a fs/2 = f_nyq)
 nyq_frec = fs / 2
 
@@ -173,6 +176,8 @@ ECG_f_rl_fin = filtro_peine_DCyArmonicas( ecg_one_lead, DD = dd, UU = uu, MA_sta
 # 1129116 muestras de ECG a fs = 1kHz
 # %timeit ECG_f_rl_fin = filtro_peine_DCyArmonicas( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
 # 2.01 s ± 73.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+
+# ECG_f_rl_fin = filtro_Lyons_opt( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
 
 plt.close('all')
 
