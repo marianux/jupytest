@@ -8,36 +8,36 @@ import sympy as sp
 
 
 # Load the net list
-example_net_list = '''R1 N002 vi {Q*R/a}
-RG1 N002 N004 {R}
-RG3 N003 vo {R}
-RG4 vo N001 {R}
-RG5 N001 vi {R}
-C1 vi N002 {C}
-CG2 N004 N003 {C}
-XU1 N003 N002 vo opamp Aol=100K GBW=10Meg
-XU2 N003 N001 N004 opamp Aol=100K GBW=10Meg
-V1 vi 0 AC 1 1
-R2 0 N002 {Q*R/(1-a)}'''
+# example_net_list = '''R1 N002 vi {Q*R/a}
+# RG1 N002 N004 {R}
+# RG3 N003 vo {R}
+# RG4 vo N001 {R}
+# RG5 N001 vi {R}
+# C1 vi N002 {C}
+# CG2 N004 N003 {C}
+# XU1 N003 N002 vo opamp Aol=100K GBW=10Meg
+# XU2 N003 N001 N004 opamp Aol=100K GBW=10Meg
+# V1 vi 0 AC 1 1
+# R2 0 N002 {Q*R/(1-a)}'''
 
-# example_net_list = '''R1 2 6 2
-# RG1 2 4 1
-# RG3 3 5 2
-# RG4 5 1 1
-# RG5 1 6 1
-# C1 6 2 1
-# CG2 4 3 1
-# O1 3 2 5
-# O2 3 1 4
-# V1 6 0 1
-# R2 0 2 2'''
+example_net_list = '''R1 2 6 2
+RG1 2 4 1
+RG3 3 5 2
+RG4 5 1 1
+RG5 1 6 1
+C1 6 2 1
+CG2 4 3 1
+O1 3 2 5
+O2 3 1 4
+V1 6 0 1
+R2 0 2 2'''
 
 
 node_names, report, df, df2, A, X, Z = smna(example_net_list)
 
 # _, df0, df20, A0, X0, Z0 = smna_orig(example_net_list)
 
-def convert_index_to_name(x):
+def convert_index_to_name(x): 
     if pd.isna(x):
         return x
     return node_names[int(x)]

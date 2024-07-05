@@ -73,6 +73,10 @@ def smna(net_list):
 
     s = sp.Symbol('s')  # the Laplace variable
 
+    # opamp_model = 'OA_integrador'
+    # opamp_model = 'OA_1polo'
+    opamp_model = 'OA_ideal'
+
     # initialize variables
     num_rlc = 0 # number of passive elements
     num_ind = 0 # number of inductors
@@ -346,13 +350,26 @@ def smna(net_list):
         df.loc[line_nu,'p node'] = parse_nodes(tk[1])
         df.loc[line_nu,'n node'] = parse_nodes(tk[2])
         df.loc[line_nu,'Vout'] = parse_nodes(tk[3])
-        
-        if( tk[4] == 'opamp' ):
-            # modelo no ideal de opamp 
+
+        if( len(tk) > 4 and tk[4] == 'opamp' ):
+            # usamos el modelo que impone LTspice o el ideal
             aol, gbw = parse_opamp(tk)
+        else:
+            # usamos valores idealizadamente altos
+            aol, gbw = [10e10 , 10e20]
+        
+        if opamp_model == 'OA_integrador':
+            # integrator opamp model
+            df.loc[line_nu,'value'] = gbw/s
             
+        if opamp_model == 'OA_1polo':
             # one-pole opamp model
             df.loc[line_nu,'value'] = gbw/(s+gbw/aol)
+            
+        else:
+            # modelo ideal de opamp
+            df.loc[line_nu,'value'] = sp.sympify('Aop')
+                
 
     # G - VCCS
     def vccs_sub_network(line_nu):
