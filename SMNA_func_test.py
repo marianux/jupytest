@@ -13,13 +13,13 @@ import os
 
 ltspice_bin = 'wine ~/.wine/drive_c/Program\ Files/LTC/LTspiceXVII/XVIIx64.exe'
 
-file = '/home/mariano/Escritorio/Enlace hacia spice/notch 50hz.asc'
+fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/GIC_bicuad.asc'
 
 # Obtener la carpeta (directorio)
-folder_name = os.path.dirname(file)
+folder_name = os.path.dirname(fileName_asc)
 
 # Obtener el nombre del archivo con la extensión
-filename_with_extension = os.path.basename(file)
+filename_with_extension = os.path.basename(fileName_asc)
 
 # Separar el nombre del archivo de la extensión
 baseFileName, extension = os.path.splitext(filename_with_extension)
@@ -32,14 +32,30 @@ else:
     
     # Configurar la variable de entorno WINEPREFIX
     os.environ['WINEPREFIX'] = os.path.join(home_directory, '.wine')    
-    subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', file], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+    subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', fileName_asc], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
-try:
-    f = open(os.path.join(folder_name, baseFileName + '.net') , 'r')
-    netlistLines = ['"' + cirTitle + '"\n'] + f.readlines()
-    f.close()
-except:
-    print("Error: could not open: '%s'."%(baseFileName + '.net'))
+
+fileName_netlist = os.path.join(folder_name, baseFileName + '.net')
+
+
+i1 = instruction()                       # Creates an instance of an instruction object
+i1.setCircuit(fileName_netlist)                  # Checks and defines the local circuit object and
+                                         # sets the index page to the circuit index page
+# We will generate a HTML report (not from within Jupyter). Let us first create an empty HTML page:
+htmlPage('Circuit data')
+# Put a header on this page and display the circuit diagram on it.
+head2html('Circuit diagram')
+img2html('myFirstRCnetwork.svg', 250, caption = 'Circuit diagram of the RC network.', label = 'figRCnetwork')
+netlist2html(fileName, label = 'netlist') # This displays the netlist
+elementData2html(i1.circuit, label = 'elementData') # This shows the data of the expanded netlist
+params2html(i1.circuit, label = 'params') # This displays the circuit parameters
+# Let us define an instruction to display the symbolic MNA matrix equation.
+# This is done by defining attributes of the instruction object 'i1'
+i1.setSimType('symbolic')
+i1.setGainType('vi')
+i1.setDataType('matrix')
+# We execute the instruction and assign the result to a variable 'MNA'
+MNA = i1.execute();
 
 
 # Load the net list
