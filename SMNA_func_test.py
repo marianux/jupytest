@@ -6,34 +6,74 @@ import pandas as pd
 from SymMNA import smna
 import sympy as sp
 
+import platform
+import subprocess
+import os
+
+
+ltspice_bin = 'wine ~/.wine/drive_c/Program\ Files/LTC/LTspiceXVII/XVIIx64.exe'
+
+file = '/home/mariano/Escritorio/Enlace hacia spice/notch 50hz.asc'
+
+# Obtener la carpeta (directorio)
+folder_name = os.path.dirname(file)
+
+# Obtener el nombre del archivo con la extensión
+filename_with_extension = os.path.basename(file)
+
+# Separar el nombre del archivo de la extensión
+baseFileName, extension = os.path.splitext(filename_with_extension)
+
+if platform.system() == 'Windows':
+    file = file.replace('\\','\\\\')
+    subprocess.run([ini.ltspice, '-netlist', file])
+else:
+    home_directory = os.path.expanduser("~")
+    
+    # Configurar la variable de entorno WINEPREFIX
+    os.environ['WINEPREFIX'] = os.path.join(home_directory, '.wine')    
+    subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', file], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
+try:
+    f = open(os.path.join(folder_name, baseFileName + '.net') , 'r')
+    netlistLines = ['"' + cirTitle + '"\n'] + f.readlines()
+    f.close()
+except:
+    print("Error: could not open: '%s'."%(baseFileName + '.net'))
+
 
 # Load the net list
-# example_net_list = '''R1 N002 vi {Q*R/a}
-# RG1 N002 N004 {R}
-# RG3 N003 vo {R}
-# RG4 vo N001 {R}
-# RG5 N001 vi {R}
-# C1 vi N002 {C}
-# CG2 N004 N003 {C}
-# XU1 N003 N002 vo opamp Aol=100K GBW=10Meg
-# XU2 N003 N001 N004 opamp Aol=100K GBW=10Meg
-# V1 vi 0 AC 1 1
-# R2 0 N002 {Q*R/(1-a)}'''
+example_net_list = '''R1 N002 vi {Q*R/a}
+RG1 N002 N004 {R}
+RG3 N003 vo {R}
+RG4 vo N001 {R}
+RG5 N001 vi {R}
+C1 vi N002 {C}
+CG2 N004 N003 {C}
+XU1 N003 N002 vo opamp Aol=100K GBW=10Meg
+XU2 N003 N001 N004 opamp Aol=100K GBW=10Meg
+V1 vi 0 AC 1 1
+R2 0 N002 {Q*R/(1-a)}'''
 
-example_net_list = '''R1 2 6 2
-RG1 2 4 1
-RG3 3 5 2
-RG4 5 1 1
-RG5 1 6 1
-C1 6 2 1
-CG2 4 3 1
-O1 3 2 5
-O2 3 1 4
-V1 6 0 1
-R2 0 2 2'''
+# example_net_list_orig = '''R1 2 6 2
+# RG1 2 4 1
+# RG3 3 5 2
+# RG4 5 1 1
+# RG5 1 6 1
+# C1 6 2 1
+# CG2 4 3 1
+# O1 3 2 5
+# O2 3 1 4
+# V1 6 0 1
+# R2 0 2 2'''
 
 
 node_names, report, df, df2, A, X, Z = smna(example_net_list)
+
+# node_names, report, df0, df20, A0, X0, Z0 = smna(example_net_list_orig)
+# X0 = sp.Matrix(X0)
+# Z0 = sp.Matrix(Z0)
+# equ0 = sp.Eq(A0*X0,Z0)
 
 # _, df0, df20, A0, X0, Z0 = smna_orig(example_net_list)
 
@@ -59,39 +99,46 @@ Z = sp.Matrix(Z)
 
 equ = sp.Eq(A*X,Z)
 
-# turn the free symbols into SymPy variables
-# sp.var(str(equ.free_symbols).replace('{','').replace('}',''))
-sp.var(str(equ.free_symbols))
+u1 = sp.solve(equ,X)
 
-# Symbolic solution
-symbolic_solution = sp.solve(equ,X)
+H = u1[v_n003]
+H_opamp_ideal = sp.limit(H, Aop, sp.oo)
+[ sp.var(str(ii)) for ii in H_lim.free_symbols]
+H_opamp_ideal = H_opamp_ideal.subs({a:1/2, c:1, r:1, q:5})
 
-# The symbolic solution for the 6ltage at node 2 is:
-# symbolic_solution[v_vo]
+# # turn the free symbols into SymPy variables
+# # sp.var(str(equ.free_symbols).replace('{','').replace('}',''))
+# sp.var(str(equ.free_symbols))
+
+# # Symbolic solution
+# symbolic_solution = sp.solve(equ,X)
+
+# # The symbolic solution for the 6ltage at node 2 is:
+# # symbolic_solution[v_vo]
 
 
-# Built a python dictionary of element values
-element_value_keys = []
-element_value_values = []
+# # Built a python dictionary of element values
+# element_value_keys = []
+# element_value_values = []
 
-for i in range(len(df)):
-    if df.iloc[i]['element'][0] == 'F' or df.iloc[i]['element'][0] == 'E' or df.iloc[i]['element'][0] == 'G' or df.iloc[i]['element'][0] == 'H':
-        element_value_keys.append(sp.var(df.iloc[i]['element'].lower()))
-        element_value_values.append(df.iloc[i]['value'])
-        #print('{:s}:{:f},'.format(df.iloc[i]['element'].lower(),df.iloc[i]['value']))
-    else:
-        element_value_keys.append(sp.var(df.iloc[i]['element']))
-        element_value_values.append(df.iloc[i]['value'])
-        #print('{:s}:{:.4e},'.format(df.iloc[i]['element'],df.iloc[i]['value']))
+# for i in range(len(df)):
+#     if df.iloc[i]['element'][0] == 'F' or df.iloc[i]['element'][0] == 'E' or df.iloc[i]['element'][0] == 'G' or df.iloc[i]['element'][0] == 'H':
+#         element_value_keys.append(sp.var(df.iloc[i]['element'].lower()))
+#         element_value_values.append(df.iloc[i]['value'])
+#         #print('{:s}:{:f},'.format(df.iloc[i]['element'].lower(),df.iloc[i]['value']))
+#     else:
+#         element_value_keys.append(sp.var(df.iloc[i]['element']))
+#         element_value_values.append(df.iloc[i]['value'])
+#         #print('{:s}:{:.4e},'.format(df.iloc[i]['element'],df.iloc[i]['value']))
 
-element_values = dict(zip(element_value_keys, element_value_values))
+# element_values = dict(zip(element_value_keys, element_value_values))
 
-# Numeric solution
-# Substitue the element values into the equations and solve for unknown node 6ltages and currents. Need to set the current source, I1, to zero.
-equ1a = equ.subs(element_values)
+# # Numeric solution
+# # Substitue the element values into the equations and solve for unknown node 6ltages and currents. Need to set the current source, I1, to zero.
+# equ1a = equ.subs(element_values)
 
-# Solve for 6ltages and currents in terms of Laplace variable s.
-u1 = sp.solve(equ1a,X)
+# # Solve for 6ltages and currents in terms of Laplace variable s.
+# u1 = sp.solve(equ1a,X)
 
 # AC analysis
 # Solve equations a frequency of 1.491MHz or $\omega$ equal to 9.3682292e6 radians per second, s = 9.3682292e6j.
@@ -105,7 +152,8 @@ u1 = sp.solve(equ1a,X)
 # AC Sweep
 # Looking at node 2 stage.
 # H = u1[v_3]
-H = u1[v_n003]
+
+
 
 # num, denom = fraction(H) #returns numerator and denominator
 
@@ -139,6 +187,26 @@ H = u1[v_n003]
 
 # print('peak: {:.2f} dB at {:.3f} MHz'.format(mag.max(),w[np.argmax(mag)]/(2*np.pi)/1e6,))
 
+
+
+from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
+
+sallenkey = AscEditor("/home/mariano/Escritorio/Enlace hacia spice/GIC-Fliege highpass notch.ASC.asc")  # Reads the asc file into memory
+
+# The following lines set the default tolerances for the components
+mc.set_tolerance('R', 0.01)  # 1% tolerance, default distribution is uniform
+mc.set_tolerance('C', 0.1, distribution='uniform')  # 10% tolerance, explicit uniform distribution
+mc.set_tolerance('V', 0.1, distribution='normal')  # 10% tolerance, but using a normal distribution
+
+# Some components can have a different tolerance
+mc.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides the default tolerance for R1
+
+# Tolerances can be set for parameters as well
+mc.set_parameter_deviation('Vos', 3e-4, 5e-3, 'uniform')  # The keyword 'distribution' is optional
+mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulations
+
+# Finally the netlist is saved to a file. This file contians all the instructions to run the simulation in LTspice
+mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
 
 
 

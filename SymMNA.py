@@ -362,7 +362,7 @@ def smna(net_list):
             # integrator opamp model
             df.loc[line_nu,'value'] = gbw/s
             
-        if opamp_model == 'OA_1polo':
+        elif opamp_model == 'OA_1polo':
             # one-pole opamp model
             df.loc[line_nu,'value'] = gbw/(s+gbw/aol)
             
@@ -728,19 +728,33 @@ def smna(net_list):
             sn += 1   #increment source count
 
         if x == 'O' or x == 'X':  # op amp type, input connections of the opamp go into the C matrix
-            # C[sn,n_vout-1] = 1
-            if i_unk > 1:  #is B greater than 1 by n?, O
+
+            #is B greater than 1 by n?, O            
+            if i_unk > 1:  
                 # check to see if any terminal is grounded
                 # then stamp the matrix
                 if n1 != 0:
                     C[sn,n1-1] = 1
                 if n2 != 0:
                     C[sn,n2-1] = -1
+
+                # if opamp_model != 'OA_ideal':
+                # la salida del opamp, tendrá un valor de A(s)(V+ - V-)
+                # el valor de A(s) indica el modelo que usamos del opamp.
+                # la matriz C modela A(s) como B = -1/A(s) según: 
+                # (Vlach1994) Vlach, Jiri - Linear Circuit Theory_ Matrices in 
+                # Computer Applications-Apple Academic Press.
+                C[sn,n_vout-1] = -1/df.loc[i,'value']
+                    
             else:
                 if n1 != 0:
                     C[n1-1] = 1
                 if n2 != 0:
                     C[n2-1] = -1
+
+                # if opamp_model != 'OA_ideal':
+                C[n_vout-1] = -1/df.loc[i,'value']
+            
             sn += 1   # increment source count
 
         if x == 'F':  # need to count F (cccs) types
