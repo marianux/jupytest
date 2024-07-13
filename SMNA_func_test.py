@@ -11,9 +11,9 @@ import subprocess
 import os
 
 
-ltspice_bin = 'wine ~/.wine/drive_c/Program\ Files/LTC/LTspiceXVII/XVIIx64.exe'
+ltspice_bin = os.path.expanduser('~/.wine/drive_c/Program Files/LTC/LTspiceXVII/XVIIx64.exe')
 
-fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/GIC_bicuad.asc'
+fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/GIC bicuad.asc'
 
 # Obtener la carpeta (directorio)
 folder_name = os.path.dirname(fileName_asc)
@@ -24,18 +24,19 @@ filename_with_extension = os.path.basename(fileName_asc)
 # Separar el nombre del archivo de la extensión
 baseFileName, extension = os.path.splitext(filename_with_extension)
 
-if platform.system() == 'Windows':
-    file = file.replace('\\','\\\\')
-    subprocess.run([ini.ltspice, '-netlist', file])
-else:
-    home_directory = os.path.expanduser("~")
-    
-    # Configurar la variable de entorno WINEPREFIX
-    os.environ['WINEPREFIX'] = os.path.join(home_directory, '.wine')    
-    subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', fileName_asc], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-
-
 fileName_netlist = os.path.join(folder_name, baseFileName + '.net')
+
+if not os.path.exists(fileName_netlist):
+    
+    if platform.system() == 'Windows':
+        file = file.replace('\\','\\\\')
+        subprocess.run([ini.ltspice, '-netlist', file])
+    else:
+        home_directory = os.path.expanduser("~")
+        
+        # Configurar la variable de entorno WINEPREFIX
+        os.environ['WINEPREFIX'] = os.path.join(home_directory, '.wine')    
+        subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', fileName_asc], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
 
 i1 = instruction()                       # Creates an instance of an instruction object
