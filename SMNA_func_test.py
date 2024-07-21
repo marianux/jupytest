@@ -10,6 +10,9 @@ import platform
 import subprocess
 import os
 
+from pytc2.sistemas_lineales import parametrize_sos
+from pytc2.general import s, print_latex, a_equal_b_latex_s
+
 
 ltspice_bin = os.path.expanduser('~/.wine/drive_c/Program Files/LTC/LTspiceXVII/XVIIx64.exe')
 
@@ -39,38 +42,22 @@ if not os.path.exists(fileName_netlist):
         subprocess.run(['wine', ltspice_bin, '-wine', '-netlist', fileName_asc], stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
 
 
-i1 = instruction()                       # Creates an instance of an instruction object
-i1.setCircuit(fileName_netlist)                  # Checks and defines the local circuit object and
-                                         # sets the index page to the circuit index page
-# We will generate a HTML report (not from within Jupyter). Let us first create an empty HTML page:
-htmlPage('Circuit data')
-# Put a header on this page and display the circuit diagram on it.
-head2html('Circuit diagram')
-img2html('myFirstRCnetwork.svg', 250, caption = 'Circuit diagram of the RC network.', label = 'figRCnetwork')
-netlist2html(fileName, label = 'netlist') # This displays the netlist
-elementData2html(i1.circuit, label = 'elementData') # This shows the data of the expanded netlist
-params2html(i1.circuit, label = 'params') # This displays the circuit parameters
-# Let us define an instruction to display the symbolic MNA matrix equation.
-# This is done by defining attributes of the instruction object 'i1'
-i1.setSimType('symbolic')
-i1.setGainType('vi')
-i1.setDataType('matrix')
-# We execute the instruction and assign the result to a variable 'MNA'
-MNA = i1.execute();
+with open(fileName_netlist, 'r', encoding='latin-1') as file:
+    # Read the content of the file
+    example_net_list = file.read()
 
-
-# Load the net list
-example_net_list = '''R1 N002 vi {Q*R/a}
-RG1 N002 N004 {R}
-RG3 N003 vo {R}
-RG4 vo N001 {R}
-RG5 N001 vi {R}
-C1 vi N002 {C}
-CG2 N004 N003 {C}
-XU1 N003 N002 vo opamp Aol=100K GBW=10Meg
-XU2 N003 N001 N004 opamp Aol=100K GBW=10Meg
-V1 vi 0 AC 1 1
-R2 0 N002 {Q*R/(1-a)}'''
+# # Load the net list
+# example_net_list = '''R1 N002 vi {Q*R/a}
+# RG1 N002 N004 {R}
+# RG3 N003 vo {R}
+# RG4 vo N001 {R}
+# RG5 N001 vi {R}
+# C1 vi N002 {C}
+# CG2 N004 N003 {C}
+# XU1 N003 N002 vo opamp Aol=100K GBW=10Meg
+# XU2 N003 N001 N004 opamp Aol=100K GBW=10Meg
+# V1 vi 0 AC 1 1
+# R2 0 N002 {Q*R/(1-a)}'''
 
 # example_net_list_orig = '''R1 2 6 2
 # RG1 2 4 1
@@ -85,7 +72,7 @@ R2 0 N002 {Q*R/(1-a)}'''
 # R2 0 2 2'''
 
 
-node_names, report, df, df2, A, X, Z = smna(example_net_list)
+node_names, dic_comp_name_vals, df, df2, A, X, Z, dic_params = smna(example_net_list)
 
 # node_names, report, df0, df20, A0, X0, Z0 = smna(example_net_list_orig)
 # X0 = sp.Matrix(X0)
@@ -110,18 +97,58 @@ def translate_node_names(df_in):
     
     return df_out
 
+dfnodenames = translate_node_names(df)
+
+parametros_opamp = ( 'aop', 'gbw', 'aol' )
+posibles_entradas = ( 'v1', 'vi', 'vin' )
+posibles_salidas = ( 'v2', 'vo', 'vout' )
+
+_, v_in_idx, _ = np.intersect1d(node_names, posibles_entradas, return_indices=True)
+_, v_out_idx, _ = np.intersect1d(node_names, posibles_salidas, return_indices=True)
+
+v_in = X[v_in_idx[0]]
+v_out = X[v_out_idx[0]]
+
 # Put matricies into SymPy 
 X = sp.Matrix(X)
 Z = sp.Matrix(Z)
 
-equ = sp.Eq(A*X,Z)
+mna_sym = [ ii for ii in A.free_symbols ]
+mna_sym_names = [ str(ii) for ii in A.free_symbols ]
+
+_, opamp_idx, _ = np.intersect1d( mna_sym_names, parametros_opamp, return_indices=True)
+
+aop = mna_sym[opamp_idx[0]]
+
+A = A.subs(dic_comp_name_vals).limit(aop, sp.oo)
+
+# tuninc a mano
+mna_sym = [ ii for ii in A.free_symbols ]
+mna_sym_names = [ str(ii) for ii in A.free_symbols ]
+
+_, this_idx, _ = np.intersect1d( mna_sym_names, ('eps', ), return_indices=True)
+
+eps = mna_sym[this_idx[0]]
+
+A = A.subs(eps, 0)
+
+equ = sp.Eq(A0*X,Z)
+# equ = sp.Eq(A*X,Z)
 
 u1 = sp.solve(equ,X)
 
-H = u1[v_n003]
-H_opamp_ideal = sp.limit(H, Aop, sp.oo)
-[ sp.var(str(ii)) for ii in H_lim.free_symbols]
-H_opamp_ideal = H_opamp_ideal.subs({a:1/2, c:1, r:1, q:5})
+H = u1[v_out] / u1[v_in]
+
+#%%
+
+H0 = parametrize_sos(H)[0]
+
+
+#%%
+
+
+# H_opamp_ideal = sp.limit(H, Aop, sp.oo)
+# H_opamp_ideal = H_opamp_ideal.subs({a:1/2, c:1, r:1, q:5})
 
 # # turn the free symbols into SymPy variables
 # # sp.var(str(equ.free_symbols).replace('{','').replace('}',''))
