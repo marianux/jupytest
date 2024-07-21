@@ -6,6 +6,8 @@ import pandas as pd
 from SymMNA import smna
 import sympy as sp
 
+from SLiCAP import *
+
 import platform
 import subprocess
 import os
