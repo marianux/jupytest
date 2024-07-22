@@ -71,12 +71,34 @@ def smna(net_list):
             values of the independent voltage sources.
     """
 
-    s = sp.Symbol('s')  # the Laplace variable
+    def parse_param_line(param_line):
+        # Eliminar el prefijo ".param" y los espacios en blanco adicionales
+        param_line = param_line.replace('.param', '').strip()
+        
+        # Usar una expresión regular para encontrar los pares de parámetros y sus definiciones
+        pattern = re.compile(r'(\w+)\s*=\s*([^=]+?)(?=\s+\w+\s*=|$)')
+        
+        # Encontrar todos los pares de parámetros y sus definiciones
+        matches = pattern.findall(param_line)
+        
+        # Convertir los pares en un diccionario
+        param_dict = {param.strip(): definition.strip() for param, definition in matches}
+        
+        return param_dict
+
+    global s
+    try:
+        s
+    except NameError:
+        s = sp.symbols('s')  # the Laplace variable
 
     # opamp_model = 'OA_integrador'
     # opamp_model = 'OA_1polo'
     opamp_model = 'OA_ideal'
 
+    # parámetros que almacenaré del netlist
+    dic_params = {}
+    
     # initialize variables
     num_rlc = 0 # number of passive elements
     num_ind = 0 # number of inductors
@@ -99,10 +121,11 @@ def smna(net_list):
 
     # remove comment lines, these start with a asterisk *
     content = [n for n in content if not n.startswith('*')]
+    content = [n for n in content if not n.startswith('#')]
     # remove other comment lines, these start with a semicolon ;
     content = [n for n in content if not n.startswith(';')]
     # remove spice directives, these start with a period, .
-    content = [n for n in content if not n.startswith('.')]
+    #content = [n for n in content if not n.startswith('.')]
     # converts 1st letter to upper case
     #content = [x.upper() for x in content] <- this converts all to upper case
     content = [x.capitalize() for x in content]
@@ -114,7 +137,8 @@ def smna(net_list):
     # check number of entries on each line, count each element type
     for i in range(line_cnt):
         x = content[i][0]
-        tk_cnt = len(content[i].split()) # split the line into a list of words
+        tkn = content[i].split()
+        tk_cnt = len(tkn) # split the line into a list of words
 
         if (x == 'R') or (x == 'L') or (x == 'C'):
             if tk_cnt != 4:
@@ -124,6 +148,11 @@ def smna(net_list):
             branch_cnt += 1
             if x == 'L':
                 num_ind += 1
+              
+        # elif x == '#' or x == '*':
+        #     # comentarios, los salteo.
+        #     pass
+        
         elif x == 'V':
             if tk_cnt < 4:
                 raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
@@ -183,6 +212,19 @@ def smna(net_list):
                 raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
                 "had {:d} items and should only be 4".format(tk_cnt))
             num_cpld_ind += 1
+            
+            # Parameters
+            
+        elif x == '.':
+
+            if tkn[0] == '.param':
+                
+                dic_this_pars = parse_param_line(content[i])
+                
+                dic_params.update(dic_this_pars)
+
+            
+            
         else:
             raise Exception("unknown element type in branch {:d}: {:s}".format(i,content[i]))
 
@@ -322,7 +364,6 @@ def smna(net_list):
         
         return [aol, gbw]
 
-
     # loads voltage or current sources into branch structure
     def indep_source(line_nu):
         tk = content[line_nu].split()
@@ -368,7 +409,8 @@ def smna(net_list):
             
         else:
             # modelo ideal de opamp
-            df.loc[line_nu,'value'] = sp.sympify('Aop')
+            aop = sp.symbols('aop', Real = True)
+            df.loc[line_nu,'value'] = aop
                 
 
     # G - VCCS
@@ -422,8 +464,8 @@ def smna(net_list):
     def count_nodes():
         # need to check that nodes are consecutive
         # fill array with node numbers
-        p = np.zeros(line_cnt+1)
-        for i in range(line_cnt):
+        p = np.zeros(cant_netlist_valid)
+        for i in range(cant_netlist_valid):
             # need to skip coupled inductor 'K' statements
             if df.loc[i,'element'][0] != 'K': #get 1st letter of element name
                 p[df['p node'][i]] = df['p node'][i]
@@ -448,6 +490,9 @@ def smna(net_list):
 
         if (x == 'R') or (x == 'L') or (x == 'C'):
             rlc_element(i)
+        elif x == '.':
+            # parámetros
+            pass
         elif (x == 'V') or (x == 'I'):
             indep_source(i)
         elif x == 'O' or x == 'X':
@@ -473,10 +518,12 @@ def smna(net_list):
     Solution - The following block of code was added to move voltage source types to the 
     beginning of the net list dataframe before any calculations are performed.''' 
 
+    cant_netlist_valid = len(df)
+
     # Check for position of voltages sources in the dataframe.
     source_index = [] # keep track of voltage source row number
     other_index = [] # make a list of all other types
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         # process all the elements creating unknown currents
         x = df.loc[i,'element'][0]   #get 1st letter of element name
         if (x == 'V'):
@@ -493,7 +540,7 @@ def smna(net_list):
     # Build df2: consists of branches with current unknowns, used for C & D matrices
     # walk through data frame and find these parameters
     count = 0
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         # process all the elements creating unknown currents
         x = df.loc[i,'element'][0]   #get 1st letter of element name
         if (x == 'L') or (x == 'V') or (x == 'O') or (x == 'X') or (x == 'E') or (x == 'H') or (x == 'F'):
@@ -546,7 +593,7 @@ def smna(net_list):
     where Yr is a reduced form of the nodal matrix excluding the contributions 
     due to voltage sources, current controlling elements, etc.  In python row 
     and columns are: G[row, column]'''
-    for i in range(len(df)):  # process each row in the data frame
+    for i in range(cant_netlist_valid):  # process each row in the data frame
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         cn1 = df.loc[i,'cp node']
@@ -605,7 +652,7 @@ def smna(net_list):
     its own column because the controlling current is through a zero volt voltage source,
     called Vname and is already in the net list.'''
     sn = 0   # count source number as code walks through the data frame
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         n_vout = df.loc[i,'Vout'] # node connected to op amp output
@@ -705,7 +752,7 @@ def smna(net_list):
 
     # generate the C Matrix
     sn = 0   # count source number as code walks through the data frame
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         cn1 = df.loc[i,'cp node'] # nodes for controlled sources
@@ -827,7 +874,7 @@ def smna(net_list):
 
     # generate the D Matrix
     sn = 0   # count source number as code walks through the data frame
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         #cn1 = df.loc[i,'cp node'] # nodes for controlled sources
@@ -891,7 +938,7 @@ def smna(net_list):
     corresponding node. If there are no current sources connected to the node, the value is zero.'''
 
     # generate the I matrix, current sources have n2 = arrow end of the element
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         # process all the passive elements, save conductance to temp value
@@ -906,7 +953,7 @@ def smna(net_list):
 
     # The Ev matrix is m by 1 and holds the values of the independent voltage sources.
     sn = 0   # count source number
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         # process all the passive elements
         x = df.loc[i,'element'][0]   #get 1st letter of element name
         if x == 'V':
@@ -952,7 +999,10 @@ def smna(net_list):
             A[n,i] = C[i]
         A[n,n] = D[0] # added 1/7/2024 while debugging source free circuit with one inductor
 
-    return node_names, report, df, df2, A, X, Z
+    # recolecto los símbolos 
+    dic_comp_name_vals = dict(zip(df['element'][1:], df['value'][1:]))
+
+    return node_names, dic_comp_name_vals, df, df2, A, X, Z, dic_params
 
 
 
@@ -1253,7 +1303,7 @@ def smna_orig(net_list):
     # Check for position of voltages sources in the dataframe.
     source_index = [] # keep track of voltage source row number
     other_index = [] # make a list of all other types
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         # process all the elements creating unknown currents
         x = df.loc[i,'element'][0]   #get 1st letter of element name
         if (x == 'V'):
@@ -1270,7 +1320,7 @@ def smna_orig(net_list):
     # Build df2: consists of branches with current unknowns, used for C & D matrices
     # walk through data frame and find these parameters
     count = 0
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         # process all the elements creating unknown currents
         x = df.loc[i,'element'][0]   #get 1st letter of element name
         if (x == 'L') or (x == 'V') or (x == 'O') or (x == 'E') or (x == 'H') or (x == 'F'):
@@ -1324,7 +1374,7 @@ def smna_orig(net_list):
     where Yr is a reduced form of the nodal matrix excluding the contributions 
     due to voltage sources, current controlling elements, etc.  In python row 
     and columns are: G[row, column]'''
-    for i in range(len(df)):  # process each row in the data frame
+    for i in range(cant_netlist_valid):  # process each row in the data frame
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         cn1 = df.loc[i,'cp node']
@@ -1383,7 +1433,7 @@ def smna_orig(net_list):
     its own column because the controlling current is through a zero volt voltage source,
     called Vname and is already in the net list.'''
     sn = 0   # count source number as code walks through the data frame
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         n_vout = df.loc[i,'Vout'] # node connected to op amp output
@@ -1483,7 +1533,7 @@ def smna_orig(net_list):
 
     # generate the C Matrix
     sn = 0   # count source number as code walks through the data frame
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         cn1 = df.loc[i,'cp node'] # nodes for controlled sources
@@ -1591,7 +1641,7 @@ def smna_orig(net_list):
 
     # generate the D Matrix
     sn = 0   # count source number as code walks through the data frame
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         #cn1 = df.loc[i,'cp node'] # nodes for controlled sources
@@ -1654,7 +1704,7 @@ def smna_orig(net_list):
     corresponding node. If there are no current sources connected to the node, the value is zero.'''
 
     # generate the I matrix, current sources have n2 = arrow end of the element
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         n1 = df.loc[i,'p node']
         n2 = df.loc[i,'n node']
         # process all the passive elements, save conductance to temp value
@@ -1669,7 +1719,7 @@ def smna_orig(net_list):
 
     # The Ev matrix is m by 1 and holds the values of the independent voltage sources.
     sn = 0   # count source number
-    for i in range(len(df)):
+    for i in range(cant_netlist_valid):
         # process all the passive elements
         x = df.loc[i,'element'][0]   #get 1st letter of element name
         if x == 'V':
