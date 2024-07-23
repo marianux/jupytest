@@ -6,7 +6,6 @@ import pandas as pd
 from SymMNA import smna
 import sympy as sp
 
-from SLiCAP import *
 
 import platform
 import subprocess
@@ -134,7 +133,7 @@ eps = mna_sym[this_idx[0]]
 
 A = A.subs(eps, 0)
 
-equ = sp.Eq(A0*X,Z)
+equ = sp.Eq(A*X,Z)
 # equ = sp.Eq(A*X,Z)
 
 u1 = sp.solve(equ,X)
