@@ -28,6 +28,8 @@ import pandas as pd
 import re as re
 import sympy as sp
 
+from pytc2.general import s
+
 
 def smna(net_list):
     """sp.Symbolic modified nodal analysis
@@ -86,11 +88,11 @@ def smna(net_list):
         
         return param_dict
 
-    global s
-    try:
-        s
-    except NameError:
-        s = sp.symbols('s')  # the Laplace variable
+    # global s
+    # try:
+    #     s
+    # except NameError:
+    #     s = sp.symbols('s')  # the Laplace variable
 
     # opamp_model = 'OA_integrador'
     # opamp_model = 'OA_1polo'

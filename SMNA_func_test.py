@@ -15,9 +15,13 @@ from pytc2.sistemas_lineales import parametrize_sos
 from pytc2.general import s, print_latex, a_equal_b_latex_s
 
 
+global s
+
 ltspice_bin = os.path.expanduser('~/.wine/drive_c/Program Files/LTC/LTspiceXVII/XVIIx64.exe')
 
-fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/GIC bicuad.asc'
+# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/GIC bicuad.asc'
+# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/ACKMOSS bicuad.asc'
+fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/trafo_real_mna.asc'
 
 # Obtener la carpeta (directorio)
 folder_name = os.path.dirname(fileName_asc)
@@ -30,7 +34,7 @@ baseFileName, extension = os.path.splitext(filename_with_extension)
 
 fileName_netlist = os.path.join(folder_name, baseFileName + '.net')
 
-if not os.path.exists(fileName_netlist):
+if not os.path.exists(fileName_netlist) or ( os.path.exists(fileName_netlist) and (os.path.getmtime(fileName_asc) > os.path.getmtime(fileName_netlist))  ) :
     
     if platform.system() == 'Windows':
         file = file.replace('\\','\\\\')
@@ -82,6 +86,11 @@ node_names, dic_comp_name_vals, df, df2, A, X, Z, dic_params = smna(example_net_
 
 # _, df0, df20, A0, X0, Z0 = smna_orig(example_net_list)
 
+# Put matricies into SymPy 
+X = sp.Matrix(X)
+Z = sp.Matrix(Z)
+
+
 def convert_index_to_name(x): 
     if pd.isna(x):
         return x
@@ -94,25 +103,23 @@ def translate_node_names(df_in):
     df_out['n node'] = df['n node'].apply(convert_index_to_name)
     df_out['Vout'] = df['Vout'].apply(convert_index_to_name)
     
-    print(df_out)
+    # print(df_out)
     
     return df_out
 
 dfnodenames = translate_node_names(df)
 
 parametros_opamp = ( 'aop', 'gbw', 'aol' )
-posibles_entradas = ( 'v1', 'vi', 'vin' )
-posibles_salidas = ( 'v2', 'vo', 'vout' )
+posibles_entradas = ( 'v_v1', 'v_vi', 'v_vin' )
+posibles_salidas = ( 'v_v2', 'v_vo', 'v_vout' )
 
-_, v_in_idx, _ = np.intersect1d(node_names, posibles_entradas, return_indices=True)
-_, v_out_idx, _ = np.intersect1d(node_names, posibles_salidas, return_indices=True)
+node_sym = [ ii for ii in X.free_symbols ]
+node_sym_names = [ str(ii) for ii in X.free_symbols ]
+_, v_in_idx, _ = np.intersect1d(node_sym_names, posibles_entradas, return_indices=True)
+_, v_out_idx, _ = np.intersect1d(node_sym_names, posibles_salidas, return_indices=True)
 
-v_in = X[v_in_idx[0]]
-v_out = X[v_out_idx[0]]
-
-# Put matricies into SymPy 
-X = sp.Matrix(X)
-Z = sp.Matrix(Z)
+v_in = node_sym[v_in_idx[0]]
+v_out = node_sym[v_out_idx[0]]
 
 mna_sym = [ ii for ii in A.free_symbols ]
 mna_sym_names = [ str(ii) for ii in A.free_symbols ]
@@ -231,28 +238,5 @@ H0 = parametrize_sos(H)[0]
 # plt.show()
 
 # print('peak: {:.2f} dB at {:.3f} MHz'.format(mag.max(),w[np.argmax(mag)]/(2*np.pi)/1e6,))
-
-
-
-from spicelib import AscEditor, SimRunner  # Imports the class that manipulates the asc file
-
-sallenkey = AscEditor("/home/mariano/Escritorio/Enlace hacia spice/GIC-Fliege highpass notch.ASC.asc")  # Reads the asc file into memory
-
-# The following lines set the default tolerances for the components
-mc.set_tolerance('R', 0.01)  # 1% tolerance, default distribution is uniform
-mc.set_tolerance('C', 0.1, distribution='uniform')  # 10% tolerance, explicit uniform distribution
-mc.set_tolerance('V', 0.1, distribution='normal')  # 10% tolerance, but using a normal distribution
-
-# Some components can have a different tolerance
-mc.set_tolerance('R1', 0.05)  # 5% tolerance for R1 only. This only overrides the default tolerance for R1
-
-# Tolerances can be set for parameters as well
-mc.set_parameter_deviation('Vos', 3e-4, 5e-3, 'uniform')  # The keyword 'distribution' is optional
-mc.prepare_testbench(num_runs=1000)  # Prepares the testbench for 1000 simulations
-
-# Finally the netlist is saved to a file. This file contians all the instructions to run the simulation in LTspice
-mc.save_netlist('./testfiles/temp/sallenkey_mc.asc')
-
-
 
 
