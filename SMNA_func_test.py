@@ -126,19 +126,19 @@ mna_sym_names = [ str(ii) for ii in A.free_symbols ]
 
 _, opamp_idx, _ = np.intersect1d( mna_sym_names, parametros_opamp, return_indices=True)
 
-aop = mna_sym[opamp_idx[0]]
+if len(opamp_idx) > 0:
+    aop = mna_sym[opamp_idx[0]]
+    A = A.subs(dic_comp_name_vals).limit(aop, sp.oo)
 
-A = A.subs(dic_comp_name_vals).limit(aop, sp.oo)
-
-# tuninc a mano
+# tuning a mano
 mna_sym = [ ii for ii in A.free_symbols ]
 mna_sym_names = [ str(ii) for ii in A.free_symbols ]
 
 _, this_idx, _ = np.intersect1d( mna_sym_names, ('eps', ), return_indices=True)
 
-eps = mna_sym[this_idx[0]]
-
-A = A.subs(eps, 0)
+if len(this_idx) > 0:
+    eps = mna_sym[this_idx[0]]
+    A = A.subs(eps, 0)
 
 equ = sp.Eq(A*X,Z)
 # equ = sp.Eq(A*X,Z)

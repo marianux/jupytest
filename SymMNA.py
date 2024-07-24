@@ -143,9 +143,9 @@ def smna(net_list):
         tk_cnt = len(tkn) # split the line into a list of words
 
         if (x == 'R') or (x == 'L') or (x == 'C'):
-            if tk_cnt != 4:
-                raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
-                "had {:d} items and should only be 4".format(tk_cnt))
+            # if tk_cnt != 4:
+            #     raise Exception("branch {:d} not formatted correctly, {:s} ".format(i,content[i]),
+            #     "had {:d} items and should only be 4".format(tk_cnt))
             num_rlc += 1
             branch_cnt += 1
             if x == 'L':
