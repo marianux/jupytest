@@ -31,10 +31,18 @@ https://www.youtube.com/watch?v=lYirQkTkq-w&list=PLlD2eDv5CIe-0IZ3VOP0aQPTgAn9NM
 """
 
 import sympy as sp
-import splane as tc2
-from splane import s, w
-import PySpice.Logging.Logging as Logging
-logger = Logging.setup_logging()
+# import splane as tc2
+# from splane import s, w
+from pytc2.ltspice import ltsp_nuevo_circuito, ltsp_etiquetar_nodo, ltsp_ind_serie, ltsp_capa_derivacion, ltsp_etiquetar_nodo
+from pytc2.dibujar import dibujar_espacio_derivacion, dibujar_puerto_entrada, dibujar_elemento_serie, dibujar_elemento_derivacion, dibujar_puerto_salida, dibujar_funcion_exc_abajo
+from pytc2.general import Chebyshev_polynomials
+from pytc2.remociones import modsq2mod_s, remover_polo_infinito
+from pytc2.sintesis_dipolo import cauer_LC
+from pytc2.general import s, w
+from IPython.display import display
+
+# import PySpice.Logging.Logging as Logging
+# logger = Logging.setup_logging()
 
 import numpy as np
 
@@ -42,8 +50,8 @@ from schemdraw import Drawing
 from schemdraw.elements import SourceSin, Resistor, Capacitor, Inductor
 
 # Tipo de aproximación
-# aprox = 'butter'
-aprox = 'cheby'
+aprox = 'butter'
+# aprox = 'cheby'
 
 # Salto de impedancia:
 # Para órdenes impares el salto de impedancia es libre
@@ -51,7 +59,7 @@ aprox = 'cheby'
 R01 = 1
 R02 = 2
 # orden del filtro
-nn = 4
+nn = 3
 # ripple
 alfa_max = 3 # dB
 
@@ -128,7 +136,7 @@ if Ko > 1:
 
 if aprox == 'cheby':
    
-    Tjw_sq = (Ko) / (1+ (eps_sq) * (tc2.Chebyshev_polynomials(nn))**2 )
+    Tjw_sq = (Ko) / (1+ (eps_sq) * (Chebyshev_polynomials(nn))**2 )
     
 else:
         
@@ -138,20 +146,20 @@ s11sq = sp.simplify(sp.expand(sp.factor( 1 - Tjw_sq ).subs(w, s/sp.I)))
 
 # s11sq = sp.simplify(sp.expand(s11sq.subs(Ko, 10**(1/10))))
 
-# s11sq = tc2.trim_func_s(s11sq)
+# s11sq = trim_func_s(s11sq)
 
 
 # s11_num = sp.simplify(sp.expand(sp.factor(( ((10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)).subs(w, s/sp.I) ))))
-# s11_den = tc2.modsq2mod_s(sp.simplify(sp.expand(sp.factor((1 + (10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)**2 )))).subs(w, s/sp.I))
+# s11_den = modsq2mod_s(sp.simplify(sp.expand(sp.factor((1 + (10**(1/10)-1) * (8*w**4 - 8* w**2 + 1)**2 )))).subs(w, s/sp.I))
 # s11 = s11_num / s11_den
-s11 = s11_sign * tc2.modsq2mod_s(s11sq)
+s11 = s11_sign * modsq2mod_s(s11sq)
 
 num, den = s11.as_numer_denom()
 z1 = sp.simplify(sp.expand(den + num) / sp.expand(den - num))
 # z1 = sp.simplify(sp.expand(sp.simplify(sp.expand(1+s11))/sp.simplify(sp.expand((1-s11)))))
 # z1 = sp.simplify(sp.expand(sp.simplify(sp.expand(1+s11.evalf(10)))/sp.simplify(sp.expand((1-s11.evalf(10))))))
 
-_, koo = tc2.remover_polo_infinito(z1)
+_, koo = remover_polo_infinito(z1)
 
 if koo.is_zero:
     bImpedancia = False
@@ -160,35 +168,35 @@ else:
     immitance = z1
     bImpedancia = True
     
-koo, imm_as_cauer, remainder = tc2.cauer_LC(immitance, remover_en_inf = True)
+koo, imm_as_cauer, remainder = cauer_LC(immitance, remover_en_inf = True)
 
 
 # Dibujo de la red sintetizada Imagen + LTspice
 
 circ_name = 'ecualizador_{:s}_orden_{:d}_ripple_{:d}dB_r01_{:d}_r02_{:d}'.format(aprox, nn, alfa_max, R01, R02)
 
-circ_hdl = tc2.ltsp_nuevo_circuito(circ_name)
+circ_hdl = ltsp_nuevo_circuito(circ_name)
 
-tc2.ltsp_etiquetar_nodo(circ_hdl, node_label='vi')
+ltsp_etiquetar_nodo(circ_hdl, node_label='vi')
 
 d = Drawing(unit=4)  # unit=2 makes elements have shorter than normal leads
 
 
-d = tc2.dibujar_elemento_derivacion(d, SourceSin, 'Vg')
+d = dibujar_elemento_derivacion(d, 'V', 'Vg')
 
-d = tc2.dibujar_elemento_serie(d, Resistor, "Rg=1Ω")
+d = dibujar_elemento_serie(d, 'R', "Rg=1Ω")
 
-d = tc2.dibujar_puerto_entrada(d,
+d = dibujar_puerto_entrada(d,
                         voltage_lbl = ('+', '$V1$', '-'), 
                         current_lbl = '$I1$')
 
-d, zz_lbl = tc2.dibujar_funcion_exc_abajo(d, 
-                                          'Z',  
-                                          z1.evalf(5), 
-                                          hacia_salida = True,
-                                          k_gap_width = 0.5)
+d = dibujar_funcion_exc_abajo(d, 
+                                'Z',  
+                                z1.evalf(5), 
+                                hacia_salida = True,
+                                k_gap_width = 0.5)
 
-d = tc2.dibujar_espacio_derivacion(d)
+d = dibujar_espacio_derivacion(d)
 
 if bImpedancia:
     bEnSerie = True
@@ -201,39 +209,39 @@ for this_inf_pole in koo:
 
         ind_value = (this_inf_pole/s).evalf(5)
         
-        d = tc2.dibujar_elemento_serie(d, Inductor, ind_value)
+        d = dibujar_elemento_serie(d, 'L', ind_value)
         
-        tc2.ltsp_ind_serie(circ_hdl, ind_value) 
+        ltsp_ind_serie(circ_hdl, ind_value) 
         
     else:
 
         cap_value = (this_inf_pole/s).evalf(5)
         
-        d = tc2.dibujar_elemento_derivacion(d, Capacitor, cap_value)
+        d = dibujar_elemento_derivacion(d, 'C', cap_value)
         
-        tc2.ltsp_capa_derivacion(circ_hdl, cap_value) 
+        ltsp_capa_derivacion(circ_hdl, cap_value) 
         
     # forma de escalera serie/deriación
     bEnSerie = not bEnSerie
     
 
-d = tc2.dibujar_puerto_salida(d,
+d = dibujar_puerto_salida(d,
                         voltage_lbl = ('+', '$V2$', '-'), 
                         current_lbl = '$I2$')
 
-d = tc2.dibujar_espacio_derivacion(d)
-d = tc2.dibujar_espacio_derivacion(d)
-d = tc2.dibujar_espacio_derivacion(d)
+d = dibujar_espacio_derivacion(d)
+d = dibujar_espacio_derivacion(d)
+d = dibujar_espacio_derivacion(d)
 
 if bEnSerie:
     # último elemento en derivación, resto de la división en admitancia
-    d = tc2.dibujar_elemento_derivacion(d, Resistor, (1/remainder).evalf(4) )
+    d = dibujar_elemento_derivacion(d, 'R', (1/remainder).evalf(4) )
 else:
-    d = tc2.dibujar_elemento_derivacion(d, Resistor, remainder.evalf(4) )
+    d = dibujar_elemento_derivacion(d, 'R', remainder.evalf(4) )
         
 display(d)
 
-tc2.ltsp_etiquetar_nodo(circ_hdl, node_label='vo')
+ltsp_etiquetar_nodo(circ_hdl, node_label='vo')
 
 circ_hdl.writelines('TEXT -48 304 Left 2 !.param RG={:d} RL={:d}'.format(R01, R02))
 
@@ -308,5 +316,5 @@ circ_hdl.close()
 
 # #
 # print('Verificación de la transferencia via LCAPY')
-# tc2.print_latex('$ \\frac{V_2}{V_G/2}=' + sp.latex((cct.PG.transfer('P2')).evalf(4)) + '$')
+# print_latex('$ \\frac{V_2}{V_G/2}=' + sp.latex((cct.PG.transfer('P2')).evalf(4)) + '$')
 

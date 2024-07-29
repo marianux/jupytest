@@ -149,6 +149,8 @@ H = u1[v_out] / u1[v_in]
 
 #%%
 
+H0 = sp.collect(sp.simplify(sp.expand(H)),s)
+
 H0 = parametrize_sos(H)[0]
 
 
