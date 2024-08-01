@@ -19,9 +19,14 @@ global s
 
 ltspice_bin = os.path.expanduser('~/.wine/drive_c/Program Files/LTC/LTspiceXVII/XVIIx64.exe')
 
-# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/GIC bicuad.asc'
+fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/GIC bicuad.asc'
 # fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/ACKMOSS bicuad.asc'
-fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/trafo_real_mna.asc'
+# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/trafo_real_mna.asc'
+# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/trafo_real_mna.asc'
+# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/tee_puen_2ord_delay_eq.asc'
+# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/tee_puen_2ord_delay_eq2.asc'
+
+
 
 # Obtener la carpeta (directorio)
 folder_name = os.path.dirname(fileName_asc)
@@ -128,7 +133,11 @@ _, opamp_idx, _ = np.intersect1d( mna_sym_names, parametros_opamp, return_indice
 
 if len(opamp_idx) > 0:
     aop = mna_sym[opamp_idx[0]]
-    A = A.subs(dic_comp_name_vals).limit(aop, sp.oo)
+    A = A.limit(aop, sp.oo)
+
+# aplicar parametrizaciones
+A = A.subs(dic_comp_name_vals)
+A = A.subs(dic_params)
 
 # tuning a mano
 mna_sym = [ ii for ii in A.free_symbols ]

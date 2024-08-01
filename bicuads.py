@@ -9,8 +9,8 @@ Created on Wed May  8 23:14:49 2019
 import matplotlib.pyplot as plt
 import numpy as np
 from pytc2.sistemas_lineales import tf2sos_analog, analyze_sys, pretty_print_SOS
-
-from pytc2.sistemas_lineales import tf2sos_analog, analyze_sys, pretty_print_SOS
+import scipy.signal as sig
+import matplotlib.pyplot as plt
 
 
 # num
@@ -18,7 +18,7 @@ qn = -np.sqrt(2)/2
 wn = 5
 # den
 qp = np.sqrt(2)/2
-wp = 5
+wp = 1
 
 # kn = 1/wn**2 
 # kp = 1/wp**2 
@@ -27,9 +27,9 @@ kn = 1
 kp = 1 
 
 # coeficientes
-# num = kn * np.array([1, 0])
+num = kn * np.array([1, 0, 1/4])
 # # Omega y Q
-num = kn * np.array([1, wn/qn, wn**2]) 
+# num = kn * np.array([1, wn/qn, wn**2]) 
 
 # den = kp * np.array([1, 2, 2, 1])
 # Omega y Q
@@ -44,8 +44,8 @@ pretty_print_SOS(tf_bicuad_sos, mode='omegayq')
  
 plt.close('all')
 
-# analyze_sys(tf_bicuad_sos, 'mi_bicuad', same_figs=False)
-analyze_sys([sig.TransferFunction(num,den)], 'mi_bicuad', same_figs=False)
+analyze_sys(tf_bicuad_sos, 'mi_bicuad', same_figs=False, annotations=False)
+# analyze_sys([sig.TransferFunction(num,den)], 'mi_bicuad', same_figs=False)
 
 # para editar la vista de la figura
 # 
