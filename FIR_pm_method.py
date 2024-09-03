@@ -8,6 +8,7 @@ Created on Fri Aug 30 14:58:40 2024
 
 import numpy as np
 import warnings
+from scipy.sparse import coo_matrix 
 
 def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
     """
@@ -30,31 +31,38 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
     Dev (float): Deviation from the desired function
     """
     
+    # agregado MLLS
+    Comp = np.nan
+    Luck = np.nan
+    Y1 = np.nan
+   
     Nodd = Nfilt % 2
     Nm1 = Nfcns - 1
     Tpi = 2 * np.pi
     goto = 1
-
+    
     while goto <= 43:
         if goto == 1:
-            Itrmax = 2500
+            Itrmax = 2500  # Permite un máximo de 2500 iteraciones
             Devl = -1
             Nzr = Nfcns + 1
             Nzz = Nfcns + 2
             Niter = 0
             goto = 2
+    
         elif goto == 2:
-            Iext[Nzz] = Ngrid + 1
+            Iext[Nzz - 1] = Ngrid + 1
             Niter += 1
             if Niter > Itrmax:
                 break
-            X = np.cos(Tpi * Grid[Iext[:Nzr]])
+            X = np.cos(Tpi * Grid[Iext[:Nzr] - 1])
             Jet = (Nfcns - 1) // 15 + 1
-            Ad = np.array([D(j, Nzr, Jet, X) for j in range(Nzr)])
-            Dnum = Dden = 0
+            Ad = np.array([DD(j, Nzr, Jet, X) for j in range(Nzr)])
+            Dnum = 0
+            Dden = 0
             Kr = 1
             for j in range(Nzr):
-                Lr = Iext[j]
+                Lr = Iext[j] - 1
                 Dnum += Ad[j] * Des[Lr]
                 Dden += Kr * Ad[j] / Wt[Lr]
                 Kr = -Kr
@@ -62,23 +70,29 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
             Nu = -1 if Dev > 0 else 1
             Dev = -Nu * Dev
             Kr = Nu
-            Y = np.array([Des[Iext[j]] + Kr * Dev / Wt[Iext[j]] for j in range(Nzr)])
+            Y = np.array([Des[Iext[j] - 1] + Kr * Dev / Wt[Iext[j] - 1] for j in range(Nzr)])
             Kr = -Kr
+    
             if Dev < Devl:
-                print(" ****** Failure to converge ******** ")
-                print(" 1 Probable cause is machine rounding error.")
-                print(" 2 Impulse response may be correct.")
-                print(" 3 Check with a frequency response analysis.")
+                print('****** Failure to converge ********')
+                print('1. Probable cause is machine rounding error.')
+                print('2. Impulse response may be correct.')
+                print('3. Check with a frequency response analysis.')
                 goto = 50
-            Devl = Dev
-            Jchange = 0
-            K1 = Iext[0]
-            Knz = Iext[Nzr - 1]
-            Klow = 0
-            Nut = -Nu
-            Jr = 1
-            goto = 5
+            else:
+                Devl = Dev
+                Jchange = 0
+                K1 = Iext[0]
+                Knz = Iext[Nzr - 1]
+                Klow = 0
+                Nut = -Nu
+                Jr = 1
+                goto = 5
+    
         elif goto == 5:
+        # ==============================================
+		# Seach for the external frequencies of the best approximation            
+            
             if Jr == Nzz:
                 Ynz = Comp
             if Jr >= Nzz:
@@ -107,6 +121,7 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
                     goto = 30
             else:
                 goto = 6
+    
         elif goto == 6:
             Kupr = Iext[Jr]
             Lr = Iext[Jr - 1] + 1
@@ -117,36 +132,40 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
             if Lr >= Kupr:
                 goto = 13
             else:
-                Geex = Gee(Lr, Nzr, Ad, Grid, X, Y)
-                Err = (Geex - Des[Lr]) * Wt[Lr]
+                Geex = Gee(Lr - 1, Nzr, Ad, Grid, X, Y)
+                Err = (Geex - Des[Lr - 1]) * Wt[Lr - 1]
                 Dtemp = Nut * Err - Comp
                 if Dtemp <= 0:
                     goto = 13
                 else:
                     Comp = Nut * Err
                     goto = 9
+    
         elif goto == 9:
             Lr += 1
             if Lr >= Kupr:
                 goto = 12
             else:
-                Geex = Gee(Lr, Nzr, Ad, Grid, X, Y)
-                Err = (Geex - Des[Lr]) * Wt[Lr]
+                Geex = Gee(Lr - 1, Nzr, Ad, Grid, X, Y)
+                Err = (Geex - Des[Lr - 1]) * Wt[Lr - 1]
                 Dtemp = Nut * Err - Comp
                 if Dtemp <= 0:
                     goto = 12
                 else:
                     Comp = Nut * Err
                     goto = 9
+    
         elif goto == 12:
             Iext[Jr - 1] = Lr - 1
             Jr += 1
             Klow = Lr - 1
             Jchange += 1
             goto = 5
+    
         elif goto == 13:
             Lr -= 1
             goto = 14
+    
         elif goto == 14:
             Lr -= 1
             if Lr <= Klow:
@@ -156,8 +175,8 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
                 else:
                     goto = 24
             else:
-                Geex = Gee(Lr, Nzr, Ad, Grid, X, Y)
-                Err = (Geex - Des[Lr]) * Wt[Lr]
+                Geex = Gee(Lr - 1, Nzr, Ad, Grid, X, Y)
+                Err = (Geex - Des[Lr - 1]) * Wt[Lr - 1]
                 Dtemp = Nut * Err - Comp
                 if Dtemp > 0:
                     Comp = Nut * Err
@@ -167,50 +186,55 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
                         goto = 14
                     else:
                         goto = 27
+    
         elif goto == 19:
             Lr -= 1
             if Lr <= Klow:
                 goto = 22
             else:
-                Geex = Gee(Lr, Nzr, Ad, Grid, X, Y)
-                Err = (Geex - Des[Lr]) * Wt[Lr]
+                Geex = Gee(Lr - 1, Nzr, Ad, Grid, X, Y)
+                Err = (Geex - Des[Lr - 1]) * Wt[Lr - 1]
                 Dtemp = Nut * Err - Comp
                 if Dtemp <= 0:
                     goto = 22
                 else:
                     Comp = Nut * Err
                     goto = 19
+    
         elif goto == 22:
             Klow = Iext[Jr - 1]
             Iext[Jr - 1] = Lr + 1
             Jr += 1
             Jchange += 1
             goto = 5
+    
         elif goto == 24:
             Lr += 1
             if Lr >= Kupr:
                 goto = 27
             else:
-                Geex = Gee(Lr, Nzr, Ad, Grid, X, Y)
-                Err = (Geex - Des[Lr]) * Wt[Lr]
+                Geex = Gee(Lr - 1, Nzr, Ad, Grid, X, Y)
+                Err = (Geex - Des[Lr - 1]) * Wt[Lr - 1]
                 Dtemp = Nut * Err - Comp
                 if Dtemp <= 0:
                     goto = 24
                 else:
                     Comp = Nut * Err
                     goto = 9
+    
         elif goto == 27:
             Klow = Iext[Jr - 1]
             Jr += 1
             goto = 5
+    
         elif goto == 30:
             Lr += 1
             if Lr >= Kupr:
                 Luck = 6
                 goto = 36
             else:
-                Geex = Gee(Lr, Nzr, Ad, Grid, X, Y)
-                Err = (Geex - Des[Lr]) * Wt[Lr]
+                Geex = Gee(Lr - 1, Nzr, Ad, Grid, X, Y)
+                Err = (Geex - Des[Lr - 1]) * Wt[Lr - 1]
                 Dtemp = Nut * Err - Comp
                 if Dtemp <= 0:
                     goto = 30
@@ -218,12 +242,14 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
                     Comp = Nut * Err
                     Jr = Nzz
                     goto = 9
+    
         elif goto == 36:
             Lr = Ngrid + 1
             Klow = Knz
             Nut = -Nut1
             Comp = Y1 * 1.00001
             goto = 37
+    
         elif goto == 37:
             Lr -= 1
             if Lr <= Klow:
@@ -233,12 +259,13 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
                     else:
                         goto = 50
                 else:
-                    Iext[:Nfcns] = Iext[Nzr - 1::-1]
+                    for Jr in range(1, Nfcns + 1):
+                        Iext[Nzz - Jr - 1] = Iext[Nzr - Jr - 1]
                     Iext[0] = K1
                     goto = 2
             else:
-                Geex = Gee(Lr, Nzr, Ad, Grid, X, Y)
-                Err = (Geex - Des[Lr]) * Wt[Lr]
+                Geex = Gee(Lr - 1, Nzr, Ad, Grid, X, Y)
+                Err = (Geex - Des[Lr - 1]) * Wt[Lr - 1]
                 Dtemp = Nut * Err - Comp
                 if Dtemp <= 0:
                     goto = 37
@@ -247,7 +274,7 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
                     Comp = Nut * Err
                     Luck += 10
                     goto = 19
-
+                
     # Final calculation of coefficients of the best approximation
     Fsh = 0.000001
     Gtemp = Grid[0]
@@ -335,7 +362,7 @@ def REMEZ_EX(Nfilt, Neg, Nfcns, Ngrid, Grid, Iext, Des, Wt):
     return h, Dev, Iext
 
 
-def D(k, N, M, X):
+def DD(k, N, M, X):
     """ Calculate the Lagrange interpolation coefficients """
     D = 1
     Q = X[k]
@@ -345,7 +372,7 @@ def D(k, N, M, X):
                 D *= 2 * (Q - X[j])
     return 1 / D
 
-def gee(L, N, Ad, Grid, X, Y):
+def Gee(L, N, Ad, Grid, X, Y):
     """ Evaluate the frequency response using Lagrange interpolation in Barycentric form """
     Tpi = 2 * np.pi
     P = 0
@@ -357,7 +384,7 @@ def gee(L, N, Ad, Grid, X, Y):
         P += C * Y[j]
     return P / D
 
-def impulse(Neg, Nodd, Nfcns, Alpha):
+def Impulse(Neg, Nodd, Nfcns, Alpha):
     """ Calculate the impulse response """
     Nm1 = Nfcns - 1
     Nz = Nfcns + 1
@@ -514,7 +541,7 @@ def REMEZ_FIR(order, edge, fx, *args):
     return h, err
 
 
-def remez_ex_a(nfcns, grid, des, wt):
+def REMEZ_EX_A(nfcns, grid, des, wt):
     """
     Implements the Remez exchange algorithm for the weighted Chebyshev 
     approximation of a continuous function with a sum of cosines.
@@ -529,14 +556,16 @@ def remez_ex_a(nfcns, grid, des, wt):
     h (numpy array): Coefficients of the filter
     dev (float): The resulting value of the weighted error function
     iext (numpy array): Indices of extremal frequencies
+    
+	 Author: 		Tapio Saramaki, 2018-01-20    
     """
     
     # Initializations
     ngrid = len(grid)
-    l_ove = np.arange(1, ngrid + 1)
+    l_ove = np.arange(ngrid)
     temp = (ngrid - 1) / nfcns
-    jj = np.arange(1, nfcns + 1)
-    l_trial = np.concatenate((np.fix(temp * (jj - 1) + 1), [ngrid])).astype(int)
+    jj = np.arange(nfcns)
+    l_trial = np.concatenate((np.fix(temp * jj), [ngrid-1])).astype(int)
     nz = nfcns + 1
     devl = 0
     niter = 1
@@ -545,7 +574,16 @@ def remez_ex_a(nfcns, grid, des, wt):
     
     # Remez loop
     while niter < itrmax:
-        x = np.cos(np.pi * grid[l_trial - 1])
+        
+        # print(f'iter: {niter}' )
+        
+        x = np.cos(np.pi * grid[l_trial])
+        
+# 		--------------------------------------------------------------------------
+# 		 The following way of calculating the Lagrange interpolation coefficients
+# 		 has been copied from the PM code. The original idea is excellent because
+# 		 the high accuracy is maintained up to the filter order of 2000
+# 		--------------------------------------------------------------------------
         
         # Calculate the Lagrange interpolation coefficients
         jet = (nfcns - 1) // 15 + 1
@@ -554,43 +592,63 @@ def remez_ex_a(nfcns, grid, des, wt):
         for mm in range(nz):
             yy = 1
             for nn in range(jet):
-                xx = 2 * (x[mm] - x[nn:jet:nz])
+                xx = 2 * (x[mm] - x[nn:nz:jet])
                 yy *= np.prod(xx[xx != 0])
             ad[mm] = 1 / yy
         
         alter = np.ones_like(ad)
         alter[1::2] = -alter[1::2]
-        dnum = np.dot(ad, des[l_trial - 1])
-        dden = np.dot(alter, ad / wt[l_trial - 1])
+        dnum = np.dot(ad, des[l_trial])
+        dden = np.dot(alter, ad / wt[l_trial])
         dev = -dnum / dden
+
+        # print('ad: {:3.5f}'.format(np.median(ad)))
+        # print(f'dnum: {dnum}' )
+        # print(f'dden: {dden}' )
         
         if abs(dev) <= abs(devl):
+# 			%#############################################
+# 			% a need to use a more informative message.
+# 			%#############################################            
             warnings.warn('Convergence problems')
             break
         
         devl = dev
-        y = des[l_trial - 1] + dev * alter / wt[l_trial - 1]
+        y = des[l_trial] + dev * alter / wt[l_trial]
         l_left = np.setdiff1d(l_ove, l_trial)
         err_num = np.zeros_like(l_left, dtype=float)
         err_den = np.zeros_like(l_left, dtype=float)
         
         for jj in range(nz):
-            aid = ad[jj] / (x_all[l_left - 1] - x[jj])
+            aid = ad[jj] / (x_all[l_left] - x[jj])
             err_den += aid
             err_num += y[jj] * aid
+            # print('aid: {:3.5f} err_num: {:3.5f} err_den: {:3.5f}'.format(np.median(aid), np.median(err_num), np.median(err_den)) )
         
-        wei_err = (err_num / err_den - des[l_left - 1]) * wt[l_left - 1]
-        wei_err = np.append(wei_err, alter * dev)
-        l_aid1 = np.where(np.diff(np.sign(np.diff(np.concatenate(([0], wei_err, [0])))))[0])[0] + 1
+        wei_err = np.zeros_like(des)
+        wei_err[l_left] = (err_num / err_den - des[l_left]) * wt[l_left]
+        wei_err[l_trial] = alter * dev
+        # print('wei_err: {:3.5f}'.format(np.median(wei_err)))
+        
+        # print('wei_err[l_trial]: {:3.5f}'.format(np.median(wei_err[l_trial])))
+        
+        l_aid1 = np.where(np.diff(np.sign(np.diff(np.concatenate(([0], wei_err, [0]))))))[0] 
         l_aid2 = l_aid1[np.abs(wei_err[l_aid1]) >= np.abs(dev)]
+
+        # print('wei_err[l_aid2]: {:3.5f}'.format(np.median(wei_err[l_aid2])))
+
+        #print('wei_err: {:3.5f}'.format(np.median(wei_err)))
         
-        if len(l_aid2) > 0:
-            X, ind = max(enumerate(np.abs(wei_err[l_aid2])), key=lambda x: x[1])
-            l_real_init = l_aid2[ind]
-        else:
-            l_real_init = []
+        # Indices donde cambia el signo del error ponderado
+        changes = np.cumsum( np.concatenate( ([1], (np.sign(wei_err[l_aid2[1:]]) != np.sign(wei_err[l_aid2[:-1]])).astype(int)) ) ).astype(int) - 1
+
+        sparse_mat = coo_matrix((np.abs(wei_err[l_aid2]), (np.arange( len(l_aid2) ).astype(int),  changes) ));
         
-        if len(l_real_init) % 2 == 1:
+        ind = sparse_mat.argmax(axis = 0)
+
+        l_real_init = l_aid2[ind].flatten()
+        
+        if (len(l_real_init) - nz) % 2 == 1:
             if abs(wei_err[l_real_init[0]]) <= abs(wei_err[l_real_init[-1]]):
                 l_real_init = l_real_init[1:]
             else:
@@ -615,30 +673,40 @@ def remez_ex_a(nfcns, grid, des, wt):
     
     iext = l_real
     
+# 	%==========================================================================
+# 	% Generate the impulse response of the filtercase = 1 filter using the IDFT.  
+# 	% It is not very straightforward because the result of the Remez loop is
+# 	% expressed using the Lagrange interpolation formula in barycentric form
+# 	% The generation of this impulse response follows exactly the idea in the 
+# 	% the PMR code.
+# 	%=======================================================================
+    
     # Generate the impulse response using the IDFT
     cn = 2 * nfcns - 1
-    x_IDFT = np.cos(np.pi * np.arange(0, 2 * (nfcns - 1) + 1) / cn)
-    ind1, ind2 = np.intersect1d(x_IDFT, x, return_indices=True)
+    x_IDFT = np.arange(start=0, stop = 2 * nfcns / cn, step = 2/cn)
+    x_IDFT = np.cos(np.pi * x_IDFT)
+    _, ind1, ind2 = np.intersect1d(x_IDFT, x, return_indices=True)
     ind1 = np.sort(ind1)
     ind2 = np.sort(ind2)
-    
-    l_left = np.setdiff1d(np.arange(1, nfcns + 1), ind1 + 1)
+
+    l_ove = np.arange(nfcns)
+    l_left = np.setdiff1d(l_ove, ind1)
     num = np.zeros(len(l_left))
     den = np.zeros(len(l_left))
     
     for jj in range(nz):
-        aid = ad[jj] / (x_IDFT[l_left - 1] - x[jj])
+        aid = ad[jj] / (x_IDFT[l_left] - x[jj])
         den += aid
         num += y[jj] * aid
     
-    A = np.zeros_like(x_IDFT)
-    A[l_left - 1] = num / den
+    A = np.zeros(l_ove.shape)
+    A[l_left] = num / den
     A[ind1] = y[ind2]
     
     h = np.zeros(nfcns)
     
-    for n in range(1, nfcns + 1):
-        h[n - 1] = (1 / cn) * (A[0] + 2 * np.sum(A[1:nfcns] * np.cos(2 * np.pi * np.arange(1, nfcns) * (n - 1) / cn)))
+    for n in range(1,nfcns+1):
+        h[n-1] = (1 / cn) * (A[0] + 2 * np.sum(A[1:nfcns] * np.cos(2 * np.pi * np.arange(1, nfcns) * (n - 1) / cn)))
     
     h = np.real(h)
     h = np.concatenate((h[::-1], h[1:]))
@@ -822,3 +890,5 @@ Amax = 20 * np.log10((1 + deltac) / (1 - deltac))
 Amin = 20 * np.log10((1 + deltac) / deltas)
 print(f"Amax = {Amax:.6f} dB")
 print(f"Amin = {Amin:.4f} dB")
+
+
