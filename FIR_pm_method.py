@@ -13,7 +13,7 @@ from scipy.sparse import coo_matrix
 from scipy.signal import remez
 import matplotlib.pyplot as plt
 
-def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', wtx = None, itrmax = 250, *args):
+def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', wtx = None, itrmax = 250):
     """
     RERMEZ_FIR - A translation of the FORTRAN code of the Parks-McClellan
     minimax arbitrary-magnitude FIR filter design algorithm [1], referred 
@@ -105,29 +105,37 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', 
     
     edge = np.array(edge) / (fs/2)
 
+
+    if not isinstance(wtx , (type(None), np.ndarray, list)):
+        wtx = np.ones(len(fx) // 2)
+    else:
+        if not isinstance(wtx , list):
+            wtx = np.array(wtx)
+            
     # lgrid = 16  # default value
 
     # ==========================================================================
     # Check varargin according to the above assumptions
     # ==========================================================================    
-    nn = len(args)
-    if nn > 0 and isinstance(args[-1], list):
-        lgrid = args[-1][0]
-        nn -= 1
-        args = args[:nn]
+    # nn = len(args)
+    # if nn > 0 and isinstance(args[-1], list):
+    #     lgrid = args[-1][0]
+    #     nn -= 1
+    #     args = args[:nn]
 
-    if nn == 1:
-        if isinstance(args[0], str):
-            filter_type = args[0]
-            wtx = np.ones(len(fx) // 2)
-        else:
-            wtx = np.array(args[0])
-            filter_type = 'multiband'
-    elif nn == 2:
-        wtx = np.array(args[0])
-        filter_type = args[1]
-    else:
-        wtx = np.ones(len(fx) // 2)
+    # if nn == 1:
+    #     if isinstance(args[0], str):
+    #         filter_type = args[0]
+    #         wtx = np.ones(len(fx) // 2)
+    #     else:
+    #         wtx = np.array(args[0])
+    #         filter_type = 'multiband'
+    # elif nn == 2:
+    #     wtx = np.array(args[0])
+    #     filter_type = args[1]
+    # else:
+    #     wtx = np.ones(len(fx) // 2)
+        
 
 	#==========================================================================
 	#  Find out jtype that was used in the PM code.
@@ -308,11 +316,24 @@ def REMEZ_EX_A(nfcns, grid, des, wt, itrmax = 250):
     l_ove = np.arange(ngrid)
     temp = (ngrid - 1) / nfcns
     jj = np.arange(nfcns)
+    
+    # (original) primer intento de hallar las Omega extremas
+    # l_trial = np.concatenate((np.fix(temp * jj), [ngrid-1])).astype(int)
     l_trial = np.concatenate((np.fix(temp * jj), [ngrid-1])).astype(int)
     nz = nfcns + 1
     devl = 0
     niter = 1
     x_all = np.cos(np.pi * grid)
+
+
+    ## Debug
+
+    fs = 2.0
+    fft_sz = 512
+    half_fft_sz = fft_sz//2
+    frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
+    
+    ## Debug
     
     # Remez loop
     while niter < itrmax:
@@ -350,7 +371,7 @@ def REMEZ_EX_A(nfcns, grid, des, wt, itrmax = 250):
         
         if np.abs(dev) <= np.abs(devl):
 # 			#############################################
-# 		a need to use a more informative message.
+# 		    a need to use a more informative message.
 # 			#############################################            
             warnings.warn('Convergence problems')
             break
@@ -406,7 +427,76 @@ def REMEZ_EX_A(nfcns, grid, des, wt, itrmax = 250):
                 l_real_init = np.delete(l_real_init, [ind_omit, ind_omit + 1])
         
         l_real = l_real_init
+
         
+        ## Debug
+        
+        # valor de frecuencias extremas para devolver, normalizado de 0 a 1
+        iext = l_real/(ngrid-1)
+        
+        # ==========================================================================
+        # Generate the impulse response of the filtercase = 1 filter using the IDFT.  
+        # It is not very straightforward because the result of the Remez loop is
+        # expressed using the Lagrange interpolation formula in barycentric form
+        # The generation of this impulse response follows exactly the idea in the 
+        # the PMR code.
+        # ====================================================================
+        
+        # Generate the impulse response using the IDFT
+        cn = 2 * nfcns - 1
+        x_IDFT = np.arange(start=0, stop = 2 * nfcns / cn, step = 2/cn)
+        x_IDFT = np.cos(np.pi * x_IDFT)
+        _, ind1, ind2 = np.intersect1d(x_IDFT, x, return_indices=True)
+        ind1 = np.sort(ind1)
+        ind2 = np.sort(ind2)
+    
+        l_ove = np.arange(nfcns)
+        l_left = np.setdiff1d(l_ove, ind1)
+        num = np.zeros(len(l_left))
+        den = np.zeros(len(l_left))
+        
+        for jj in range(nz):
+            aid = ad[jj] / (x_IDFT[l_left] - x[jj])
+            den += aid
+            num += y[jj] * aid
+        
+        A = np.zeros(l_ove.shape)
+        A[l_left] = num / den
+        A[ind1] = y[ind2]
+        
+        h = np.zeros(nfcns)
+        
+        for n in range(1,nfcns+1):
+            h[n-1] = (1 / cn) * (A[0] + 2 * np.sum(A[1:nfcns] * np.cos(2 * np.pi * np.arange(1, nfcns) * (n - 1) / cn)))
+        
+        h = np.real(h)
+        h = np.concatenate((h[::-1], h[1:]))
+    
+    
+        H = np.fft.fft(h, fft_sz)
+        frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
+
+        wextt = (iext * (half_fft_sz-1)).astype(int)
+
+        D_ext = np.interp(frecuencias[:half_fft_sz], grid, des)
+        W_ext = np.interp(frecuencias[:half_fft_sz], grid, wt)
+
+        w_err = np.abs(W_ext*(D_ext-np.abs(H[:half_fft_sz])))
+
+        # Graficar la respuesta en frecuencia
+        plt.figure(1)
+        plt.plot(frecuencias[:half_fft_sz], w_err, label=f'iter {niter}')
+        # plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
+        plt.plot(frecuencias[wextt], w_err[wextt], 'or')
+        plt.title("Error pesado del Filtro FIR Diseñado")
+        plt.xlabel("Frecuencia Normalizada")
+        plt.ylabel("Magnitud")
+        plt.legend()
+        plt.show()
+
+    
+        ## Debug
+       
         if np.array_equal(l_real, l_trial):
             break
         else:
@@ -416,13 +506,13 @@ def REMEZ_EX_A(nfcns, grid, des, wt, itrmax = 250):
     # valor de frecuencias extremas para devolver, normalizado de 0 a 1
     iext = l_real/(ngrid-1)
     
-# 	==========================================================================
-# Generate the impulse response of the filtercase = 1 filter using the IDFT.  
-# It is not very straightforward because the result of the Remez loop is
-# expressed using the Lagrange interpolation formula in barycentric form
-# The generation of this impulse response follows exactly the idea in the 
-# the PMR code.
-# 	=======================================================================
+    # ==========================================================================
+    # Generate the impulse response of the filtercase = 1 filter using the IDFT.  
+    # It is not very straightforward because the result of the Remez loop is
+    # expressed using the Lagrange interpolation formula in barycentric form
+    # The generation of this impulse response follows exactly the idea in the 
+    # the PMR code.
+    # ====================================================================
     
     # Generate the impulse response using the IDFT
     cn = 2 * nfcns - 1
@@ -608,6 +698,8 @@ print(f"Aminreq = {Aminreq:.4f} dB")
 N, Be, D, W = L_PHASE_LP_FIR_ORDER(wTedges, d)
 W = [1, 4]  # Weighting factors
 
+
+
 # Output estimated order
 print(f"Estimated order (N): {N}")
 
@@ -619,7 +711,7 @@ print(f"Final filter order: {N}")
 Ftype = 'm'
 
 # Design the filter using the Remez algorithm
-hh, Err, wext = REMEZ_FIR(order=N, edge=Be, fx=D, wtx = W, filter_type = Ftype, lgrid = 128)
+hh, Err, wext = REMEZ_FIR(order=N, edge=Be, fx=D, wtx = W, filter_type = Ftype, itrmax=10)
 
 # Calculate resulting passband and stopband ripples
 deltac = Err / W[0]
@@ -635,23 +727,22 @@ Amin = 20 * np.log10((1 - deltac) / deltas)
 print(f"Amax = {Amax:.6f} dB")
 print(f"Amin = {Amin:.4f} dB")
 
-
-h_firpm = remez(N, Be, [1, 0], weight= W, fs=2.0)
-
+fs = 2.0
+h_firpm = remez(N, Be, [1, 0], weight= W, fs=fs)
 
 fft_sz = 512
 half_fft_sz = fft_sz//2
 
 H = np.fft.fft(h_mifirpm, fft_sz)
 H_firls = np.fft.fft(h_firpm, fft_sz)
-frecuencias = np.linspace(0, 1.0, half_fft_sz)
+frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
 
-wextt = (wext * half_fft_sz).astype(int)
+wextt = (wext * (half_fft_sz-1)).astype(int)
 
 # Graficar la respuesta en frecuencia
-plt.plot(frecuencias, 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
+plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
 plt.plot(frecuencias[wextt], 20*np.log10(np.abs(H[wextt])), 'or', label='$\omega_{ext}$')
-plt.plot(frecuencias, 20*np.log10(np.abs(H_firls[:len(H_firls)//2])), label='firls')
+plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H_firls[:len(H_firls)//2])), label='firls')
 plt.title("Respuesta en Frecuencia del Filtro FIR Diseñado")
 plt.xlabel("Frecuencia Normalizada")
 plt.ylabel("Magnitud")
