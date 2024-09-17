@@ -135,7 +135,6 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', 
     #     filter_type = args[1]
     # else:
     #     wtx = np.ones(len(fx) // 2)
-        
 
 	#==========================================================================
 	#  Find out jtype that was used in the PM code.
@@ -277,7 +276,7 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', 
 	# (4) grid, the frequency grid, is now within 0 and 1, instead of being
 	#     within 0 and 0.5.
 	#==========================================================================
-    h, err, iext = REMEZ_EX_A(nfcns, grid, des, wt, itrmax)
+    h, err, iext = REMEZ_EX_A(nfcns, grid, des, wt, maxiter)
 
     # Generate the impulse responses for other types
     nn = len(h)
@@ -292,7 +291,7 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', 
     return h, err, iext
 
 
-def REMEZ_EX_A(nfcns, grid, des, wt, itrmax = 250):
+def REMEZ_EX_A(nfcns, grid, des, wt, maxiter = 250):
     """
     Implements the Remez exchange algorithm for the weighted Chebyshev 
     approximation of a continuous function with a sum of cosines.
@@ -336,7 +335,7 @@ def REMEZ_EX_A(nfcns, grid, des, wt, itrmax = 250):
     ## Debug
     
     # Remez loop
-    while niter < itrmax:
+    while niter < maxiter:
         
         # print(f'iter: {niter}' )
         
@@ -681,22 +680,38 @@ def N4(fc, deltaF, deltac, deltas):
     return N3(fc, deltaF, deltac) + DN(fc, deltaF, deltac, deltas)
 
 
+from pytc2.sistemas_lineales import plot_plantilla
+
+fs = 2.0
+
+maxit = 2
+
+filter_type = 'lowpass'
+
+fpass = 0.3 # 
+ripple = 0.5 # dB
+fstop = 0.6 # Hz
+attenuation = 40 # dB
 
 # Define the band edges and gains
-wTedges = np.array([0.3, 0.6])
+wTedges = np.array([fpass, fstop])
+
 b = [1, 0]  # Gains in the bands
-d = [0.02, 0.0025]  # Acceptable deviations
+# d = [0.02, 0.0025]  # Acceptable deviations
+d = np.array([-ripple, -attenuation])  # Acceptable deviations
+d = 10**(d/20)
+d = np.array([(1-d[0]), d[1] ])
 
 # Compute the required stopband attenuation and passband ripple
-Amaxreq = 20 * np.log10(1 + 0.02 / (1 - 0.02))
-Aminreq = 20 * np.log10((1 + 0.02) / 0.0025)
+Amaxreq = 20 * np.log10(1 + d[0] / (1 - d[0]))
+Aminreq = 20 * np.log10((1 + d[0]) / d[1])
 
 print(f"Amaxreq = {Amaxreq:.4f} dB")
 print(f"Aminreq = {Aminreq:.4f} dB")
 
 # Estimate filter order
 N, Be, D, W = L_PHASE_LP_FIR_ORDER(wTedges, d)
-W = [1, 4]  # Weighting factors
+# W = [1, 50]  # Weighting factors
 
 
 
@@ -704,14 +719,17 @@ W = [1, 4]  # Weighting factors
 print(f"Estimated order (N): {N}")
 
 # Increase order to ensure meeting the criteria
-N += 1  # Minimum order (16) to meet the criteria
+if N%2 == 0:
+    N += 1  # Minimum order (16) to meet the criteria
 print(f"Final filter order: {N}")
 
 # Filter type (multiband)
 Ftype = 'm'
 
 # Design the filter using the Remez algorithm
-hh, Err, wext = REMEZ_FIR(order=N, edge=Be, fx=D, wtx = W, filter_type = Ftype, itrmax=10)
+hh, Err, wext = REMEZ_FIR(order=N, edge=Be, fx=D, 
+                          wtx = W, filter_type = Ftype, 
+                          lgrid = 128, maxiter=maxit)
 
 # Calculate resulting passband and stopband ripples
 deltac = Err / W[0]
@@ -728,7 +746,7 @@ print(f"Amax = {Amax:.6f} dB")
 print(f"Amin = {Amin:.4f} dB")
 
 fs = 2.0
-h_firpm = remez(N, Be, [1, 0], weight= W, fs=fs)
+h_firpm = remez(N, Be, [1, 0], weight= W, fs=2.0, maxiter=maxit)
 
 fft_sz = 512
 half_fft_sz = fft_sz//2
@@ -739,10 +757,16 @@ frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
 
 wextt = (wext * (half_fft_sz-1)).astype(int)
 
+plt.figure(1)
+plt.clf()
+
 # Graficar la respuesta en frecuencia
-plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
+plt.plot(frecuencias, 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firPM')
 plt.plot(frecuencias[wextt], 20*np.log10(np.abs(H[wextt])), 'or', label='$\omega_{ext}$')
-plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H_firls[:len(H_firls)//2])), label='firls')
+plt.plot(frecuencias, 20*np.log10(np.abs(H_firls[:len(H_firls)//2])), label='firpm')
+
+plot_plantilla(filter_type = filter_type , fpass = fpass, ripple = ripple , fstop = fstop, attenuation = attenuation, fs = fs)
+
 plt.title("Respuesta en Frecuencia del Filtro FIR Diseñado")
 plt.xlabel("Frecuencia Normalizada")
 plt.ylabel("Magnitud")
