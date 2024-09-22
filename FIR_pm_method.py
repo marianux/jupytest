@@ -12,8 +12,10 @@ from scipy.sparse import coo_matrix
 
 from scipy.signal import remez
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
 
-def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', wtx = None, itrmax = 250):
+def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, 
+              filter_type = 'multiband', wtx = None, maxiter = 250):
     """
     RERMEZ_FIR - A translation of the FORTRAN code of the Parks-McClellan
     minimax arbitrary-magnitude FIR filter design algorithm [1], referred 
@@ -202,6 +204,10 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', 
     des = []
     wt = []
 
+    # agregado MLLS: quiero repartir mejor las bases por cada banda
+    bases_por_banda = (np.round(nfcns*wtx/np.sum(wtx))).astype(int)
+
+
     for ll in range(nbands):
         number_grid = int(np.ceil((edge[2 * ll + 1] - edge[2 * ll]) / delf))
         grid_more = np.linspace(edge[2 * ll], edge[2 * ll + 1], number_grid + 1)
@@ -276,7 +282,8 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', 
 	# (4) grid, the frequency grid, is now within 0 and 1, instead of being
 	#     within 0 and 0.5.
 	#==========================================================================
-    h, err, iext = REMEZ_EX_A(nfcns, grid, des, wt, maxiter)
+    # h, err, iext = REMEZ_EX_A(nfcns, grid, des, wt, bases_por_banda, edge, maxiter = maxit)
+    h, err, iext = REMEZ_EX_MLLS(nfcns, grid, des, wt, maxiter = maxit)
 
     # Generate the impulse responses for other types
     nn = len(h)
@@ -291,7 +298,144 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0, filter_type = 'multiband', 
     return h, err, iext
 
 
-def REMEZ_EX_A(nfcns, grid, des, wt, maxiter = 250):
+
+def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
+
+
+    # Initializations
+    ngrid = len(grid)
+    # l_ove = np.arange(ngrid)
+
+    # Definir frecuencias extremas iniciales
+    omega_scale = (ngrid - 1) / M
+    jj = np.arange(M)
+    omega_ext_iniciales_idx = np.concatenate((np.fix(omega_scale * jj), [ngrid-1])).astype(int)
+    # omega_ext_iniciales_idx = np.concatenate((np.arange(M), [M]))/M
+
+
+    ## Debug
+
+    fs = 2.0
+    fft_sz = 512
+    half_fft_sz = fft_sz//2
+    frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
+
+    plt.figure(1)
+    plt.clf()
+
+    ## Debug
+    
+    niter = 1
+
+    omega_ext_idx = omega_ext_iniciales_idx
+    omega_ext_prev_idx = np.zeros_like(omega_ext_idx)
+
+    prev_error_target = np.finfo(np.float64).max
+    
+    # Remez loop
+    while niter < maxiter:
+
+        # Construir la matriz de diseño A
+        A = np.zeros((M+1, M+1))
+        for ii, omega_idx in enumerate(omega_ext_iniciales_idx):
+            A[ii,:] = np.hstack((np.cos( ii * np.pi * grid[omega_idx] * np.arange(M)), (-1)**ii/wt[np.fix(ii*omega_scale).astype(int)]))
+
+        # Resolver el sistema de ecuaciones para los coeficientes únicos
+        xx = np.linalg.solve(A, des[omega_ext_idx])
+        
+        a_coeffs_half = xx[:-1]
+        this_error_target = np.abs(xx[-1])
+
+        Aw = np.zeros_like(grid)
+        for ii in range(M):
+            Aw[omega_ext_idx] += a_coeffs_half[ii] * np.cos( ii * np.pi * grid[omega_ext_idx] )
+
+        Ew = np.abs(wt*(des - Aw))
+
+        # plt.figure(1)
+        # # plt.plot( grid, Aw)
+        # plt.plot( grid, Ew)
+        # plt.plot( [0,1.0], [dev, dev], '--r')
+        
+        # plt.plot( grid[omega_idx], Aw[omega_idx])
+        
+        # coeficientes del filtro        
+        a_coeffs_half[1:] = a_coeffs_half[1:]/2
+
+        h_coeffs = np.concatenate((a_coeffs_half[::-1], a_coeffs_half[1:]))
+
+        H = np.fft.fft(h_coeffs, fft_sz)
+
+        D_ext = np.interp(frecuencias[:half_fft_sz], grid, des)
+        W_ext = np.interp(frecuencias[:half_fft_sz], grid, wt)
+
+        Aw_ext = np.abs(H[:half_fft_sz])
+        w_err_ext = W_ext*(D_ext - Aw_ext)
+        w_err_abs_ext = np.abs(w_err_ext)
+
+        peaks, _ = find_peaks(w_err_abs_ext)
+
+        # peaks = np.sort(np.concatenate((peaks,peaks2)))
+
+        ## Debug
+
+        # Graficar la respuesta en frecuencia
+        plt.figure(1)
+        plt.clf()
+        plt.plot(frecuencias[:half_fft_sz], Aw_ext, label=f'Aw_ext {niter}')
+        # plt.plot(frecuencias[:half_fft_sz], W_err_orig, label=f'orig {niter}')
+        # plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
+        
+        plt.plot(grid, Ew, label=f'Ew {niter}')
+        plt.plot(grid[omega_ext_idx], Ew[omega_ext_idx], 'or')
+        plt.plot(frecuencias[:half_fft_sz], w_err_abs_ext, label=f'w_err {niter}')
+        plt.plot(frecuencias[:half_fft_sz][peaks], w_err_abs_ext[peaks], 'xb')
+        plt.plot([ frecuencias[0], frecuencias[-1]], [this_error_target, this_error_target], 'xb')
+
+        plt.title("Error pesado del Filtro FIR Diseñado")
+        plt.xlabel("Frecuencia Normalizada")
+        plt.ylabel("Magnitud")
+        plt.legend()
+        plt.show()
+
+        ## Debug
+        
+        # if this_error_target > prev_error_target:
+        #     print('Error de convergencia: no logramos hacer bajar el error máximo.')
+        #     break
+    
+        if np.array_equal(omega_ext_idx, omega_ext_prev_idx):
+            break
+        else:
+            omega_ext_prev_idx = omega_ext_idx
+            
+            cant_peaks = len(peaks)
+            if cant_peaks < M+1:
+                #complemento con otras frecuencias extremas que no hayan aparecido en peaks
+                aux_idx = np.array([np.argmin(np.abs(grid - frecuencias[ii])) for ii in peaks])
+                aux_min_dist = np.array([np.min(np.abs(grid[ii] - frecuencias[peaks])) for ii in omega_ext_idx])
+                aux_min_dist_idx = np.argsort(aux_min_dist)[::-1]
+                
+                # complemento con los más lejanos
+                omega_ext_idx = np.sort(np.concatenate((aux_idx, omega_ext_idx[aux_min_dist_idx[:M+1-cant_peaks]])))
+                
+            else:
+                omega_ext_idx = np.array([np.argmin(np.abs(grid - frecuencias[ii]))  for ii in peaks])
+                omega_ext_idx = omega_ext_idx[:(M+1)]
+                
+            
+            prev_error_target = this_error_target
+            niter += 1
+
+
+    ## Debug
+
+    plt.show()
+
+    ## Debug
+
+
+def REMEZ_EX_A(nfcns, grid, des, wt, bases_por_banda, edges, maxiter = 250):
     """
     Implements the Remez exchange algorithm for the weighted Chebyshev 
     approximation of a continuous function with a sum of cosines.
@@ -313,16 +457,48 @@ def REMEZ_EX_A(nfcns, grid, des, wt, maxiter = 250):
     # Initializations
     ngrid = len(grid)
     l_ove = np.arange(ngrid)
-    temp = (ngrid - 1) / nfcns
-    jj = np.arange(nfcns)
     
     # (original) primer intento de hallar las Omega extremas
-    # l_trial = np.concatenate((np.fix(temp * jj), [ngrid-1])).astype(int)
+    temp = (ngrid - 1) / nfcns
+    jj = np.arange(nfcns)
     l_trial = np.concatenate((np.fix(temp * jj), [ngrid-1])).astype(int)
+    
+    # propuesta MLLS: Extremos de bandas más cantidad fija en los extremos.
+    
+    # l_trial = []
+
+    # for ii in range(0, len(edges), 2):
+    #     # Obtener los límites de la banda actual
+    #     limite_inferior = edges[ii]
+    #     limite_superior = edges[ii+1]
+        
+    #     # Generar los puntos equiespaciados dentro de la banda, incluyendo los límites
+    #     puntos = np.linspace(limite_inferior, limite_superior, bases_por_banda[ii // 2]+2, endpoint=True)
+        
+    #     # Añadir los puntos a la lista, excepto el límite inferior si ya está incluido
+    #     if ii > 0:
+    #         l_trial.extend(puntos[1:])  # Evitar duplicar límites
+    #     else:
+    #         l_trial.extend(puntos)
+
+
+    # nfcns = len(l_trial) - 1
+    # l_trial = ((ngrid - 1) * np.array(l_trial)).astype(int)
+    
+    # # ambos pares o ambos impares
+    # # if np.sum(bases_por_banda) % 2 != nfcns % 2:
+    # #     nfcns += 1
+    # #     # agrego una base entre la primer transición
+    # #     l_trial.extend([np.mean(edges[1:3])])
+    # # l_trial = (np.sort((ngrid - 1) * np.array(l_trial)).astype(int))
+    
+    # fin propuesta MLLS
+    
     nz = nfcns + 1
     devl = 0
     niter = 1
     x_all = np.cos(np.pi * grid)
+    jj = np.arange(nfcns)
 
 
     ## Debug
@@ -331,6 +507,9 @@ def REMEZ_EX_A(nfcns, grid, des, wt, maxiter = 250):
     fft_sz = 512
     half_fft_sz = fft_sz//2
     frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
+
+    plt.figure()
+    plt.clf()
     
     ## Debug
     
@@ -479,21 +658,21 @@ def REMEZ_EX_A(nfcns, grid, des, wt, maxiter = 250):
 
         D_ext = np.interp(frecuencias[:half_fft_sz], grid, des)
         W_ext = np.interp(frecuencias[:half_fft_sz], grid, wt)
+        W_err_orig = np.interp(frecuencias[:half_fft_sz], grid, wei_err)
 
-        w_err = np.abs(W_ext*(D_ext-np.abs(H[:half_fft_sz])))
+        w_err = W_ext*(D_ext-np.abs(H[:half_fft_sz]))
 
         # Graficar la respuesta en frecuencia
         plt.figure(1)
         plt.plot(frecuencias[:half_fft_sz], w_err, label=f'iter {niter}')
+        plt.plot(frecuencias[:half_fft_sz], W_err_orig, label=f'orig {niter}')
         # plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
         plt.plot(frecuencias[wextt], w_err[wextt], 'or')
         plt.title("Error pesado del Filtro FIR Diseñado")
         plt.xlabel("Frecuencia Normalizada")
         plt.ylabel("Magnitud")
         plt.legend()
-        plt.show()
-
-    
+   
         ## Debug
        
         if np.array_equal(l_real, l_trial):
@@ -501,6 +680,12 @@ def REMEZ_EX_A(nfcns, grid, des, wt, maxiter = 250):
         else:
             l_trial = l_real
             niter += 1
+
+    ## Debug
+
+    plt.show()
+
+    ## Debug
     
     # valor de frecuencias extremas para devolver, normalizado de 0 a 1
     iext = l_real/(ngrid-1)
@@ -647,7 +832,12 @@ def L_PHASE_LP_FIR_ORDER(edge, d, fs = 2.0):
     N = N4(0.5 - fc, deltaF, deltac, deltas) - 1
 
     Be = np.array([0.0, edge[0], edge[1], 1.0]) * fny
+    
+    # orig
     D = np.array([1, 1, 0, 0])
+    # MLLS
+    # D = np.array([1, 1, d[1], d[1]])
+    
     W = np.array([1, d[0] / d[1]])
 
     return N, Be, D, W
@@ -682,9 +872,10 @@ def N4(fc, deltaF, deltac, deltas):
 
 from pytc2.sistemas_lineales import plot_plantilla
 
+# Parámetros PM algorithm
 fs = 2.0
-
-maxit = 2
+maxit = 10
+lgrid = 16
 
 filter_type = 'lowpass'
 
@@ -726,10 +917,12 @@ print(f"Final filter order: {N}")
 # Filter type (multiband)
 Ftype = 'm'
 
+# plt.close('all')
+
 # Design the filter using the Remez algorithm
 hh, Err, wext = REMEZ_FIR(order=N, edge=Be, fx=D, 
                           wtx = W, filter_type = Ftype, 
-                          lgrid = 128, maxiter=maxit)
+                          lgrid = lgrid, maxiter=maxit)
 
 # Calculate resulting passband and stopband ripples
 deltac = Err / W[0]
@@ -757,13 +950,13 @@ frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
 
 wextt = (wext * (half_fft_sz-1)).astype(int)
 
-plt.figure(1)
+plt.figure()
 plt.clf()
 
 # Graficar la respuesta en frecuencia
-plt.plot(frecuencias, 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firPM')
+plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firPM')
 plt.plot(frecuencias[wextt], 20*np.log10(np.abs(H[wextt])), 'or', label='$\omega_{ext}$')
-plt.plot(frecuencias, 20*np.log10(np.abs(H_firls[:len(H_firls)//2])), label='firpm')
+plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H_firls[:len(H_firls)//2])), label='firpm')
 
 plot_plantilla(filter_type = filter_type , fpass = fpass, ripple = ripple , fstop = fstop, attenuation = attenuation, fs = fs)
 
