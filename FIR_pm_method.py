@@ -243,6 +243,13 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0,
     des = np.array(des)
     wt = np.array(wt)
 
+    _, edge_idx, _ = np.intersect1d(grid, edge, assume_unique=True, return_indices=True)
+    
+    if( grid[edge_idx[-1]] != edge[-1]):
+        
+        edge_idx = np.append(edge_idx, [len(grid)-1])
+        
+
 	#========================================================================
 	# Compared the PM code, there are two basic differences:
 	# (1) In the allocation of grid points in each band, delf_new has been 
@@ -283,7 +290,7 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0,
 	#     within 0 and 0.5.
 	#==========================================================================
     # h, err, iext = REMEZ_EX_A(nfcns, grid, des, wt, bases_por_banda, edge, maxiter = maxit)
-    h, err, iext = REMEZ_EX_MLLS(nfcns, grid, des, wt, maxiter = maxit)
+    h, err, iext = REMEZ_EX_MLLS(nfcns, grid, des, wt, edge_idx, maxiter = maxit)
 
     # Generate the impulse responses for other types
     nn = len(h)
@@ -299,7 +306,7 @@ def REMEZ_FIR(order, edge, fx, lgrid = 16, fs = 2.0,
 
 
 
-def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
+def REMEZ_EX_MLLS(M, grid, des, wt, edge_idx, maxiter = 250):
 
 
     # Initializations
@@ -310,8 +317,10 @@ def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
     omega_scale = (ngrid - 1) / M
     jj = np.arange(M)
     omega_ext_iniciales_idx = np.concatenate((np.fix(omega_scale * jj), [ngrid-1])).astype(int)
-    # omega_ext_iniciales_idx = np.concatenate((np.arange(M), [M]))/M
 
+    # aseguro que siempre haya una omega extrema en los edges.
+    aux_idx = np.array([np.argmin(np.abs(grid[omega_ext_iniciales_idx] - grid[ii])) for ii in edge_idx])
+    omega_ext_iniciales_idx[aux_idx] = edge_idx
 
     ## Debug
 
@@ -320,7 +329,14 @@ def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
     half_fft_sz = fft_sz//2
     frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
 
+    peaks_mute = np.zeros(half_fft_sz)
+    
+    for ii in range(len(edge_idx)//2):
+        peaks_mute[ np.bitwise_and(frecuencias[:half_fft_sz] >= grid[edge_idx[2*ii]], frecuencias[:half_fft_sz] <= grid[edge_idx[2*ii+1]]) ] = 1.0
+
     plt.figure(1)
+    plt.clf()
+    plt.figure(2)
     plt.clf()
 
     ## Debug
@@ -337,8 +353,8 @@ def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
 
         # Construir la matriz de diseño A
         A = np.zeros((M+1, M+1))
-        for ii, omega_idx in enumerate(omega_ext_iniciales_idx):
-            A[ii,:] = np.hstack((np.cos( ii * np.pi * grid[omega_idx] * np.arange(M)), (-1)**ii/wt[np.fix(ii*omega_scale).astype(int)]))
+        for ii, omega_idx in enumerate(omega_ext_idx):
+            A[ii,:] = np.hstack((np.cos( np.pi * grid[omega_idx] * np.arange(M)), (-1)**ii/wt[np.fix(ii*omega_scale).astype(int)]))
 
         # Resolver el sistema de ecuaciones para los coeficientes únicos
         xx = np.linalg.solve(A, des[omega_ext_idx])
@@ -346,11 +362,13 @@ def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
         a_coeffs_half = xx[:-1]
         this_error_target = np.abs(xx[-1])
 
-        Aw = np.zeros_like(grid)
+        Aw = np.zeros(M+1)
         for ii in range(M):
-            Aw[omega_ext_idx] += a_coeffs_half[ii] * np.cos( ii * np.pi * grid[omega_ext_idx] )
+            Aw += a_coeffs_half[ii] * np.cos( ii * np.pi * grid[omega_ext_idx] )
 
-        Ew = np.abs(wt*(des - Aw))
+        Aw_grid = np.interp(grid, grid[omega_ext_idx], Aw)
+
+        Ew = np.abs(wt*(des - Aw_grid))
 
         # plt.figure(1)
         # # plt.plot( grid, Aw)
@@ -366,14 +384,15 @@ def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
 
         H = np.fft.fft(h_coeffs, fft_sz)
 
+        # Aw_ext = np.interp(frecuencias[:half_fft_sz], grid[omega_ext_idx], Aw)
+        Aw_ext = np.abs(H[:half_fft_sz])
         D_ext = np.interp(frecuencias[:half_fft_sz], grid, des)
         W_ext = np.interp(frecuencias[:half_fft_sz], grid, wt)
-
-        Aw_ext = np.abs(H[:half_fft_sz])
+        
         w_err_ext = W_ext*(D_ext - Aw_ext)
         w_err_abs_ext = np.abs(w_err_ext)
 
-        peaks, _ = find_peaks(w_err_abs_ext)
+        peaks, _ = find_peaks(w_err_abs_ext * peaks_mute)
 
         # peaks = np.sort(np.concatenate((peaks,peaks2)))
 
@@ -382,19 +401,25 @@ def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
         # Graficar la respuesta en frecuencia
         plt.figure(1)
         plt.clf()
-        plt.plot(frecuencias[:half_fft_sz], Aw_ext, label=f'Aw_ext {niter}')
+        # plt.plot(frecuencias[:half_fft_sz], Aw_ext, label=f'Aw_ext {niter}')
+        # plt.plot(grid[omega_ext_idx], Aw, 'ob')
         # plt.plot(frecuencias[:half_fft_sz], W_err_orig, label=f'orig {niter}')
-        # plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
         
-        plt.plot(grid, Ew, label=f'Ew {niter}')
+        plt.plot(grid, Ew, label=f'Ew grid {niter}')
         plt.plot(grid[omega_ext_idx], Ew[omega_ext_idx], 'or')
-        plt.plot(frecuencias[:half_fft_sz], w_err_abs_ext, label=f'w_err {niter}')
+        plt.plot(frecuencias[:half_fft_sz], w_err_abs_ext, label=f'Ew_ext {niter}')
         plt.plot(frecuencias[:half_fft_sz][peaks], w_err_abs_ext[peaks], 'xb')
-        plt.plot([ frecuencias[0], frecuencias[-1]], [this_error_target, this_error_target], 'xb')
+        plt.plot([ frecuencias[0], frecuencias[half_fft_sz]], [this_error_target, this_error_target], '--k', label=f'$\delta=$ {this_error_target:3.3f}')
 
         plt.title("Error pesado del Filtro FIR Diseñado")
         plt.xlabel("Frecuencia Normalizada")
         plt.ylabel("Magnitud")
+        plt.legend()
+        plt.show()
+
+        plt.figure(2)
+        plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label=f'mi firls {niter}')
+        # plt.plot(frecuencias[:half_fft_sz], 20*np.log10(D_ext), label='D($\Omega$)')
         plt.legend()
         plt.show()
 
@@ -418,6 +443,10 @@ def REMEZ_EX_MLLS(M, grid, des, wt, maxiter = 250):
                 
                 # complemento con los más lejanos
                 omega_ext_idx = np.sort(np.concatenate((aux_idx, omega_ext_idx[aux_min_dist_idx[:M+1-cant_peaks]])))
+                
+                # aseguro que siempre haya una omega extrema en los edges.
+                aux_idx = np.array([np.argmin(np.abs(grid[omega_ext_idx] - grid[ii])) for ii in edge_idx])
+                omega_ext_idx[aux_idx] = edge_idx
                 
             else:
                 omega_ext_idx = np.array([np.argmin(np.abs(grid - frecuencias[ii]))  for ii in peaks])
@@ -673,6 +702,13 @@ def REMEZ_EX_A(nfcns, grid, des, wt, bases_por_banda, edges, maxiter = 250):
         plt.ylabel("Magnitud")
         plt.legend()
    
+    
+        plt.figure(2)
+        plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H[:half_fft_sz])), label='mi firls')
+        plt.plot(frecuencias[:half_fft_sz], 20*np.log10(D_ext), label='D($\Omega$)')
+        plt.legend()
+        plt.show()
+
         ## Debug
        
         if np.array_equal(l_real, l_trial):
