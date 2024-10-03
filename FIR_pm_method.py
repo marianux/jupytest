@@ -307,22 +307,40 @@ def REMEZ_FIR_MLLS(order, edge, fx, lgrid = 16, fs = 2.0,
 
     # convertir los coeficientes según el tipo de FIR
     if filtercase == 1:
+        
         a_coeffs [1:] = a_coeffs[1:]/2
         h_coeffs = np.concatenate((a_coeffs [::-1], a_coeffs [1:]))
     
     if filtercase == 2:
-        M = nfcns/2
-        a_coeffs [1:] = a_coeffs[1:]/2
-        h_coeffs = np.concatenate((a_coeffs [::-1], a_coeffs [1:]))
+        
+        h_coeffs = np.zeros((order+1,1))
+        h_coeffs[0] = a_coeffs[-1]/4
+        last_coeff = (np.fix((order+1)/2)).astype(int)
+        h_coeffs[last_coeff-1] = a_coeffs[0]/2 + a_coeffs[1]/4
+        h_coeffs[last_coeff:]= (a_coeffs[1:last_coeff-1] + a_coeffs[2:-1])/4
+        h_coeffs[:last_coeff] = h_coeffs[last_coeff+1::-1]
         
     if filtercase == 3:
-        a_coeffs = np.concatenate(([a_coeffs[0] / 2, a_coeffs[1] / 2], (a_coeffs[2:] - a_coeffs[:-2]) / 2, [-a_coeffs[-2] / 2, -a_coeffs[-1] / 2]))
+        h_coeffs = np.zeros((order+1,1))
+        last_coeff = ((order+1)/2).astype(int) # punto de simetría, demora del filtro
+
+        h_coeffs[0:2] = a_coeffs[last_coeff-2:last_coeff:-1]/4
+        h_coeffs[last_coeff] = a_coeffs[0]/2 + a_coeffs[2]/4
+        h_coeffs[last_coeff+1:]= (a_coeffs[1:-2] + a_coeffs[3:-1])/4
+        h_coeffs[:last_coeff] = (-1.)*h_coeffs[last_coeff+1::-1]
     
     if filtercase == 4:
-        a_coeffs = np.concatenate(([a_coeffs[0] / 2], (a_coeffs[1:] - a_coeffs[:-1]) / 2, [-a_coeffs[-1] / 2]))
+        h_coeffs = np.zeros((order+1,1))
+        last_coeff = (np.fix((order+1)/2)).astype(int)
 
+        h_coeffs[0] = a_coeffs[-1]/4
+        last_coeff = (np.fix((order+1)/2)).astype(int)
+        h_coeffs[last_coeff] = a_coeffs[0]/2 + a_coeffs[1]/4
+        h_coeffs[last_coeff+1:]= (a_coeffs[1:-2] + a_coeffs[2:-1])/4
+        h_coeffs[:last_coeff] = (-1.)*h_coeffs[last_coeff+1::-1]
 
     err = np.abs(err)
+    
     return h_coeffs, err, iext
 
 
@@ -1243,38 +1261,64 @@ Aminreq = 20 * np.log10((1 + d[0]) / d[1])
 print(f"Amaxreq = {Amaxreq:.4f} dB")
 print(f"Aminreq = {Aminreq:.4f} dB")
 
+#%%
 
-# # Filter type (multiband)
-# Ftype = 'm'
+########################
+# Filter design config #
+########################
 
-# # Estimate filter order
-# N, Be, D, W = L_PHASE_LP_FIR_ORDER(wTedges, d)
+#%% 
 
-# # Output estimated order
-# print(f"Estimated order (N): {N}")
-
-# # Forzamos FIR tipo I
-# if N%2 == 0:
-#     N += 1  # 
-# print(f"Final filter order: {N}")
-
-# # fine tuning
-# W = [1., 1.5]
-# N = 18
-
+# Filter type (multiband)
+Ftype = 'm'
+# Filter type (differentiator)
+# Ftype = 'd'
 # Filter type (Hilbert)
 # Ftype = 'h'
-# W = [1., 1.]
-# N = 18
 
-# Filter type (differentiator)
-Ftype = 'd'
-# fine tuning
-W = [1., 1.]
-Be = [0, 0.9]
-D = [0, 1.]
-N = 18
 
+if Ftype == 'm':
+    # Estimate filter order
+    N, Be, D, W = L_PHASE_LP_FIR_ORDER(wTedges, d)
+    
+    # Output estimated order
+    print(f"Estimated order (N): {N}")
+    
+    # Forzamos FIR tipo I
+    if N%2 == 0:
+        N += 1  # 
+    print(f"Final filter order: {N}")
+    
+    # fine tuning
+    W = [1., 1.5]
+    
+    # tipo 1
+    # N = 18
+    # tipo 2
+    N = 19
+
+if Ftype == 'd':
+
+    # fine tuning
+    W = [1., 1.]
+    Be = [0, 0.9]
+    D = [0, 1.]
+    
+    # tipo 3
+    N = 18
+    # tipo 4
+    # N = 19
+
+if Ftype == 'h':
+
+    W = [1., 1.]
+    Be = [0.1, 0.9]
+    D = [1., 1.]
+
+    # tipo 3
+    N = 18
+    # tipo 4
+    # N = 19
 
 # # Design the filter using the Remez algorithm (Tapio original)
 # hh, Err, wext = REMEZ_FIR(order=N, edge=Be, fx=D, 
