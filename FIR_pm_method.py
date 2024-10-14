@@ -739,7 +739,7 @@ def N4(fc, deltaF, deltac, deltas):
 
 
 from pytc2.sistemas_lineales import plot_plantilla
-from pytc2.filtros_digitales import fir_design_pm
+from pytc2.filtros_digitales import fir_design_pm, fir_design_ls
 
 # Parámetros PM algorithm
 fs = 2.0
@@ -805,11 +805,11 @@ if Ftype == 'm':
     D_sig = [1., 0.]
     
     # tipo 1
-    # N = 18
-    # W = [1., 3.]
+    N = 18
+    W = [1., 3.]
     # tipo 2
-    N = 17
-    W = [1., 3]
+    # N = 17
+    # W = [1., 3]
     
     sig_ftype = 'bandpass'
     
@@ -869,7 +869,7 @@ if Ftype == 'h':
 # hh_mio, Err, wext = firpm_mio(order=N, edge=Be, fx=D, 
 hh_mio, Err, wext = fir_design_pm(order=N, band_edges=Be, desired=D, 
                           weight=W, filter_type = Ftype, 
-                          grid_density= lgrid, max_iter=maxit, debug= True)
+                          grid_density= lgrid, max_iter=maxit, debug= False)
 
 # Calculate resulting passband and stopband ripples
 deltac = Err / W[0]
@@ -894,10 +894,20 @@ print(f"Amin = {Amin:.4f} dB")
 fs = 2.0
 h_firpm = remez(N, Be_sig, D_sig, weight= W, fs=2.0, maxiter=maxit, type = sig_ftype)
 
+
+W_ls = [1., 3.]
+
+hh_mi_ls          = fir_design_ls(order=N, band_edges=Be, desired=D, 
+                          weight=W_ls, filter_type = Ftype, 
+                          grid_density= 1., max_iter=maxit, debug= False)
+
+hh_mi_ls = hh_mi_ls / np.mean(hh_mi_ls) / len(hh_mi_ls)
+
 fft_sz = 512
 half_fft_sz = fft_sz//2
 
 H_mio = np.fft.fft(hh_mio, fft_sz)
+H_mi_ls = np.fft.fft(hh_mi_ls, fft_sz)
 # H_tapio = np.fft.fft(hh_tapio, fft_sz)
 H_scipy = np.fft.fft(h_firpm, fft_sz)
 frecuencias = np.arange(start=0, stop=fs, step=fs/fft_sz )
@@ -907,8 +917,10 @@ wextt = (wext * (half_fft_sz-1)).astype(int)
 plt.figure()
 plt.clf()
 
+
 # Graficar la respuesta en frecuencia
 plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H_mio[:half_fft_sz])), label=f'Ripple {alpha_max:.3f} - Att: {alpha_min:.3f}')
+plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H_mi_ls[:half_fft_sz])), label='mi LS')
 plt.plot(frecuencias[wextt], 20*np.log10(np.abs(H_mio[wextt])), 'or', label='$\omega_{ext}$')
 # plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H_tapio[:len(H_tapio)//2])), label='Tapio')
 plt.plot(frecuencias[:half_fft_sz], 20*np.log10(np.abs(H_scipy[:len(H_scipy)//2])), label='Scipy')
