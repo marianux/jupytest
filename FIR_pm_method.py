@@ -778,11 +778,11 @@ print(f"Aminreq = {Aminreq:.4f} dB")
 #%% 
 
 # Filter type (multiband)
-Ftype = 'm'
+# Ftype = 'm'
 # Filter type (differentiator)
 # Ftype = 'd'
 # Filter type (Hilbert)
-# Ftype = 'h'
+Ftype = 'h'
 
 
 if Ftype == 'm':
@@ -847,8 +847,8 @@ if Ftype == 'h':
     # N = 18
     # Be = [0.1, 0.9]
     # tipo 4
-    # N = 19
-    # Be = [0.1, 1.]
+    N = 19
+    Be = [0.1, 1.]
 
     sig_ftype = 'hilbert'
 
@@ -899,9 +899,9 @@ W_ls = [1., 3.]
 
 hh_mi_ls          = fir_design_ls(order=N, band_edges=Be, desired=D, 
                           weight=W_ls, filter_type = Ftype, 
-                          grid_density= 1., max_iter=maxit, debug= False)
+                          grid_density= 4)
 
-hh_mi_ls = hh_mi_ls / np.mean(hh_mi_ls) / len(hh_mi_ls)
+# hh_mi_ls = hh_mi_ls / np.mean(hh_mi_ls) / len(hh_mi_ls)
 
 fft_sz = 512
 half_fft_sz = fft_sz//2
