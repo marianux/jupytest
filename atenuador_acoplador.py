@@ -8,7 +8,9 @@ dos niveles de impedancia.
 """
 
 import numpy as np
-import splane as tc2
+from pytc2.cuadripolos import I2Tabcd, Tabcd2Z, TabcdZ, TabcdY
+from pytc2.general import db2nepper, nepper2db
+from pytc2.dibujar import dibujar_Tee, dibujar_Pi
 
 '''
     Enunciado:
@@ -28,7 +30,7 @@ r02 = 2 # Ω
 
 atdb = 20 # dB
 
-min_atdb = tc2.nepper2db( np.arccosh(np.sqrt(np.amax([ r02/r01,  r01/r02]) )))
+min_atdb = nepper2db( np.arccosh(np.sqrt(np.amax([ r02/r01,  r01/r02]) )))
 
 if atdb < min_atdb:
     
@@ -39,26 +41,26 @@ if atdb < min_atdb:
     atdb = min_atdb + 10**-3
 
 # Calcular la matriz T a partir de los P. imagen
-T1 = tc2.I2T(tc2.db2nepper(atdb), r01, r02)
+T1 = I2Tabcd(db2nepper(atdb), r01, r02)
 
 # Convertir a Z
-Z1 = tc2.T2Z(T1)
+Z1 = Tabcd2Z(T1)
 
 # implementar como Tee
-[Za, Zb, Zc] = tc2.dibujar_Tee(Z1)
+[Za, Zb, Zc] = dibujar_Tee(Z1, return_components=True)
 
 # implementar como Pi
-[Ya, Yb, Yc] = tc2.dibujar_Pi(Z1**-1)
+[Ya, Yb, Yc] = dibujar_Pi(Z1**-1, return_components=True)
 
 
 TT = T1
 TTi = T1**-1
 
 print( 'Impedancia en el pto1 cargado con r02 =  {:3.3f}'.format( (TT[0,0] * r02 + TT[0,1])/(TT[1,0] * r02 + TT[1,1] ) ))
-print( 'Impedancia en el pto2 cargado con r01  =  {:3.3f}'.format( (TTi[0,0] * r01 + TTi[0,1])/(TTi[1,0] * r01 + TTi[1,1] ) ))
+print( 'Impedancia en el pto2 cargado con r01  =  {:3.3f}'.format( (TTi[0,0] * (-r01) + TTi[0,1])/(TTi[1,0] * (-r01) + TTi[1,1] ) ))
 
-TLZ = tc2.TabcdZ(r01) * T1 * tc2.TabcdZ(r02)
-TLY = tc2.TabcdY(1/r01) * T1 * tc2.TabcdY(1/r02)
+TLZ = TabcdZ(r01) * T1 * TabcdZ(r02)
+TLY = TabcdY(1/r01) * T1 * TabcdY(1/r02)
 
 print( 'Atenuación de potencia como consigna =  {:3.3f} dB'.format(atdb))
 
