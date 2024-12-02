@@ -25,10 +25,10 @@ from pytc2.dibujar import dibujar_Tee, dibujar_Pi
 
 '''
 
-r01 = 5 # Ω
-r02 = 2 # Ω
+r01 = 1 # Ω
+r02 = 5 # Ω
 
-atdb = 20 # dB
+atdb = 12.52 # dB
 
 min_atdb = nepper2db( np.arccosh(np.sqrt(np.amax([ r02/r01,  r01/r02]) )))
 
