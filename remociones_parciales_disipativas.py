@@ -10,12 +10,9 @@ import sympy as sp
 from pytc2.remociones import remover_polo_dc, remover_polo_jw
 from pytc2.remociones import remover_valor_en_dc, remover_valor_en_infinito, remover_polo_sigma
 from pytc2.dibujar import display, dibujar_puerto_entrada, dibujar_funcion_exc_abajo,  dibujar_elemento_serie, dibujar_elemento_derivacion,  dibujar_tanque_derivacion, dibujar_tanque_RC_serie,  dibujar_espacio_derivacion, Capacitor, ResistorIEC
-from pytc2.general import print_latex, print_subtitle, a_equal_b_latex_s
+from pytc2.general import print_latex, print_subtitle, a_equal_b_latex_s, s
 
 
-# Resolución simbólica
-
-s = sp.symbols('s ', complex=True)
 
 # Sea la siguiente función de excitación
 ZZ = (s**2 + 13*s + 32)/(3*s**2 + 27*s+ 44)
