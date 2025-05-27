@@ -10,7 +10,8 @@ from pytc2.cuadripolos import smna
 # fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/trafo_real_mna.asc'
 # fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/trafo_real_mna.asc'
 # fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/tee_puen_2ord_delay_eq.asc'
-fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/tee_puen_2ord_delay_eq2.asc'
+# fileName_asc = '/home/mariano/Escritorio/Enlace hacia spice/tee_puen_2ord_delay_eq2.asc'
+fileName_asc = '/home/mariano/Escritorio/Enlace hacia pytc2/docs/notebooks/schematics/doble_sintonizado.asc'
 
 # symbolic MNA
 equ_smna, extra_results = smna(fileName_asc, 
