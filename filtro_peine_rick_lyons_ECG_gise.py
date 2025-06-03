@@ -144,8 +144,6 @@ def filtro_peine_DCyArmonicas( xx, DD = 16, UU = 2, MA_stages = 2 ):
 #%% Pruebas con ECG real
 import wfdb
 
-from filtro_peine_DCyArmonicas import filtro_peine_DCyArmonicas as filtro_Lyons_opt
-
 record = wfdb.rdrecord('/home/mariano/Descargas/00001_hr')
 
 

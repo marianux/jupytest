@@ -93,7 +93,6 @@ def plot_fir_response(b_coeffs, w_rad, fir_lbl = 'un_FIR'):
     
 
 
-
 #%%
 
 
@@ -106,56 +105,48 @@ gains = 10**(gains/20)
 # bp_sos_cheby = sig.iirdesign(wp=np.array([wp1, wp2]) / nyq_frec, ws=np.array([ws1, ws2]) / nyq_frec, gpass=0.5, gstop=40., analog=False, ftype='cheby1', output='sos')
 # bp_sos_cauer = sig.iirdesign(wp=np.array([wp1, wp2]) / nyq_frec, ws=np.array([ws1, ws2]) / nyq_frec, gpass=0.5, gstop=40., analog=False, ftype='ellip', output='sos')
 
-cant_coef = 2000
-
-if cant_coef % 2 == 0:
-    cant_coef += 1
-    
+cant_coef = 1400    
 
 band_edges = np.array([0.0, ws1, wp1, nyq_frec ]) / nyq_frec
     
 # num_firls_hp = sig.firls(cant_coef, band_edges, gains[:4], weight = np.array([20, 1]), fs=2)
-num_remez_hp = sig.remez(cant_coef, band_edges, [gains[1], 1.], weight = np.array([20, 1]), grid_density = 64, fs=2)
+# num_remez_hp = sig.remez(cant_coef, band_edges, gains[1:3], weight = np.array([20, 1]), grid_density = 64, fs=2)
 
 desired = [0, 0, 1, 1]
-weights = [5, 1]
-lgrid = 32
-
-# Diseño del filtro con PM
-b_pm_hp, _, _ = fir_design_pm(501, band_edges, desired, weight= weights, grid_density=lgrid, filter_type='highpass', debug=True)
-
-# Diseño del filtro con LS
-# b_ls_hp = fir_design_ls(cant_coef, band_edges, gains[:4], grid_density=lgrid, filter_type='highpass')
-
-
-
-cant_coef = 500
-
-if cant_coef % 2 == 0:
-    cant_coef += 1
-
-# num_firls_lp = sig.firls(cant_coef, np.append( [0.0], frecs[3:]), gains[2:], weight = np.array([5, 10]), fs=2)
-num_remez_lp = sig.remez(cant_coef, np.append( [0.0], frecs[3:]), [1., gains[5]], weight = np.array([1, 5]), grid_density = 16, fs=2)
-
-band_edges = np.array([0.0, wp2, ws2, nyq_frec ]) / nyq_frec
-desired = [1, 1, 0, 0]
+weights = [1, 1]
 lgrid = 16
 
 # Diseño del filtro con PM
-b_pm_lp, _, _ = fir_design_pm(cant_coef, band_edges, desired, grid_density=lgrid, filter_type='lowpass')
+b_pm_hp, _, _ = fir_design_pm(cant_coef, band_edges, gains[:4], weight= weights, grid_density=lgrid, filter_type='highpass')
 
 # Diseño del filtro con LS
-# b_ls_lp = fir_design_ls(cant_coef, band_edges, desired, grid_density=lgrid, filter_type='lowpass')
+b_ls_hp = fir_design_ls(cant_coef, band_edges, gains[:4], grid_density=lgrid, filter_type='highpass')
+
+cant_coef = 171
+
+# num_firls_lp = sig.firls(cant_coef, np.append( [0.0], frecs[3:]), gains[2:], weight = np.array([5, 10]), fs=2)
+# num_remez_lp = sig.remez(cant_coef, np.append( [0.0], frecs[3:]), gains[3:5], weight = np.array([1, 5]), grid_density = 64, fs=2)
+
+band_edges = np.array([0.0, wp2, ws2, nyq_frec ]) / nyq_frec
+desired = [1, 1, 0, 0]
+weights = [2, 5]
+lgrid = 16
+
+# Diseño del filtro con PM
+b_pm_lp, _, _ = fir_design_pm(cant_coef, band_edges, desired, weight= weights, grid_density=lgrid, filter_type='lowpass')
+
+# Diseño del filtro con LS
+b_ls_lp = fir_design_ls(cant_coef, band_edges, desired, grid_density=lgrid, filter_type='lowpass')
 
 
 # num_firls = sig.convolve(num_firls_hp, num_firls_lp)
-num_remez = sig.convolve(num_remez_hp, num_remez_lp)
+# num_remez = sig.convolve(num_remez_hp, num_remez_lp)
 
-# num_firls_pytc2 = sig.convolve(b_ls_lp, b_ls_hp)
+num_firls_pytc2 = sig.convolve(b_ls_lp, b_ls_hp)
 num_remez_pytc2 = sig.convolve(b_pm_lp, b_pm_hp)
 
 
-# num_win =   sig.firwin2(cant_coef, frecs, gains , window='blackmanharris' )
+num_win =   sig.firwin2(cant_coef, frecs, gains , window='blackmanharris' )
 
 ## Rick Lyons high pass with DC-block filter.
 # dd = 16;
@@ -174,12 +165,11 @@ num_remez_pytc2 = sig.convolve(b_pm_lp, b_pm_hp)
 
 # demora_rl = int(uu*(dd-1))
 
-demora = int((num_remez.shape[0]-1)/2)
-# demora = int((num_remez_pytc2.shape[0]-1)/2)
+demora = int((num_remez_pytc2.shape[0]-1)/2)
 
 den = 1.0
 
-w_rad  = np.append(np.logspace(-2, 0.8, 1000), np.logspace(0.9, 1.8, 1000) )
+w_rad  = np.append(np.logspace(-3, 0.8, 1000), np.logspace(0.9, 1.8, 1000) )
 w_rad  = np.append(w_rad, np.linspace(51, nyq_frec, 1000, endpoint=True) ) / nyq_frec * np.pi
 # _, h_butter = sig.sosfreqz(bp_sos_butter, w_rad)
 
@@ -202,14 +192,12 @@ w = w_rad / np.pi * nyq_frec
 plt.close('all')
 
 # plot_fir_response(num_firls, w_rad, fir_lbl='FIR-ls')
-# plot_fir_response(num_remez_hp, w_rad, fir_lbl='FIR-pm-HP')
-# plot_fir_response(num_remez_lp, w_rad, fir_lbl='FIR-pm-LP')
-plot_fir_response(num_remez, w_rad, fir_lbl='FIR-remez')
-# plot_fir_response(num_firls_pytc2, w_rad, fir_lbl='FIR-ls-pytc2')
+# plot_fir_response(num_remez, w_rad, fir_lbl='FIR-remez')
+plot_fir_response(num_firls_pytc2, w_rad, fir_lbl='FIR-ls-pytc2')
 plot_fir_response(num_remez_pytc2, w_rad, fir_lbl='FIR-pm-pytc2')
 plot_fir_response(b_pm_hp, w_rad, fir_lbl='FIR-pm-HP')
 plot_fir_response(b_pm_lp, w_rad, fir_lbl='FIR-pm-LP')
-# plot_fir_response(num_win, w_rad, fir_lbl='FIR-Win')
+plot_fir_response(num_win, w_rad, fir_lbl='FIR-Win')
 
 # plt.plot(w, 20*np.log10(np.abs(h_butter)+1e-12), label='IIR-Butter {:d}'.format(bp_sos_butter.shape[0]*2) )
 # # plt.plot(w, 20*np.log10(np.abs(h_cheby)+1e-12), label='IIR-Cheby {:d}'.format(bp_sos_cheby.shape[0]*2) )
