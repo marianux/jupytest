@@ -276,7 +276,7 @@ regs_interes = (
                 np.array([15, 15.2]) *60*fs # minutos a muestras        
                 )
 
-roi = regs_interes[1].astype(np.int)
+roi = regs_interes[4].astype(np.int64)
 
 # Cargar señal
 fs = 1000 # Hz (NNormalizamos a fs/2 = f_nyq)
