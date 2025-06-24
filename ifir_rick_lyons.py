@@ -9,11 +9,205 @@ Created on Tue Jun 17 13:22:44 2025
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import signal
+import scipy.io as sio
 
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy import signal
+class MA_hp_filter:
+    
+    def __init__(self, samp_avg = 16, upsample = 1):
+        """
+        Implementación recursiva de Tₘₐ(z) = (1 - z^{-D*U})/(D*(1 - z^{-U}))
+        
+        Parámetros:
+        samp_avg : int - Muestras a promediar
+        upsample : int - Factor de sobremuestreo (default=1)
+        
+        """
+        self.samp_avg = samp_avg
+        self.upsample = upsample
+        self.effective_D = samp_avg * upsample
+        
+        # se asumen condiciones iniciales nulas
+        self.yy_ci = np.zeros(upsample)
+        self.xx_ci = np.zeros(self.effective_D)
+        
+        self.kk_offset = 0
+
+
+    def reset(self):
+
+        # se asumen condiciones iniciales nulas
+        self.yy_ci = np.zeros(self.upsample)
+        self.xx_ci = np.zeros(self.effective_D)
+
+
+    def process(self, xx, xx_ci = None, yy_ci = None):
+        
+        NN = xx.shape[0]
+    
+        if xx_ci is None:
+            xx_ci = self.xx_ci
+
+        if yy_ci is None:
+            yy_ci = self.yy_ci
+
+    
+        # resultaron ser importante las condiciones iniciales
+        yy = np.zeros_like(xx)
+        # yy = np.ones_like(xx) * xx[0] * self.effective_D
+    
+        # para todos los bloques restantes salvo el primero
+           
+        for kk in range(self.upsample):
+    
+            # Calcula la salida según la ecuación recursiva
+            yy[kk] = xx[kk] \
+                      - self.xx_ci[kk] \
+                      + self.yy_ci[kk]
+        
+        for kk in range(self.upsample, self.effective_D):
+
+            # Calcula la salida según la ecuación recursiva
+            yy[kk] = xx[kk] \
+                      - self.xx_ci[kk] \
+                      + yy[(kk - self.upsample)]
+    
+        #
+        kk += 1
+        
+        # for kk in range(NN):
+        for kk in range(kk, NN):
+    
+            # Calcula la salida según la ecuación recursiva
+            yy[kk] = xx[kk]  \
+                      - xx[kk - self.effective_D] \
+                      + yy[kk - self.upsample]
+        
+        # calculo las condiciones iniciales del siguiente bloque
+        xx_ci = xx[(NN - self.effective_D):]
+        yy_ci = yy[(NN - self.upsample):]
+
+        self.xx_ci = xx_ci 
+        self.yy_ci = yy_ci
+    
+        # escalo y devuelvo
+        return( (yy.copy()/self.samp_avg, xx_ci.copy(), yy_ci.copy()) )
+
+    def impulse_response(self, length=100):
+        """Genera la respuesta al impulso"""
+        impulse = np.zeros(length)
+        impulse[0] = 1
+        
+        self.reset()
+        
+        return self.process(impulse)
+    
+    def frequency_response(self, n_freq=1000):
+        """Calcula la respuesta en frecuencia"""
+        
+        # Forma directa (no recursiva) para verificación
+        b = np.zeros(self.effective_D + 1)
+        b[0] = 1
+        b[self.effective_D] = -1
+        b = b / self.samp_avg
+        
+        a = np.zeros(self.upsample + 1)
+        a[0] = 1
+        a[self.upsample] = -1
+        
+        w, h = signal.freqz(b, a, worN=n_freq)
+        return w, h
+
+
+class ECGcomb:
+    
+    def __init__(self, samp_avg = 16, cant_ma = 2, upsample = 1, batch = None ):
+        """
+        Implementación completa de:
+        T(z) = z^{-(D-1)*U} - Tₘₐ²(z)
+
+        Implementación recursiva de Tₘₐ(z) = (1 - z^{-D*U})/(D*(1 - z^{-U}))
+        
+        Parámetros:
+        samp_avg : int - Muestras a promediar
+        upsample : int - Factor de sobremuestreo (default=1)
+        
+        batch : int - Bloque batch por bloques. Default: toda la señal.
+        
+        """
+        self.samp_avg = samp_avg
+        self.upsample = upsample
+        self.cant_ma = (cant_ma//2) * 2
+        self.samp_avgelay = int( self.cant_ma/2*(samp_avg - 1) * upsample )
+        self.batch = batch
+
+        t_ma = [MA_hp_filter(samp_avg = self.samp_avg, upsample = self.upsample)]
+
+        for ii in range(1, self.cant_ma):
+            
+            t_ma += [MA_hp_filter(samp_avg = self.samp_avg, upsample = self.upsample)]
+        
+        self.t_ma = t_ma
+
+
+    def reset(self):
+
+        for ii in range(self.cant_ma):
+
+            self.t_ma[ii].reset()
+            
+        
+    def process(self, xx):
+
+            
+        yy = np.zeros_like(xx)
+        
+        NN = xx.shape[0]
+
+        if self.batch is None:
+            
+            self.batch = NN
+        
+        # se procesa cada bloque por separado y se concatena la salida
+        for jj in range(0, NN, self.batch):
+
+            yy_aux,_,_ = self.t_ma[0].process(xx[jj:jj+self.batch])
+    
+            yy[jj:jj+self.batch] = yy_aux
+    
+        # cascadeamos MA_stages-1 más
+        for ii in range(1, self.cant_ma):
+    
+            # se procesa cada bloque por separado y se concatena la salida
+            for jj in range(0, NN, self.batch):
+    
+                yy_aux,_,_ = self.t_ma[ii].process(yy[jj:jj+self.batch] )
+        
+                yy[jj:jj+self.batch] = yy_aux
+
+
+        # Aplicar retardo (D-1)*U
+        delayed_x = np.roll(xx, self.samp_avgelay)
+        delayed_x[:self.samp_avgelay] = 0
+        
+        return delayed_x - yy
+    
+    def impulse_response(self, length=100):
+        
+        impulse = np.zeros(length)
+        impulse[0] = 1
+        
+        self.reset()
+        
+        return self.process(impulse)
+    
+    def frequency_response(self, n_freq=1000):
+        
+        w, h_ma_sq = self.t_ma[0].frequency_response(n_freq)
+        h_delay = np.exp(-1j * w * self.samp_avgelay)
+        
+        return w, h_delay - h_ma_sq**self.cant_ma
+
 
 class MovingAverageFilter:
     def __init__(self, D, U=1):
@@ -24,8 +218,8 @@ class MovingAverageFilter:
         D : int - Retardo base
         U : int - Factor de sobremuestreo (default=1)
         """
-        self.D = D
-        self.U = U
+        self.samp_avg = D
+        self.upsample = U
         self.effective_D = D * U
         
         # Buffers para implementación recursiva
@@ -37,7 +231,7 @@ class MovingAverageFilter:
         
         y = np.zeros_like(x, dtype=float)
         self.x_buffer = np.zeros(self.effective_D+1)
-        self.y_buffer = np.zeros(U+1)
+        self.y_buffer = np.zeros(self.upsample+1)
         self.y_prev = 0.0
         
         for n in range(len(x)):
@@ -47,11 +241,11 @@ class MovingAverageFilter:
             self.x_buffer[0] = x[n]
 
             # Calcular salida (forma recursiva)
-            y[n] = (self.x_buffer[0] - self.x_buffer[self.effective_D]) + self.y_buffer[self.U]
+            y[n] = (self.x_buffer[0] - self.x_buffer[self.effective_D]) + self.y_buffer[self.upsample]
 
             self.y_buffer[0] = y[n]
         
-        return y / self.D
+        return y / self.samp_avg
 
     def impulse_response(self, length=100):
         """Genera la respuesta al impulso"""
@@ -61,44 +255,55 @@ class MovingAverageFilter:
     
     def frequency_response(self, n_freq=1000):
         """Calcula la respuesta en frecuencia"""
+        
         # Forma directa (no recursiva) para verificación
         b = np.zeros(self.effective_D + 1)
         b[0] = 1
         b[self.effective_D] = -1
-        b = b / self.D
+        b = b / self.samp_avg
         
-        a = np.zeros(self.U + 1)
+        a = np.zeros(self.upsample + 1)
         a[0] = 1
-        a[self.U] = -1
+        a[self.upsample] = -1
         
         w, h = signal.freqz(b, a, worN=n_freq)
         return w, h
 
 
 class TFilter:
-    def __init__(self, D, U=1):
+    def __init__(self, D, U=1, cant_ma = 2):
         """
         Implementación completa de:
         T(z) = z^{-(D-1)*U} - Tₘₐ²(z)
         """
-        self.D = D
-        self.U = U
-        self.delay = (D - 1) * U
+        self.samp_avg = D
+        self.upsample = U
+        self.cant_ma = (cant_ma//2) * 2
+        self.samp_avgelay = int( self.cant_ma/2*(D - 1) * U )
+
+        t_ma = [MovingAverageFilter(D, U)]
+
+        for ii in range(1, self.cant_ma):
+            
+            t_ma += [MovingAverageFilter(D, U)]
         
-        self.t_ma1 = MovingAverageFilter(D, U)
-        self.t_ma2 = MovingAverageFilter(D, U)
+        self.t_ma = t_ma
         
     def process(self, x):
         # Aplicar retardo (D-1)*U
-        delayed_x = np.roll(x, self.delay)
-        delayed_x[:self.delay] = 0
+        delayed_x = np.roll(x, self.samp_avgelay)
+        delayed_x[:self.samp_avgelay] = 0
+
+        t_ma_out = np.zeros((len(x), self.cant_ma))
         
         # Procesar con Tₘₐ²
-        ma_1 = self.t_ma1.process(x)
+        t_ma_out[:,0] = self.t_ma[0].process(x)
         
-        ma_squared = self.t_ma2.process(ma_1)
+        for ii in range(1, self.cant_ma):
+            
+            t_ma_out[:,ii] = self.t_ma[ii].process(t_ma_out[:,ii-1])
         
-        return delayed_x - ma_squared
+        return delayed_x - t_ma_out[:,-1]
     
     def impulse_response(self, length=100):
         impulse = np.zeros(length)
@@ -106,47 +311,11 @@ class TFilter:
         return self.process(impulse)
     
     def frequency_response(self, n_freq=1000):
-        w, h_ma_sq = self.t_ma1.frequency_response(n_freq)
-        h_delay = np.exp(-1j * w * self.delay)
-        return w, h_delay - h_ma_sq**2
-
-
-def plot_responses(D, U=1, fs=2):
-    # Crear filtros
-    t_ma = MovingAverageFilter(D, U)
-    t_final = TFilter(D, U)
-    
-    # Respuestas al impulso
-    fig, axs = plt.subplots(2, 1, figsize=(12, 12))
-    
-    axs[0].plot(t_ma.impulse_response(2*D*U), 'o')
-    axs[0].set_title(f'Tₘₐ(z) - D={D}, U={U}')
-    
-    axs[1].plot(t_final.impulse_response(2*D*U), 'o')
-    axs[1].set_title(f'T(z) - D={D}, U={U}')
-    
-    plt.tight_layout()
-    plt.show()
-    
-    # Respuestas en frecuencia
-    fig, axs = plt.subplots(2, 1, figsize=(12, 8))
-    
-    for filt, label in [(t_ma, 'Tₘₐ'), (t_final, 'T(z)')]:
-        w, h = filt.frequency_response()
-        w = w/np.pi*fs
-        axs[0].plot(w , 20*np.log10(np.abs(h)), label=label)
-        axs[1].plot(w, np.angle(h), label=label)
-    
-    axs[0].set_ylabel('Magnitud (dB)')
-    axs[0].set_ylim(-60, 5)
-    axs[1].set_ylabel('Fase (rad)')
-    axs[1].set_xlabel('Frecuencia normalizada')
-    axs[0].legend()
-    axs[1].legend()
-    plt.suptitle(f'Respuestas en Frecuencia - D={D}, U={U}')
-    plt.show()
-
-
+        
+        w, h_ma_sq = self.t_ma[0].frequency_response(n_freq)
+        h_delay = np.exp(-1j * w * self.samp_avgelay)
+        
+        return w, h_delay - h_ma_sq**self.cant_ma
 
 
 def empirical_frequency_response(filter_obj, freq_points=1024, signal_length=8192, fs = 2):
@@ -170,13 +339,14 @@ def empirical_frequency_response(filter_obj, freq_points=1024, signal_length=819
     y = filter_obj.process(x)
     
     # Eliminar transitorios iniciales
-    discard = min(t_filter.D * t_filter.U, signal_length // 10)
+    discard = min(t_filter.samp_avg * t_filter.upsample, signal_length // 10)
     x = x[discard:]
     y = y[discard:]
     
+    welch_avg = 10
     # Calcular densidad espectral cruzada y autoespectro
-    f, Pxy = signal.csd(x, y, nperseg=len(x)//5, fs = fs)
-    f, Pxx = signal.welch(x, nperseg=len(x)//5, fs = fs)
+    f, Pxy = signal.csd(x, y, nperseg=signal_length//welch_avg, nfft=signal_length, fs = fs)
+    f, Pxx = signal.welch(x, nperseg=signal_length//welch_avg, nfft=signal_length, fs = fs)
     
     # Respuesta en frecuencia estimada
     H_empirical = Pxy / Pxx
@@ -184,7 +354,7 @@ def empirical_frequency_response(filter_obj, freq_points=1024, signal_length=819
     return f, H_empirical
 
    
-def theoretical_impulse_response(D, U=1, length=100):
+def theoretical_impulse_response(D, U=1, cant_ma = 2, length=100):
     """
     Calcula la respuesta al impulso teórica de T(z) = z^{-(D-1)U} - Tₘₐ²(z)
     
@@ -199,7 +369,7 @@ def theoretical_impulse_response(D, U=1, length=100):
     h = np.zeros(length)
     
     # Componente del retardo puro
-    delay_pos = (D - 1) * U
+    delay_pos =  int(cant_ma/2* (D - 1) * U)
     if delay_pos < length:
         h[delay_pos] = 1
     
@@ -208,15 +378,18 @@ def theoretical_impulse_response(D, U=1, length=100):
     ma_response = np.zeros(length)
     ma_response[:D*U:U] = 1/(D)  # Respuesta de un Tₘₐ
     
+    ma_out = ma_response
+    
     # Convolucionamos para obtener Tₘₐ²
-    ma_squared_response = np.convolve(ma_response, ma_response)[:length]
+    for ii in range(1, cant_ma):
+        ma_out = np.convolve(ma_response, ma_out)[:length]
     
     # Combinamos según T(z) = retardo - Tₘₐ²
-    h_theoretical = h - ma_squared_response
+    h_theoretical = h - ma_out
     
     return h_theoretical
 
-def compare_impulse_responses(filter_obj, D, U, length=60):
+def compare_impulse_responses(filter_obj, D, U, cant_ma, length=60):
     """
     Compara la respuesta al impulso teórica y empírica
     
@@ -228,7 +401,7 @@ def compare_impulse_responses(filter_obj, D, U, length=60):
     """
     # Obtenemos ambas respuestas
     h_empirical = filter_obj.impulse_response(length)
-    h_theoretical = theoretical_impulse_response(D, U, length)
+    h_theoretical = theoretical_impulse_response(D, U, cant_ma, length)
     
     # Calculamos el error
     error = np.abs(h_empirical - h_theoretical)
@@ -239,7 +412,8 @@ def compare_impulse_responses(filter_obj, D, U, length=60):
     # Respuestas
     plt.subplot(3, 1, 1)
     plt.stem(h_empirical, markerfmt='bo', linefmt='b-', basefmt=' ', label='Empírica')
-    plt.title(f'Comparación de Respuestas al Impulso (D={D}, U={U})')
+    plt.title(f'Comparación de Respuestas al Impulso (MA_avg={D}, MA_stages = {cant_ma}, Upsample={U} )')
+    
     plt.ylabel('Empírica')
     plt.grid(True, alpha=0.3)
     
@@ -269,28 +443,101 @@ def compare_impulse_responses(filter_obj, D, U, length=60):
 if __name__ == "__main__":
 
     fs = 1000 # Hz (NNormalizamos a fs/2 = f_nyq)
-    D=64
-    U=20
     
-    # Ejemplo de uso
-    # plot_responses(D=16, U=1, fs = 1000)
+    dd = 32
+    uu = 20
+    ma_st = 4
    
-    t_filter = TFilter(D, U)
-
-    w_emp_fft, H_emp_fft = empirical_frequency_response(t_filter,fs = fs, signal_length = 2**16)
-    w_theoretical, H_theoretical = t_filter.frequency_response()
-    w_theoretical = w_theoretical/np.pi*fs/2
-
+    # bDebug = True
+    bDebug = False
     
-    # Gráficos comparativos
-    plt.figure(figsize=(14, 8))
+    if bDebug:
+    
+        # Ejemplo de uso
+                
+        # t_filter = ECGcomb(samp_avg = dd, upsample = uu, cant_ma = ma_st )
+        t_filter = TFilter(dd, uu, cant_ma = ma_st )
+    
+        freq_resp_length = 2**16
+        w_emp_fft, H_emp_fft = empirical_frequency_response(t_filter,fs = fs, signal_length = freq_resp_length)
+        w_theoretical, H_theoretical = t_filter.frequency_response(n_freq = freq_resp_length)
+        w_theoretical = w_theoretical/np.pi*fs/2
+    
+        
+        # Gráficos comparativos
+        plt.figure(figsize=(14, 8))
+    
+        plt.plot(w_theoretical, 20*np.log10(np.abs(H_theoretical)), 'b-', label='Teórica')
+        plt.plot(w_emp_fft, 20*np.log10(np.abs(H_emp_fft)), 'r--', label='Empírica (FFT)')
+        plt.title(f'Respuesta en Frecuencia - Magnitud (MA_avg={dd}, MA_stages = {ma_st}, Upsample={uu} )')
+        plt.ylabel('Magnitud (dB)')
+        plt.legend()
+        plt.grid(True)
+    
+        compare_impulse_responses(t_filter, dd, uu, ma_st, length=2*ma_st*uu*dd)
 
-    plt.plot(w_theoretical, 20*np.log10(np.abs(H_theoretical)), 'b-', label='Teórica')
-    plt.plot(w_emp_fft, 20*np.log10(np.abs(H_emp_fft)), 'r--', label='Empírica (FFT)')
-    plt.title(f'Respuesta en Frecuencia - Magnitud (D={D}, U={U})')
-    plt.ylabel('Magnitud (dB)')
-    plt.legend()
-    plt.grid(True)
+    else:
+        
+        mat_struct = sio.loadmat('ecg.mat')
+        
+        ecg_one_lead = mat_struct['ecg_lead']
+        ecg_one_lead = ecg_one_lead.flatten().astype(np.float64)
+        cant_muestras = len(ecg_one_lead)
 
-
-    compare_impulse_responses(t_filter, D, U, length=4*U*D)
+        # t_filter = TFilter(dd, uu, cant_ma = ma_st )
+        t_filter = ECGcomb(samp_avg = dd, upsample = uu, cant_ma = ma_st, batch = int(np.ceil(cant_muestras/5)) )
+        
+        # demora teórica del filtro de Rick
+        demora_rl = int((dd-1)/2*ma_st*uu)
+        
+        ECG_f_rl_fin = t_filter.process(ecg_one_lead)
+        
+        # Nota: se obtuvo esta performance en una PC de escritorio estandard con:
+        # Intel(R) Core(TM) i7-4790 CPU @ 3.60GHz
+        # RAM: 8GB
+        # Manufacturer: Gigabyte Technology Co., Ltd.
+        # Product Name: B85M-D3H
+        # 1129116 muestras de ECG a fs = 1kHz
+        # %timeit ECG_f_rl_fin = filtro_peine_DCyArmonicas( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
+        # 2.01 s ± 73.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
+        
+        # ECG_f_rl_fin = filtro_Lyons_opt( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
+        
+        plt.close('all')
+        
+        regs_interes = ( 
+                
+                np.array([0, 1]) *60*fs, # minutos a muestras
+                np.array([2, 2.2]) *60*fs, # minutos a muestras
+                np.array([5, 5.2]) *60*fs, # minutos a muestras
+                np.array([10, 10.2]) *60*fs, # minutos a muestras
+                np.array([12, 12.4]) *60*fs, # minutos a muestras
+                np.array([15, 15.2]) *60*fs, # minutos a muestras
+                np.array([18, 18.2]) *60*fs, # minutos a muestras
+                [4000, 5500], # muestras
+                [10e3, 11e3], # muestras
+                )
+        
+        for ii in regs_interes:
+            
+            # intervalo limitado de 0 a cant_muestras
+            zoom_region = np.arange(np.max([0, ii[0]]), np.min([cant_muestras, ii[1]]), dtype='uint')
+            
+            
+            plt.figure()
+            plt.plot(zoom_region, ecg_one_lead[zoom_region], label='ECG', linewidth=2)
+        
+            # FIR con corrección de demora
+            plt.plot(zoom_region, ECG_f_rl_fin[zoom_region+demora_rl], ':x', alpha=0.5, label='final')
+            
+            plt.title('ECG filtering example from ' + str(ii[0]) + ' to ' + str(ii[1]) )
+            plt.ylabel('Adimensional')
+            plt.xlabel('Muestras (#)')
+            
+            axes_hdl = plt.gca()
+            axes_hdl.legend()
+                    
+            plt.show()
+        
+                
+    
