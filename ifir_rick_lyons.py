@@ -492,16 +492,14 @@ if __name__ == "__main__":
         
         ECG_f_rl_fin = t_filter.process(ecg_one_lead)
         
-        # Nota: se obtuvo esta performance en una PC de escritorio estandard con:
-        # Intel(R) Core(TM) i7-4790 CPU @ 3.60GHz
-        # RAM: 8GB
-        # Manufacturer: Gigabyte Technology Co., Ltd.
-        # Product Name: B85M-D3H
+        # Nota: se obtuvo esta performance en una notebook estandard con:
+        # HP 255 15.6 inch G10 Notebook PC (A82ZVUA#ABA)
+        # 8BA5
+        # AMD Ryzen 7 7730U with Radeon Graphics 64KiB BIOS 512KiB L1 caché 4MiB L2 caché 16MiB L3 caché
+        # 16GiB Memoria de sistema SODIMM DDR4 Síncrono Unbuffered (Unregistered) 3200 MHz (0,3 ns)
         # 1129116 muestras de ECG a fs = 1kHz
-        # %timeit ECG_f_rl_fin = filtro_peine_DCyArmonicas( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
-        # 2.01 s ± 73.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
-        
-        # ECG_f_rl_fin = filtro_Lyons_opt( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
+        # %timeit ECG_f_rl_fin = t_filter.process(ecg_one_lead)
+        # 1.18 s ± 10.9 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
         
         plt.close('all')
         
