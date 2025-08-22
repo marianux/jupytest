@@ -12,6 +12,30 @@ import scipy.io as sio
 
 #%% Implementación en Python simil RT
 
+
+def trim_zeros_edges(x):
+    nonzero_indices = np.nonzero(x)[0]
+    if nonzero_indices.size == 0:
+        return np.array([])  # Todo es cero
+    start = nonzero_indices[0]
+    end = nonzero_indices[-1]
+    return x[start:end + 1]
+
+
+def impulse_response(D, U):
+    # Longitud mínima del filtro (por índice máximo 2UD)
+    L = 2 * U * D + 1
+    h = np.zeros(L)
+
+    h[0] = -1 / D**2
+    h[U * (D - 1)] = 1
+    h[U * D] = -2 + 2 / D**2
+    h[U * (D + 1)] = 1
+    h[2 * U * D] = -1 / D**2
+
+    return h
+
+
 def promediador_rt_init( xx, DD, UU ):
 
     # ventana de selección de UU muestras por el sobremuestreo
@@ -142,29 +166,33 @@ def filtro_peine_DCyArmonicas( xx, DD = 16, UU = 2, MA_stages = 2 ):
     return( yy )
        
 #%% Pruebas con ECG real
-import wfdb
+# import wfdb
 
-record = wfdb.rdrecord('/home/mariano/Descargas/00001_hr')
+# record = wfdb.rdrecord('/home/mariano/Downloads/00001_hr')
 
+# fs = record.fs # Hz (NNormalizamos a fs/2 = f_nyq)
+# nyq_frec = fs / 2
 
-fs = record.fs # Hz (NNormalizamos a fs/2 = f_nyq)
-nyq_frec = fs / 2
+# ecg_one_lead = record.p_signal
+# ecg_one_lead = ecg_one_lead[:, record.sig_name.index('II')]
 
-ecg_one_lead = record.p_signal
-ecg_one_lead = ecg_one_lead[:, record.sig_name.index('II')]
-
-cant_muestras = len(ecg_one_lead)
+# cant_muestras = len(ecg_one_lead)
 
 # bloque de memoria para la implementación RT
 # block_s = cant_muestras//4
-block_s = cant_muestras
+# block_s = cant_muestras
 
 dd = 64
-uu = 10
-ma_st = 2
+uu = 2
+ma_st = 4
+
+ecg_one_lead = np.zeros(2*ma_st*dd*uu)
+block_s = ecg_one_lead.shape[0]
 
 # demora teórica del filtro de Rick
 demora_rl = int((dd-1)/2*ma_st*uu)
+
+ecg_one_lead[:ma_st*dd*uu] = 1
 
 ECG_f_rl_fin = filtro_peine_DCyArmonicas( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
 
@@ -178,6 +206,12 @@ ECG_f_rl_fin = filtro_peine_DCyArmonicas( ecg_one_lead, DD = dd, UU = uu, MA_sta
 # 2.01 s ± 73.7 ms per loop (mean ± std. dev. of 7 runs, 1 loop each)
 
 # ECG_f_rl_fin = filtro_Lyons_opt( ecg_one_lead, DD = dd, UU = uu, MA_stages = ma_st )
+
+ECG_f_rl_fin = trim_zeros_edges(ECG_f_rl_fin)
+
+h_oversampled = impulse_response(dd, uu)
+print(h_oversampled)
+
 
 plt.close('all')
 

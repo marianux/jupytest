@@ -15,7 +15,7 @@ from pytc2.cuadripolos import smna
 from IPython.display import display, Markdown
 
 
-fileName_asc = '/home/mariano/mariano/Docencia/TC2/scripts/pytc2/docs/notebooks/schematics/doble_sintonizado.asc'
+fileName_asc = '/home/mariano/Downloads/github/pytc2/docs/notebooks/schematics/doble_sintonizado.asc'
 
 # symbolic MNA
 equ_smna, extra_results = smna(fileName_asc, 

@@ -48,11 +48,14 @@ Ymai = sp.Matrix([
                     [ -Ya,   -G,     -G,      2*G+Ya ]
                  ])
 
-con_detalles = False
-# con_detalles = True
+# con_detalles = False
+con_detalles = True
+
+input_port = [0, 1]
+output_port = [3, 1]
 
 # Calculo la Z en el puerto de entrada a partir de la MAI
-Zmai = calc_MAI_impedance_ij(Ymai, 0, 1, verbose=con_detalles)
+Zmai = calc_MAI_impedance_ij(Ymai, input_port, verbose=con_detalles)
 
 # Aplico la condición de R constante
 print('si consideramos:')
@@ -61,7 +64,7 @@ print('entonces')
 print_latex( r'Z_{{ {:d}{:d} }} = '.format(0,1) +  sp.latex(Zmai.subs(Ya*Yb, G**2)) )
 
 print('Transferencia de tensión:')
-Vmai = calc_MAI_vtransf_ij_mn(Ymai, 3, 1, 0, 1, verbose=con_detalles)
+Vmai = calc_MAI_vtransf_ij_mn(Ymai, input_port, output_port, verbose=con_detalles)
 Vmai = sp.simplify(Vmai.subs(Ya*Yb, G**2))
 Vmai_Ya = sp.simplify(Vmai.subs(Yb, G**2/Ya))
 Vmai_Yb = sp.simplify(Vmai.subs(Ya, G**2/Yb))
@@ -69,7 +72,7 @@ Vmai_Yb = sp.simplify(Vmai.subs(Ya, G**2/Yb))
 print_latex( r'T^{{ {:d}{:d} }}_{{ {:d}{:d} }} = '.format(3, 1, 0, 1) +  sp.latex(Vmai_Ya) + ' = ' + sp.latex(Vmai_Yb) )
 
 print('Transimpedancia:')
-Zmai = calc_MAI_ztransf_ij_mn(Ymai, 3, 1, 0, 1, verbose=con_detalles)
+Zmai = calc_MAI_ztransf_ij_mn(Ymai, input_port, output_port, verbose=con_detalles)
 Zmai = sp.simplify(Zmai.subs(Ya*Yb, G**2))
 Zmai_Ya = sp.simplify(Zmai.subs(Yb, G**2/Ya))
 Zmai_Yb = sp.simplify(Zmai.subs(Ya, G**2/Yb))

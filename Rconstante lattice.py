@@ -11,8 +11,7 @@ Red de resistencia constante implementada con lattice
 import sympy as sp
 
 from pytc2.cuadripolos import Z2Tabcd_s, Tabcd2Z_s
-from pytc2.sistemas_lineales import simplify_n_monic
-from pytc2.general import print_latex, a_equal_b_latex_s
+from pytc2.general import print_latex, a_equal_b_latex_s, simplify_n_monic
 
 
 Zb, Za = sp.symbols('Zb Za', complex=True)
@@ -34,7 +33,11 @@ Trcons = Trcons.subs(Za*Zb, R**2)
 # Trcons = Trcons.subs(Za, R**2/Zb)
 Trcons = Trcons.subs(Zb, R**2/Za)
 
-Vtransf = 1/(simplify_n_monic(Trcons[0,0]))
+k, num, den = simplify_n_monic(Trcons[0,0]) 
+
+Atot = k * num / den
+
+Vtransf = 1/Atot
 
 print_latex(a_equal_b_latex_s('\\frac{V_2}{V_g}', Vtransf))
 
